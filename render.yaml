@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: turkiston-daily
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements-bot.txt
+    startCommand: python main.py
+    healthCheckPath: /
+    disk:
+      name: turkiston-daily-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/turkiston_daily.db
