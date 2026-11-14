@@ -95,9 +95,19 @@ def init_db():
                 created_at TEXT NOT NULL DEFAULT ''
             );
 
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                endpoint TEXT NOT NULL UNIQUE,
+                p256dh TEXT NOT NULL DEFAULT '',
+                auth TEXT NOT NULL DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_tasks_user_date ON tasks(user_id, date);
             CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date);
             CREATE INDEX IF NOT EXISTS idx_budgets_user_month ON budgets(user_id, month);
+            CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
             """
         )
 
@@ -111,6 +121,11 @@ def init_db():
                 "avatar_url": "TEXT NOT NULL DEFAULT ''",
                 "password_hash": "TEXT NOT NULL DEFAULT ''",
                 "telegram_user_id": "INTEGER",
+                "last_finance_reminder_date": "TEXT DEFAULT ''",
+                "last_evening_review_date": "TEXT DEFAULT ''",
+                "push_notifications_enabled": "INTEGER DEFAULT 1",
+                "finance_reminder_enabled": "INTEGER DEFAULT 1",
+                "evening_review_enabled": "INTEGER DEFAULT 1",
             },
         )
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone != ''")

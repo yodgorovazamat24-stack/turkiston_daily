@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from datetime import date as Date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
+import urllib.error
+import urllib.request
 from urllib.parse import parse_qsl
 
 import uvicorn
@@ -212,6 +214,13 @@ class ProfileUpdate(BaseModel):
     username: str | None = None
     avatar_url: str | None = None
     password: str | None = None
+    finance_reminder_enabled: bool | None = None
+    evening_review_enabled: bool | None = None
+    push_notifications_enabled: bool | None = None
+
+class PushSubscriptionData(BaseModel):
+    endpoint: str
+    keys: dict | None = None
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
@@ -386,17 +395,23 @@ async def get_profile(user_id: int = Depends(current_user)):
         tx_count = connection.execute("SELECT COUNT(*) FROM transactions WHERE user_id = ?", (user_id,)).fetchone()[0]
         goal_count = connection.execute("SELECT COUNT(*) FROM goals WHERE user_id = ?", (user_id,)).fetchone()[0]
 
+    u_dict = dict(user) if user else {}
     return {
         "user_id": user_id,
-        "full_name": (user["full_name"] if user else "") or "Turkiston Daily Foydalanuvchisi",
-        "username": (user["username"] if user else "") or "",
-        "phone": (user["phone"] if user else "") or "",
-        "avatar_url": (user["avatar_url"] if user else "") or "/static/icon-192.png",
-        "has_password": bool(user and user["password_hash"]),
+        "full_name": u_dict.get("full_name") or "Turkiston Daily Foydalanuvchisi",
+        "username": u_dict.get("username") or "",
+        "phone": u_dict.get("phone") or "",
+        "avatar_url": u_dict.get("avatar_url") or "/static/icon-192.png",
+        "has_password": bool(u_dict.get("password_hash")),
         "stats": {
             "tasks": task_count,
             "transactions": tx_count,
             "goals": goal_count
+        },
+        "settings": {
+            "push_notifications_enabled": bool(u_dict.get("push_notifications_enabled", 1)),
+            "finance_reminder_enabled": bool(u_dict.get("finance_reminder_enabled", 1)),
+            "evening_review_enabled": bool(u_dict.get("evening_review_enabled", 1))
         }
     }
 
@@ -422,12 +437,35 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
         if data.password:
             updates.append("password_hash = ?")
             params.append(hash_password(data.password))
+        if data.push_notifications_enabled is not None:
+            updates.append("push_notifications_enabled = ?")
+            params.append(1 if data.push_notifications_enabled else 0)
+        if data.finance_reminder_enabled is not None:
+            updates.append("finance_reminder_enabled = ?")
+            params.append(1 if data.finance_reminder_enabled else 0)
+        if data.evening_review_enabled is not None:
+            updates.append("evening_review_enabled = ?")
+            params.append(1 if data.evening_review_enabled else 0)
 
         if updates:
             params.append(user_id)
             connection.execute(f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?", params)
 
     return {"status": "ok", "message": "Profil muvaffaqiyatli yangilandi"}
+
+@app.post("/api/push/subscribe")
+async def subscribe_push(sub: PushSubscriptionData, user_id: int = Depends(current_user)):
+    if not sub.endpoint:
+        raise HTTPException(status_code=400, detail="Endpoint talab qilinadi")
+    p256 = (sub.keys or {}).get("p256dh", "")
+    auth_key = (sub.keys or {}).get("auth", "")
+    with database() as conn:
+        conn.execute(
+            "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id",
+            (user_id, sub.endpoint, p256, auth_key)
+        )
+    return {"status": "ok", "message": "Push obunasi saqlandi"}
 
 @app.post("/api/profile/avatar")
 async def upload_avatar(request: Request, user_id: int = Depends(current_user)):
@@ -1248,6 +1286,130 @@ async def send_report_to_telegram(
     return {"status": "sent"}
 
 
+def _fetch_gemini_rest(api_key: str, user_msg: str, system_prompt: str, model_name: str) -> str:
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": user_msg}
+                ]
+            }
+        ],
+        "systemInstruction": {
+            "parts": [
+                {"text": system_prompt}
+            ]
+        },
+        "generationConfig": {
+            "responseMimeType": "application/json"
+        }
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        res_bytes = resp.read()
+        res_data = json.loads(res_bytes.decode("utf-8"))
+        candidates = res_data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if parts:
+                return parts[0].get("text", "")
+    return ""
+
+
+def _fetch_pollinations_free_ai(user_msg: str, system_prompt: str) -> str:
+    url = "https://text.pollinations.ai/"
+    payload = {
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_msg}
+        ],
+        "model": "openai",
+        "jsonMode": True
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return resp.read().decode("utf-8")
+
+
+async def query_gemini_api(api_key: str, user_msg: str, system_prompt: str) -> dict:
+    raw_text = ""
+    models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    last_error_msg = ""
+
+    # 1. API key berilgan bo'lsa, Gemini SDK va REST API orqali urunish
+    if api_key:
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            for model in models_to_try:
+                try:
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=user_msg,
+                        config={"system_instruction": system_prompt, "response_mime_type": "application/json"}
+                    )
+                    if response and response.text:
+                        raw_text = response.text
+                        break
+                except Exception as ex:
+                    last_error_msg = str(ex)
+                    logging.warning("SDK Gemini %s xatosi: %s", model, ex)
+        except ImportError:
+            pass
+        except Exception as ex:
+            last_error_msg = str(ex)
+            logging.warning("SDK Gemini import/mijoz xatosi: %s", ex)
+
+        if not raw_text:
+            for model in models_to_try:
+                try:
+                    raw_text = await asyncio.to_thread(_fetch_gemini_rest, api_key, user_msg, system_prompt, model)
+                    if raw_text:
+                        break
+                except urllib.error.HTTPError as he:
+                    err_body = he.read().decode("utf-8", errors="ignore")
+                    logging.warning("REST Gemini %s HTTP xatosi %s: %s", model, he.code, err_body)
+                    last_error_msg = f"HTTP {he.code}: {err_body}"
+                except Exception as ex:
+                    last_error_msg = str(ex)
+                    logging.warning("REST Gemini %s ulanish xatosi: %s", model, ex)
+
+    # 2. Key bo'lmasa yoki Gemini xato bersa -> Bepul Ochiq AI ulanishi (Pollinations AI)
+    if not raw_text:
+        try:
+            raw_text = await asyncio.to_thread(_fetch_pollinations_free_ai, user_msg, system_prompt)
+        except Exception as ex:
+            logging.warning("Bepul AI ulanish xatosi: %s", ex)
+            if not api_key:
+                last_error_msg = "Bepul AI serveriga ulanishda muammo"
+
+    if not raw_text:
+        raise Exception(f"AI ulanishida xato: {last_error_msg or 'Javob olinmadi'}")
+
+    # 3. JSON natijani tozalash va o'qish
+    cleaned_text = raw_text.strip()
+    if cleaned_text.startswith("```"):
+        lines = cleaned_text.splitlines()
+        if len(lines) >= 2 and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        cleaned_text = "\n".join(lines).strip()
+
+    try:
+        return json.loads(cleaned_text)
+    except Exception:
+        return {"reply": cleaned_text, "action": None}
+
+
 @app.post("/api/ai/chat")
 async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_user)):
     user_msg = req.message.strip()
@@ -1255,12 +1417,6 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
         raise HTTPException(status_code=422, detail="Xabar matnini kiriting")
 
     active_key = (req.api_key or "").strip() or GEMINI_API_KEY
-    if not active_key:
-        return {
-            "status": "need_key",
-            "reply": "⚠️ Google Gemini API kaliti kiritilmagan. Sozlamalar bo'limidan yoki shu oynadan Gemini API kalitingizni kiriting (aistudio.google.com saytidan bepul olinadi).",
-            "action": None
-        }
 
     # Foydalanuvchining bugungi holatini kontekst uchun olish
     today = today_text()
@@ -1299,17 +1455,9 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
     )
 
     try:
-        from google import genai
-        client = genai.Client(api_key=active_key)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_msg,
-            config={"system_instruction": system_prompt, "response_mime_type": "application/json"}
-        )
-        parsed = json.loads(response.text)
+        parsed = await query_gemini_api(active_key, user_msg, system_prompt)
     except Exception as e:
         logging.warning("Gemini AI chaqiruvida xato: %s", e)
-        # Fallback oddiy qoidalar asosida
         return {
             "status": "error",
             "reply": f"Gemini AI bilan bog'lanishda xatolik yuz berdi: {str(e)}",
@@ -2316,6 +2464,59 @@ async def send_reminders():
                     "WHERE id = ? AND remind_at = ?",
                     (current_time, task["id"], task["remind_at"]),
                 )
+
+        # Smart Avtomatik Eslatmalar (Moliya va Kun sarhisobi)
+        current_hour = now.hour
+        today_str = now.date().isoformat()
+
+        # 1. Kunlik moliya eslatmasi (soat 20:00 atrofida)
+        if current_hour == 20:
+            with database() as connection:
+                users_to_remind = connection.execute(
+                    "SELECT user_id FROM users WHERE finance_reminder_enabled = 1 "
+                    "AND (last_finance_reminder_date IS NULL OR last_finance_reminder_date != ?)",
+                    (today_str,)
+                ).fetchall()
+                for u_row in users_to_remind:
+                    u_id = u_row["user_id"]
+                    tx_cnt = connection.execute(
+                        "SELECT COUNT(*) FROM transactions WHERE user_id = ? AND date = ?",
+                        (u_id, today_str)
+                    ).fetchone()[0]
+
+                    if tx_cnt == 0:
+                        fin_msg = "💰 Moliyaviy eslatma\n\nBugun hali birorta xarajat yoki kirim kiritmadingiz. Kunlik hisob-kitobingizni yangilab qo'ying!"
+                        if bot:
+                            try:
+                                await bot.send_message(u_id, fin_msg)
+                            except Exception:
+                                pass
+                    connection.execute(
+                        "UPDATE users SET last_finance_reminder_date = ? WHERE user_id = ?",
+                        (today_str, u_id)
+                    )
+
+        # 2. Kun sarhisobi va ertangi kun rejasi (soat 21:00 atrofida)
+        if current_hour == 21:
+            with database() as connection:
+                users_to_review = connection.execute(
+                    "SELECT user_id FROM users WHERE evening_review_enabled = 1 "
+                    "AND (last_evening_review_date IS NULL OR last_evening_review_date != ?)",
+                    (today_str,)
+                ).fetchall()
+                for u_row in users_to_review:
+                    u_id = u_row["user_id"]
+                    rev_msg = "📋 Kun sarhisobi va ertangi reja\n\nBugungi kuningizni sarhisob qilish hamda ertangi kun rejalarini belgilash vaqti bo'ldi! ✨"
+                    if bot:
+                        try:
+                            await bot.send_message(u_id, rev_msg)
+                        except Exception:
+                            pass
+                    connection.execute(
+                        "UPDATE users SET last_evening_review_date = ? WHERE user_id = ?",
+                        (today_str, u_id)
+                    )
+
         await asyncio.sleep(30)
 
 

@@ -396,16 +396,96 @@
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik tarix</h3><p class="panel-subtitle" id="historyMonthLabel"></p></div></div><div id="historyList"></div></section>
                 </div>
             </section>
+            <section class="view" id="view-profile">
+                <p class="page-intro">Shaxsiy kabinet, bildirishnomalar va profil sozlamalari.</p>
+                <div class="view-grid">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title" id="profileName">Foydalanuvchi</h3>
+                                <p class="panel-subtitle" id="profileSub">ID: ...</p>
+                            </div>
+                            <img id="profileAvatar" src="/static/icon-192.png" alt="Avatar" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid var(--green);">
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0;">
+                            <div style="background:var(--paper); padding:10px; border-radius:8px; text-align:center;">
+                                <div style="font-size:18px; font-weight:700; color:var(--green);" id="statTasks">0</div>
+                                <div style="font-size:11px; color:var(--muted);">Rejalar</div>
+                            </div>
+                            <div style="background:var(--paper); padding:10px; border-radius:8px; text-align:center;">
+                                <div style="font-size:18px; font-weight:700; color:var(--green);" id="statTx">0</div>
+                                <div style="font-size:11px; color:var(--muted);">Amaliyotlar</div>
+                            </div>
+                            <div style="background:var(--paper); padding:10px; border-radius:8px; text-align:center;">
+                                <div style="font-size:18px; font-weight:700; color:var(--green);" id="statGoals">0</div>
+                                <div style="font-size:11px; color:var(--muted);">Maqsadlar</div>
+                            </div>
+                        </div>
+
+                        <div class="panel-header" style="margin-top:16px;">
+                            <div>
+                                <h4 class="panel-title" style="font-size:15px;">🔔 Push Bildirishnomalar va Eslatmalar</h4>
+                                <p class="panel-subtitle">Smart avtomatik eslatmalar</p>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+                            <button class="primary-button" type="button" id="enablePushBtn" style="background:var(--green); color:#fff;">
+                                🔔 Push bildirishnomalarni yoqish
+                            </button>
+
+                            <label style="display:flex; align-items:center; justify-content:space-between; font-size:13px; cursor:pointer; padding:8px; background:var(--paper); border-radius:8px;">
+                                <span>💰 Kunlik moliya eslatmasi (soat 20:00 da)</span>
+                                <input type="checkbox" id="toggleFinanceRem" checked style="width:18px; height:18px; accent-color:var(--green);">
+                            </label>
+
+                            <label style="display:flex; align-items:center; justify-content:space-between; font-size:13px; cursor:pointer; padding:8px; background:var(--paper); border-radius:8px;">
+                                <span>📋 Kun sarhisobi va ertangi reja (soat 21:00 da)</span>
+                                <input type="checkbox" id="toggleEveningRem" checked style="width:18px; height:18px; accent-color:var(--green);">
+                            </label>
+
+                            <button class="secondary-button" type="button" id="testPushBtn">
+                                🧪 Sinov bildirishnomasini yuborish
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title">Profilni tahrirlash</h3>
+                                <p class="panel-subtitle">Ism, username va parol</p>
+                            </div>
+                        </div>
+                        <form id="profileEditForm" class="form-stack">
+                            <div class="field-group">
+                                <label class="field-label" for="editFullName">Ism va Familiya</label>
+                                <input class="field" id="editFullName" type="text" placeholder="Ismingiz">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="editUsername">Username</label>
+                                <input class="field" id="editUsername" type="text" placeholder="username">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="editPassword">Yangi Parol (ixtiyoriy)</label>
+                                <input class="field" id="editPassword" type="password" placeholder="Parol">
+                            </div>
+                            <button class="primary-button" type="submit">Saqlash</button>
+                        </form>
+                    </section>
+                </div>
+            </section>
         </main>
     </div>
 
-    <nav class="mobile-nav" aria-label="Asosiy menyu" style="grid-template-columns: repeat(6, 1fr);">
+    <nav class="mobile-nav" aria-label="Asosiy menyu" style="grid-template-columns: repeat(7, 1fr);">
         <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
         <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
         <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
         <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
         <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
         <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+        <button class="nav-button" data-view="profile"><span class="nav-icon">👤</span>Profil</button>
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -414,7 +494,7 @@
         telegram?.ready();
         telegram?.expand();
         const telegramInitData = telegram?.initData || '';
-        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix" };
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix", profile: "Shaxsiy Kabinet" };
         const categoryDefaults = ['Oziq-ovqat', 'Transport', 'Uy-joy', 'Sog\'liq', 'Ta\'lim', 'Ko\'ngilochar', 'Maosh', 'Boshqa'];
         let dashboard = null;
         let selectedScore = 0;
@@ -811,6 +891,132 @@
             submitAiChat(promptText);
         };
 
+        // ================= PROFILE & PUSH NOTIFICATIONS =================
+        async function loadProfile() {
+            try {
+                const prof = await api('/api/profile');
+                if (prof) {
+                    document.getElementById('profileName').textContent = prof.full_name || 'Foydalanuvchi';
+                    document.getElementById('profileSub').textContent = `ID: ${prof.user_id} · ${prof.phone || prof.username || 'Turkiston Daily'}`;
+                    if (prof.avatar_url) document.getElementById('profileAvatar').src = prof.avatar_url;
+
+                    document.getElementById('editFullName').value = prof.full_name || '';
+                    document.getElementById('editUsername').value = prof.username || '';
+
+                    if (prof.stats) {
+                        document.getElementById('statTasks').textContent = prof.stats.tasks || 0;
+                        document.getElementById('statTx').textContent = prof.stats.transactions || 0;
+                        document.getElementById('statGoals').textContent = prof.stats.goals || 0;
+                    }
+
+                    if (prof.settings) {
+                        document.getElementById('toggleFinanceRem').checked = prof.settings.finance_reminder_enabled !== false;
+                        document.getElementById('toggleEveningRem').checked = prof.settings.evening_review_enabled !== false;
+                    }
+                }
+            } catch (err) {
+                console.warn("Profil yuklash xatosi:", err);
+            }
+        }
+
+        async function initPushNotifications() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.register('/sw.js');
+                    if ('Notification' in window) {
+                        const status = Notification.permission;
+                        const pushBtn = document.getElementById('enablePushBtn');
+                        if (pushBtn) {
+                            if (status === 'granted') {
+                                pushBtn.textContent = '✅ Push bildirishnomalar faol';
+                                pushBtn.style.background = 'var(--muted)';
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+        }
+
+        document.getElementById('enablePushBtn')?.addEventListener('click', async () => {
+            if (!('Notification' in window)) {
+                showToast("Brauzeringiz push bildirishnomalarni qo'llab-quvvatlamaydi");
+                return;
+            }
+            const perm = await Notification.requestPermission();
+            if (perm === 'granted') {
+                showToast("Push bildirishnomalar yoqildi! ✅");
+                const pushBtn = document.getElementById('enablePushBtn');
+                if (pushBtn) {
+                    pushBtn.textContent = '✅ Push bildirishnomalar faol';
+                    pushBtn.style.background = 'var(--muted)';
+                }
+                if ('serviceWorker' in navigator) {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: null
+                    }).catch(() => null);
+                    if (sub) {
+                        api('/api/push/subscribe', {
+                            method: 'POST',
+                            body: JSON.stringify(sub)
+                        });
+                    }
+                }
+            } else {
+                showToast("Bildirishnomalarga ruxsat berilmadi");
+            }
+        });
+
+        document.getElementById('testPushBtn')?.addEventListener('click', () => {
+            if (Notification.permission === 'granted') {
+                new Notification("Turkiston Daily ✨", {
+                    body: "Sinov bildirishnomasi muvaffaqiyatli ishlayapti!",
+                    icon: "/static/icon-192.png"
+                });
+                showToast("Sinov bildirishnomasi yuborildi");
+            } else {
+                showToast("Avval push bildirishnomalarni yoqing!");
+            }
+        });
+
+        document.getElementById('profileEditForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('editFullName').value;
+            const username = document.getElementById('editUsername').value;
+            const password = document.getElementById('editPassword').value;
+
+            runAction(async () => {
+                await api('/api/profile', {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        username: username,
+                        password: password || null
+                    })
+                });
+                await loadProfile();
+            }, "Profil yangilandi");
+        });
+
+        document.getElementById('toggleFinanceRem')?.addEventListener('change', (e) => {
+            api('/api/profile', {
+                method: 'PATCH',
+                body: JSON.stringify({ finance_reminder_enabled: e.target.checked })
+            });
+            showToast("Moliya eslatmasi sozlamasi saqlandi");
+        });
+
+        document.getElementById('toggleEveningRem')?.addEventListener('change', (e) => {
+            api('/api/profile', {
+                method: 'PATCH',
+                body: JSON.stringify({ evening_review_enabled: e.target.checked })
+            });
+            showToast("Kun sarhisobi eslatmasi sozlamasi saqlandi");
+        });
+
+        loadProfile();
+        initPushNotifications();
         refresh();
         loadHistory();
     </script>
