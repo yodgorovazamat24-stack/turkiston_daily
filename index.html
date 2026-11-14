@@ -156,7 +156,6 @@
         .score-button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; color: #a9b0aa; background: white; font-size: 16px; }
         .score-button.selected { border-color: var(--yellow); color: #987516; background: var(--yellow-soft); }
 
-        /* MODAL / PROFILE HEADER POPUP */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; place-items: center; padding: 20px; backdrop-filter: blur(4px); }
         .modal-overlay.open { display: grid; }
         .modal-card { width: 100%; max-width: 480px; background: var(--white); border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); animation: appear .2s ease both; max-height: 90vh; overflow-y: auto; }
@@ -247,7 +246,7 @@
                 </div>
             </section>
 
-            <!-- AI YORDAMCHI (Haqiqiy suhbatdosh) -->
+            <!-- AI YORDAMCHI -->
             <section class="view" id="view-ai">
                 <p class="page-intro">Sun'iy intellekt bilan erkin suhbatlashing, maslahat oling. Xohlasangiz xarajat yoki reja qo'shishni buyuring — o'zi avtomatik bajaradi.</p>
                 <div class="view-grid">
@@ -277,15 +276,16 @@
                 </div>
             </section>
 
-            <!-- REJALAR (TickTick) -->
+            <!-- REJALAR (TickTick kabi takroriy eslatmalar) -->
             <section class="view" id="view-tasks">
-                <p class="page-intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va budilnik eslatmalari.</p>
+                <p class="page-intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va har soatda qayta eslatuvchi budilniklar.</p>
                 <div class="view-grid">
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Rejalar ro'yxati (TickTick)</h3><p class="panel-subtitle" id="taskSummaryFull"></p></div></div><div id="taskList" class="list"></div></section>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Vazifa va vaqt belgilash</p></div></div>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Vazifa, vaqt va takrorlanish</p></div></div>
                         <form id="taskForm" class="form-stack">
-                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, kitob o'qish" required></div>
-                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (Budilnik)</label><input class="field" id="taskReminder" type="datetime-local"></div></div>
+                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, suv ichish" required></div>
+                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskInterval">Takroriy eslatish</label><select class="field" id="taskInterval"><option value="once">Bir marta</option><option value="hourly">Har soatda (bajarilguncha)</option></select></div></div>
+                            <div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (Budilnik)</label><input class="field" id="taskReminder" type="datetime-local"></div>
                             <button class="primary-button" type="submit">+ Reja qo'shish</button>
                         </form>
                     </section>
@@ -332,19 +332,28 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR (Faqat hisobotlar va Excel) -->
+            <!-- HISOBOTLAR (Davr bo'yicha Excel/CSV eksport va ulashish) -->
             <section class="view" id="view-reports">
-                <p class="page-intro">Kun yakuni, oylik tarix va Excel (CSV) hisobotlarni yuklab olish va Telegram orqali ulashish.</p>
+                <p class="page-intro">Kun yakuni, oylik tarix va istalgan davr (kunlik, haftalik, oylik) bo'yicha Excel hisobotlarini yuklab olish va Telegram orqali ulashish.</p>
                 <div class="view-grid">
                     <div class="column">
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Kun yakuni</h3><p class="panel-subtitle" id="reportDateLabel"></p></div></div>
                             <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label">Kunga baho</label><div class="report-score" id="scoreButtons"></div></div><div class="field-group"><label class="field-label" for="reportNote">Qayd va eslatmalar</label><textarea class="field" id="reportNote" rows="3" placeholder="Bugun nima yaxshi o'tdi?"></textarea></div><button class="primary-button" type="submit">Saqlash</button></form>
                         </section>
                         <section class="panel">
-                            <div class="panel-header"><div><h3 class="panel-title">📊 Excel Hisobot (CSV)</h3><p class="panel-subtitle">Barcha moliyaviy yozuvlarni Excel orqali ko'rish va ulashish</p></div></div>
+                            <div class="panel-header"><div><h3 class="panel-title">📊 Davr bo'yicha Excel / CSV Hisobot</h3><p class="panel-subtitle">Istalgan davrni tanlab hisobotni yuklang</p></div></div>
                             <div class="form-stack">
+                                <div class="field-group">
+                                    <label class="field-label" for="reportExportPeriod">Hisobot davri</label>
+                                    <select class="field" id="reportExportPeriod">
+                                        <option value="day">Kunlik (Bugungi)</option>
+                                        <option value="week">Haftalik</option>
+                                        <option value="month" selected>Oylik</option>
+                                        <option value="all">Barcha davr</option>
+                                    </select>
+                                </div>
                                 <button class="primary-button" type="button" id="exportExcelBtn" style="background:var(--green);">📥 Excel / CSV hisobotini yuklab olish</button>
-                                <button class="secondary-button" type="button" id="shareExcelBtn">📤 Hisobotni Telegram orqali ulashish</button>
+                                <button class="secondary-button" type="button" id="shareExcelBtn">📤 Telegram yoki boshqalarga ulashish</button>
                             </div>
                         </section>
                     </div>
@@ -358,17 +367,20 @@
     <div class="modal-overlay" id="profileModal">
         <div class="modal-card">
             <div class="panel-header">
-                <div><h3 class="panel-title">👤 Shaxsiy Kabinet va Nastroyka</h3><p class="panel-subtitle">Ma'lumotlar va budilnik eslatmalari</p></div>
+                <div><h3 class="panel-title">👤 Shaxsiy Kabinet va Nastroyka</h3><p class="panel-subtitle">Avatar, ma'lumotlar va budilnik eslatmalari</p></div>
                 <button class="mini-button delete" id="closeProfileModalBtn" style="font-size:18px;">×</button>
             </div>
             <div class="form-stack" style="gap:16px; margin-top:10px;">
-                <div style="display:flex; align-items:center; gap:14px; padding:12px; background:var(--paper); border-radius:10px;">
-                    <div style="width:48px; height:48px; border-radius:50%; background:var(--green); color:#fff; display:grid; place-items:center; font-size:20px; font-weight:700;" id="modalAvatarLetter">U</div>
+                <div style="display:flex; align-items:center; gap:14px; padding:12px; background:var(--paper); border-radius:10px; cursor:pointer;" onclick="document.getElementById('avatarFileInput').click()" title="Rasm yuklash uchun bosing">
+                    <div id="avatarContainer" style="width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff; display:grid; place-items:center; font-size:24px; font-weight:700; overflow:hidden;">
+                        <span id="modalAvatarLetter">U</span>
+                    </div>
                     <div>
                         <strong id="modalDisplayName" style="font-size:15px;">Foydalanuvchi</strong>
-                        <p id="modalDisplayBio" style="margin:2px 0 0; color:var(--muted); font-size:11px;">Shaxsiy yordamchi egasi</p>
+                        <p style="margin:2px 0 0; color:var(--green); font-size:11px; font-weight:600;">📷 Rasmni o'zgartirish uchun bosing</p>
                     </div>
                 </div>
+                <input type="file" id="avatarFileInput" accept="image/*" hidden>
 
                 <div class="field-group"><label class="field-label" for="profileNameInput">Ism va Familiya</label><input class="field" id="profileNameInput" placeholder="Ismingiz"></div>
                 <div class="field-group"><label class="field-label" for="profileBioInput">Bio / Shaxsiy shior</label><input class="field" id="profileBioInput" placeholder="Masalan: Har kuni 1% oldinga!"></div>
@@ -403,17 +415,17 @@
         <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
         <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
         <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
-        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobotlar</button>
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma va Maqsadlar", reports: "Hisobotlar va Excel" };
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobotlar va Excel", profile: "Shaxsiy Kabinet" };
         let selectedScore = 0;
         let toastTimer;
 
         function getDB() {
-            let db = localStorage.getItem('turkiston_local_db_v5');
+            let db = localStorage.getItem('turkiston_local_db_v6');
             if (!db) {
                 const initial = {
                     tasks: [],
@@ -421,16 +433,16 @@
                     budgets: [],
                     goals: [],
                     reports: {},
-                    profile: { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi" },
+                    profile: { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi", avatar: null },
                     settings: { finance_rem: true, evening_rem: true }
                 };
-                localStorage.setItem('turkiston_local_db_v5', JSON.stringify(initial));
+                localStorage.setItem('turkiston_local_db_v6', JSON.stringify(initial));
                 return initial;
             }
             return JSON.parse(db);
         }
         function saveDB(db) {
-            localStorage.setItem('turkiston_local_db_v5', JSON.stringify(db));
+            localStorage.setItem('turkiston_local_db_v6', JSON.stringify(db));
         }
 
         function localDateString(date = new Date()) {
@@ -468,6 +480,22 @@
         document.getElementById('closeProfileModalBtn').addEventListener('click', () => profileModal.classList.remove('open'));
         profileModal.addEventListener('click', (e) => { if (e.target === profileModal) profileModal.classList.remove('open'); });
 
+        // AVATAR UPLOAD
+        document.getElementById('avatarFileInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = event => {
+                const base64Img = event.target.result;
+                const db = getDB();
+                db.profile.avatar = base64Img;
+                saveDB(db);
+                renderAll();
+                showToast("Avatar rasm saqlandi! 📷");
+            };
+            reader.readAsDataURL(file);
+        });
+
         function updateAiInsights() {
             const db = getDB();
             const dateStr = document.getElementById('selectedDate').value || localDateString();
@@ -477,7 +505,7 @@
             const exp = todayTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
             const comp = todayTasks.filter(t => t.is_completed).length;
 
-            let tip = "Bugungi kuningiz ajoyib o'tsin! TickTick kabi rejali va Money Manager kabi tartibli yashang. ✨";
+            let tip = "Bugungi kuningiz ajoyib o'tsin! TickTick va Money Manager imkoniyatlari bir joyda. ✨";
             if (todayTasks.length > 0 && comp === todayTasks.length) {
                 tip = "🏆 Ajoyib! Bugungi barcha rejalaringizni bajarib bo'ldingiz. O'zingiz bilan faxrlansangiz arziydi!";
             } else if (todayTasks.length - comp > 2) {
@@ -493,12 +521,18 @@
             const dateStr = document.getElementById('selectedDate').value || localDateString();
             const monthStr = dateStr.slice(0, 7);
 
-            const prof = db.profile || { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi" };
+            const prof = db.profile || { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi", avatar: null };
             document.getElementById('modalDisplayName').textContent = prof.name;
             document.getElementById('modalDisplayBio').textContent = prof.bio;
             document.getElementById('profileNameInput').value = prof.name;
             document.getElementById('profileBioInput').value = prof.bio;
-            document.getElementById('modalAvatarLetter').textContent = prof.name.charAt(0).toUpperCase();
+
+            const avatarContainer = document.getElementById('avatarContainer');
+            if (prof.avatar) {
+                avatarContainer.innerHTML = `<img src="${prof.avatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            } else {
+                avatarContainer.innerHTML = `<span id="modalAvatarLetter">${prof.name.charAt(0).toUpperCase()}</span>`;
+            }
 
             const todayTasks = db.tasks.filter(t => t.date === dateStr);
             const todayTx = db.transactions.filter(tx => tx.date === dateStr);
@@ -534,6 +568,7 @@
                         <div class="task-name">${escapeHtml(t.title)}</div>
                         <div class="task-meta">
                             <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
+                            ${t.interval === 'hourly' ? '<span class="tag">Har soatda</span>' : ''}
                             ${t.reminder ? `<span class="tag">◷ ${t.reminder.slice(11, 16)}</span>` : ''}
                         </div>
                     </div>
@@ -670,34 +705,69 @@
             });
         }
 
-        // EXCEL / CSV EXPORT AND SHARE FOR TELEGRAM
+        // ADVANCED PERIOD-BASED EXCEL / CSV EXPORT AND SHARE FOR TELEGRAM
         function exportExcelReport() {
             const db = getDB();
-            if (!db.transactions.length && !db.tasks.length) {
-                showToast("Eksport qilish uchun ma'lumotlar yo'q");
+            const period = document.getElementById('reportExportPeriod').value;
+            const today = new Date();
+            let start = null, end = null, label = "Barcha davr";
+
+            if (period === 'day') {
+                start = end = localDateString(today);
+                label = "Kunlik hisobot";
+            } else if (period === 'week') {
+                const d = new Date(today);
+                const day = d.getDay() || 7;
+                d.setHours(-24 * (day - 1));
+                start = localDateString(d);
+                end = localDateString(today);
+                label = "Haftalik hisobot";
+            } else if (period === 'month') {
+                start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+                end = localDateString(today);
+                label = "Oylik hisobot";
+            }
+
+            let filteredTx = db.transactions;
+            if (period !== 'all' && start && end) {
+                filteredTx = db.transactions.filter(tx => tx.date >= start && tx.date <= end);
+            }
+
+            if (!filteredTx.length) {
+                showToast("Tanlangan davr uchun moliyaviy ma'lumotlar yo'q");
                 return;
             }
-            let csv = "Sana,Turi/Kategoriya,Summa,Izoh\n";
-            db.transactions.forEach(tx => {
-                csv += `${tx.date},${tx.type} - "${tx.category}",${tx.amount},"${tx.note || ''}"\n`;
+
+            const totalInc = filteredTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
+            const totalExp = filteredTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
+
+            let csv = `TURKISTON DAILY - ${label.toUpperCase()}\n`;
+            csv += `Davr: ${start || 'Boshidan'} - ${end || 'Hozirgacha'}\n`;
+            csv += `Jami Kirim:,${totalInc}\n`;
+            csv += `Jami Chiqim:,${totalExp}\n`;
+            csv += `Sof Balans:,${totalInc - totalExp}\n\n`;
+            csv += "Sana,Turi,Kategoriya,Summa,Izoh\n";
+
+            filteredTx.forEach(tx => {
+                csv += `${tx.date},${tx.type},"${tx.category}",${tx.amount},"${tx.note || ''}"\n`;
             });
 
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const file = new File([blob], `turkiston-daily-hisobot.csv`, { type: 'text/csv' });
+            const file = new File([blob], `turkiston-daily-${period}-hisobot.csv`, { type: 'text/csv' });
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 navigator.share({
-                    title: 'Turkiston Daily Hisobot',
-                    text: 'Moliyaviy hisobot va amaliyotlar CSV fayli',
+                    title: `Turkiston Daily - ${label}`,
+                    text: `Moliyaviy hisobot (${label}). Jami balans: ${money(totalInc - totalExp)}`,
                     files: [file]
                 }).catch(() => {});
             } else {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `turkiston-daily-hisobot.csv`;
+                a.download = `turkiston-daily-${period}-hisobot.csv`;
                 a.click();
-                showToast("Hisobot fayli yuklandi 📊");
+                showToast(`Excel / CSV hisobot yuklandi (${label}) 📊`);
             }
         }
 
@@ -715,6 +785,7 @@
                 id: Date.now(),
                 title: document.getElementById('taskTitle').value.trim(),
                 priority: document.getElementById('taskPriority').value,
+                interval: document.getElementById('taskInterval').value,
                 reminder: document.getElementById('taskReminder').value || null,
                 date: document.getElementById('selectedDate').value,
                 is_completed: false
@@ -772,14 +843,12 @@
 
         document.getElementById('saveProfileBtn').addEventListener('click', () => {
             const db = getDB();
-            db.profile = {
-                name: document.getElementById('profileNameInput').value.trim() || "Foydalanuvchi",
-                bio: document.getElementById('profileBioInput').value.trim() || "Shaxsiy yordamchi egasi"
-            };
+            db.profile.name = document.getElementById('profileNameInput').value.trim() || "Foydalanuvchi";
+            db.profile.bio = document.getElementById('profileBioInput').value.trim() || "Shaxsiy yordamchi egasi";
             saveDB(db);
             renderAll();
             profileModal.classList.remove('open');
-            showToast("Shaxsiy kabinet va sozlamalar saqlandi! ✅");
+            showToast("Shaxsiy kabinet saqlandi! ✅");
         });
 
         // ================= CONVERSATIONAL AI ASSISTANT =================
@@ -804,7 +873,6 @@
             const lower = msg.toLowerCase();
             const today = document.getElementById('selectedDate').value;
 
-            // Check if action needed
             if (lower.includes('sarflagim') || lower.includes('som') || lower.includes('pul') || lower.includes('oldi') || lower.includes('ishlatdim')) {
                 const nums = msg.match(/\d[\d\s]*/g);
                 if (nums) {
@@ -828,6 +896,7 @@
                     id: Date.now(),
                     title: msg,
                     priority: lower.includes('muhim') ? 'high' : 'normal',
+                    interval: 'once',
                     reminder: null,
                     date: today,
                     is_completed: false
@@ -838,7 +907,6 @@
                 return;
             }
 
-            // True conversational AI response
             const apiKey = localStorage.getItem('gemini_local_key') || '';
             if (apiKey) {
                 try {
@@ -857,12 +925,11 @@
                 } catch (err) {}
             }
 
-            // Conversational fallback
             let generalReply = "Tushunarli! Bu haqda o'ylab ko'rishga arziydi. Rejalaringizni bajarishda va moliyangizni nazorat qilishda sizga doimo yordam berishga tayyorman. Yana nima haqida gaplashamiz? ✨";
             if (lower.includes('salom') || lower.includes('assalomu')) {
                 generalReply = "Assalomu alaykum! Bugungi kuningiz qanday o'tyapti? 😊";
             } else if (lower.includes('qalaysan') || lower.includes('qalaysiz')) {
-                generalReply = "Rahmat, yaxshiman! Sizning rejalaringiz va moliyangizni nazorat qilishda yordam berib turibman. O'zingiz qalaysiz?";
+                generalReply = "Rahmat, yaxshiman! Sizning rejalaringiz va moliyangizni nazorat qilishda yordam berib turibman. O'zingiz qandaysiz?";
             } else if (lower.includes('maslahat') || lower.includes('motivatsiya')) {
                 generalReply = "Bugun qiladigan eng muhim ishingizni tanlang va barcha e'tiboringizni o'shanga qarating. Kichik qadamlar katta natijalarga olib keladi! 💪";
             } else if (lower.includes('rahmat') || lower.includes('raxmat')) {
@@ -877,7 +944,22 @@
             showToast("Gemini API kaliti saqlandi! ✅");
         });
 
-        // ================= PUSH NOTIFICATIONS / BUDILNIK =================
+        // ================= AUDIO ALARM BEEP (AUDIBLE BUDILNIK) =================
+        function playAlarmBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            } catch (e) {}
+        }
+
         async function initNotifications() {
             if ('Notification' in window && Notification.permission !== 'granted') {
                 await Notification.requestPermission();
@@ -899,17 +981,17 @@
         });
 
         document.getElementById('testPushBtn').addEventListener('click', () => {
+            playAlarmBeep();
             if (Notification.permission === 'granted') {
                 new Notification("Turkiston Daily ✨", { body: "Budilnik sinov bildirishnomasi ishlayapti!" });
-                showToast("Sinov bildirishnomasini yuborildi");
+                showToast("Sinov bildirishnomasi yuborildi");
             } else {
                 showToast("Avval push bildirishnomalarni yoqing!");
             }
         });
 
-        // Background Reminder Interval
+        // Background Reminder Interval (TickTick style hourly / once + audible alarm)
         setInterval(() => {
-            if (!('Notification' in window) || Notification.permission !== 'granted') return;
             const nowIsoStr = localDatetimeString(new Date());
             const now = new Date();
             const currentHour = now.getHours();
@@ -919,20 +1001,32 @@
             const db = getDB();
 
             db.tasks.forEach(t => {
-                if (!t.is_completed && t.reminder && t.reminder.slice(0, 16) === nowIsoStr && !t.notified) {
-                    new Notification("🔔 Reja eslatmasi (Budilnik)", {
-                        body: `Vaqti keldi: ${t.title}`,
-                        icon: "/static/icon-192.png"
-                    });
-                    t.notified = true;
-                    saveDB(db);
+                if (!t.is_completed && t.reminder) {
+                    const matchOnce = (t.reminder.slice(0, 16) === nowIsoStr && !t.notified);
+                    const matchHourly = (t.interval === 'hourly' && now.getMinutes() === 0 && t.reminder.slice(11, 13) <= String(currentHour) && t.last_hourly_notif !== nowIsoStr);
+
+                    if (matchOnce || matchHourly) {
+                        playAlarmBeep();
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification("🔔 Reja eslatmasi (Budilnik)", {
+                                body: `Vaqti keldi: ${t.title}`,
+                                icon: "/static/icon-192.png"
+                            });
+                        }
+                        if (matchOnce) t.notified = true;
+                        if (matchHourly) t.last_hourly_notif = nowIsoStr;
+                        saveDB(db);
+                    }
                 }
             });
 
             if (currentHour === 20 && currentMinute === 0) {
                 const todayTx = db.transactions.filter(tx => tx.date === todayStr);
                 if (todayTx.length === 0 && db.settings.last_fin_notif !== todayStr) {
-                    new Notification("💰 Moliyaviy eslatma", { body: "Bugun hali xarajat yoki kirim kiritmadingiz. Hisob-kitobni yangilang!" });
+                    playAlarmBeep();
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification("💰 Moliyaviy eslatma", { body: "Bugun hali xarajat yoki kirim kiritmadingiz. Hisob-kitobni yangilang!" });
+                    }
                     db.settings.last_fin_notif = todayStr;
                     saveDB(db);
                 }
@@ -940,7 +1034,10 @@
 
             if (currentHour === 21 && currentMinute === 0) {
                 if (!db.reports[todayStr] && db.settings.last_eve_notif !== todayStr) {
-                    new Notification("📋 Kun sarhisobi", { body: "Kunni sarhisob qilish va ertangi rejalarni tuzish vaqti keldi! ✨" });
+                    playAlarmBeep();
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification("📋 Kun sarhisobi", { body: "Kunni sarhisob qilish va ertangi rejalarni tuzish vaqti keldi! ✨" });
+                    }
                     db.settings.last_eve_notif = todayStr;
                     saveDB(db);
                 }
@@ -949,7 +1046,7 @@
 
         // BACKUP & RESTORE
         document.getElementById('exportDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('turkiston_local_db_v4');
+            const data = localStorage.getItem('turkiston_local_db_v6');
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -966,11 +1063,11 @@
             reader.onload = event => {
                 try {
                     JSON.parse(event.target.result);
-                    localStorage.setItem('turkiston_local_db_v4', event.target.result);
+                    localStorage.setItem('turkiston_local_db_v6', event.target.result);
                     renderAll();
                     showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
                 } catch (err) {
-                    showToast('Xato: Noto‘g‘ri fayl formatı');
+                    showToast('Xato: Noto‘g‘ri fayl formati');
                 }
             };
             reader.readAsText(file);
