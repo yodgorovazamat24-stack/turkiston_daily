@@ -7,15 +7,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Turkiston Daily">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <title>Turkiston Daily</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             color-scheme: light;
@@ -32,8 +29,6 @@
             --yellow-soft: #fff6d9;
             --shadow: 0 12px 34px rgba(34, 55, 42, .055);
             font-family: "DM Sans", sans-serif;
-            font-synthesis: none;
-            text-rendering: optimizeLegibility;
         }
         * { box-sizing: border-box; }
         body {
@@ -43,7 +38,6 @@
             background-color: var(--paper);
             background-image: radial-gradient(rgba(36, 92, 67, .075) .7px, transparent .7px);
             background-size: 15px 15px;
-            touch-action: pan-x pan-y;
             -webkit-tap-highlight-color: transparent;
             -webkit-text-size-adjust: 100%;
         }
@@ -61,10 +55,10 @@
         .brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 34px; }
         .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px 13px 13px 4px; color: white; background: var(--green); font-family: Fraunces, Georgia, serif; font-size: 22px; }
         .brand-name { font-family: Fraunces, Georgia, serif; font-size: 19px; line-height: 1.05; }
-        .brand-caption { margin-top: 4px; color: var(--muted); font-size: 10px; letter-spacing: 0; }
+        .brand-caption { margin-top: 4px; color: var(--muted); font-size: 10px; }
         .nav-label { padding: 0 12px 10px; color: #929b93; font-size: 10px; font-weight: 700; }
         .nav-list { display: grid; gap: 5px; }
-        .nav-button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; color: #667169; background: transparent; text-align: left; font-size: 13px; font-weight: 600; transition: background .18s, color .18s, transform .18s; }
+        .nav-button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; color: #667169; background: transparent; text-align: left; font-size: 13px; font-weight: 600; transition: background .18s, color .18s; }
         .nav-button:hover { color: var(--ink); background: rgba(255,255,255,.7); }
         .nav-button.active { color: var(--green); background: var(--white); box-shadow: 0 3px 12px rgba(34,55,42,.06); }
         .nav-icon { display: grid; place-items: center; width: 22px; color: var(--orange); font-size: 18px; }
@@ -77,11 +71,6 @@
         .top-actions { display: flex; align-items: center; gap: 9px; }
         .date-control { display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--muted); font-size: 11px; }
         .date-control input { width: 124px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; }
-        .report-period-control { display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--muted); font-size: 10px; }
-        .report-period-control select { max-width: 115px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 10px; }
-        .custom-export-dates { display: flex; align-items: center; gap: 5px; }
-        .custom-export-dates[hidden] { display: none; }
-        .custom-export-dates input { width: 120px; height: 40px; padding: 0 7px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--ink); font-size: 10px; }
         .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 7px; color: var(--green); background: var(--white); font-size: 16px; }
         .icon-button:hover { border-color: var(--green); }
         .view { display: none; animation: appear .26s ease both; }
@@ -99,7 +88,7 @@
         .stat.balance { color: #9c7818; }
         .stat-label { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
         .stat-symbol { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--paper); color: currentColor; font-size: 14px; }
-        .stat-value { display: block; margin-top: 12px; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 700; letter-spacing: 0; }
+        .stat-value { display: block; margin-top: 12px; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 700; }
         .stat-foot { margin-top: 3px; color: var(--muted); font-size: 10px; }
         .overview-grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(280px, .82fr); gap: 15px; align-items: start; }
         .column { display: grid; gap: 15px; min-width: 0; }
@@ -107,23 +96,19 @@
         .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
         .panel-title { margin: 0; font-size: 14px; font-weight: 700; }
         .panel-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
-        .text-button { padding: 0; border: 0; color: var(--green); background: none; font-size: 10px; font-weight: 700; }
+        .text-button { padding: 0; border: 0; color: var(--green); background: none; font-size: 10px; font-weight: 700; cursor: pointer; }
         .text-button:hover { text-decoration: underline; }
-        .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
         .field { width: 100%; min-width: 0; height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; outline: 0; background: #fcfdfb; color: var(--ink); font-size: 11px; }
         .field:focus { border-color: #80a58e; box-shadow: 0 0 0 3px rgba(36, 92, 67, .08); }
-        .field::placeholder { color: #a4aca5; }
         .field-label { display: block; margin: 0 0 6px; color: #758078; font-size: 10px; font-weight: 600; }
         .field-group { min-width: 0; }
-        .primary-button { min-height: 39px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: var(--green); font-size: 11px; font-weight: 700; transition: background .16s, transform .16s; }
-        .primary-button:hover { background: #194a34; transform: translateY(-1px); }
+        .primary-button { min-height: 39px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: var(--green); font-size: 11px; font-weight: 700; transition: background .16s; }
+        .primary-button:hover { background: #194a34; }
         .accent-button { background: var(--orange); }
         .accent-button:hover { background: #c9583b; }
         .secondary-button { min-height: 35px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px; color: var(--green); background: white; font-size: 10px; font-weight: 700; }
-        .secondary-button:hover { border-color: #9db8a6; }
         .form-stack { display: grid; gap: 10px; }
         .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-        .form-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .list { display: grid; }
         .task-item { display: grid; grid-template-columns: 21px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 49px; border-top: 1px solid #eef0ec; }
         .task-check { display: grid; place-items: center; width: 19px; height: 19px; padding: 0; border: 1.5px solid #b9c5bc; border-radius: 6px; color: white; background: transparent; font-size: 12px; }
@@ -133,7 +118,7 @@
         .task-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
         .tag { padding: 3px 6px; border-radius: 4px; color: #738078; background: #f1f3ef; font-size: 9px; }
         .tag.high { color: #b94a36; background: var(--orange-soft); }
-        .task-actions, .row-actions { display: flex; gap: 5px; }
+        .row-actions { display: flex; gap: 5px; }
         .mini-button { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 0; border-radius: 5px; color: #89938b; background: transparent; font-size: 13px; }
         .mini-button:hover { color: var(--ink); background: var(--paper); }
         .mini-button.delete:hover { color: #b54430; background: var(--orange-soft); }
@@ -150,17 +135,11 @@
         .category-value { color: var(--ink); font-size: 10px; font-weight: 700; }
         .budget-item { padding: 12px 0; border-top: 1px solid #eef0ec; }
         .budget-heading { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
-        .budget-heading strong { font-weight: 700; }
-        .budget-heading span { color: var(--muted); }
         .budget-track { height: 7px; margin-top: 8px; overflow: hidden; border-radius: 9px; background: #edf0eb; }
         .budget-fill { height: 100%; border-radius: inherit; background: var(--green); }
         .budget-fill.warn { background: var(--yellow); }
         .budget-fill.over { background: var(--orange); }
         .empty-state { padding: 17px 0; color: #919a93; font-size: 11px; text-align: center; }
-        .month-strip { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; padding: 13px 15px; border-radius: 7px; background: var(--green); color: white; }
-        .month-strip span { color: rgba(255,255,255,.72); font-size: 10px; }
-        .month-strip strong { display: block; margin-top: 4px; font-size: 17px; }
-        .month-strip .month-net { text-align: right; }
         .view-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); gap: 15px; align-items: start; }
         .page-intro { margin: 0 0 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
         .progress-line { height: 8px; margin-top: 9px; overflow: hidden; border-radius: 6px; background: #edf0eb; }
@@ -194,9 +173,6 @@
             .top-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
             .date-control { height: 36px; gap: 5px; padding: 0 7px; }
             .date-control input { width: 112px; font-size: 10px; }
-            .report-period-control { height: 36px; }
-            .custom-export-dates { width: 100%; justify-content: flex-end; }
-            .custom-export-dates input { width: 112px; height: 36px; }
             .icon-button { width: 36px; height: 36px; }
             .welcome-title { font-size: 21px; }
             .stats-grid { gap: 7px; }
@@ -206,21 +182,18 @@
             .stat-value { margin-top: 11px; font-size: 16px; }
             .stat-foot { font-size: 9px; }
             .panel { padding: 15px; }
-            .form-row.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .form-row.three .field-group:last-child { grid-column: 1 / -1; }
-            .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 10; display: grid; grid-template-columns: repeat(5, 1fr); padding: 7px 5px max(7px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
-            .mobile-nav .nav-button { flex-direction: column; justify-content: center; gap: 2px; min-height: 49px; padding: 4px 2px; border-radius: 6px; font-size: 8px; }
-            .mobile-nav .nav-icon { width: auto; font-size: 16px; }
+            .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 10; display: grid; grid-template-columns: repeat(7, 1fr); padding: 7px 2px max(7px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
+            .mobile-nav .nav-button { flex-direction: column; justify-content: center; gap: 2px; min-height: 49px; padding: 4px 2px; border-radius: 6px; font-size: 7.5px; }
+            .mobile-nav .nav-icon { width: auto; font-size: 15px; }
             .toast { right: 12px; bottom: 78px; }
         }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
     </style>
 </head>
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <div class="brand"><div class="brand-mark">T</div><div><div class="brand-name">Turkiston<br>Daily</div><div class="brand-caption">KUNINGIZNI BOSHQARING</div></div></div>
-            <div class="nav-label">ISH STOLI</div>
+            <div class="brand"><div class="brand-mark">T</div><div><div class="brand-name">Turkiston<br>Daily</div><div class="brand-caption">LOKAL SHAXSIY YORDAMCHI</div></div></div>
+            <div class="nav-label">BO'LIMLAR</div>
             <nav class="nav-list" aria-label="Asosiy menyu">
                 <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
                 <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI Yordamchi</button>
@@ -228,32 +201,23 @@
                 <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
                 <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsadlar</button>
                 <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+                <button class="nav-button" data-view="profile"><span class="nav-icon">👤</span>Profil</button>
             </nav>
-            <div class="sidebar-bottom"><span class="status-dot"></span><span id="connectionStatus">Ulanmoqda</span><br>Ma'lumotlar xavfsiz saqlanadi</div>
+            <div class="sidebar-bottom"><span class="status-dot"></span><span>Lokal rejim (Telefon)</span><br>Ma'lumotlar o'zingizda saqlanadi</div>
         </aside>
 
         <main class="workspace">
             <header class="topbar">
-                <div><div class="eyebrow">BUGUNGI RITMINGIZ</div><h1 class="page-title" id="pageTitle">Umumiy ko'rinish</h1></div>
+                <div><div class="eyebrow">SHAXSIY YORDAMCHI</div><h1 class="page-title" id="pageTitle">Umumiy ko'rinish</h1></div>
                 <div class="top-actions">
-                    <label class="date-control"><span>▦</span><input id="selectedDate" type="date" aria-label="Ko'rilayotgan sana"></label>
-                    <label class="report-period-control" for="exportPeriod"><span>Excel</span><select id="exportPeriod" aria-label="Excel hisobot davri">
-                        <option value="week">Haftalik</option>
-                        <option value="month" selected>Oylik</option>
-                        <option value="year">Yillik</option>
-                        <option value="all">Barcha davr</option>
-                        <option value="custom">Sana oralig'i</option>
-                    </select></label>
-                    <div class="custom-export-dates" id="customExportDates" hidden>
-                        <input id="exportStartDate" type="date" aria-label="Hisobot boshlanish sanasi">
-                        <input id="exportEndDate" type="date" aria-label="Hisobot tugash sanasi">
-                    </div>
-                    <button class="icon-button" id="exportButton" aria-label="Excel hisobotini yuklab olish" title="Excel hisobotini yuklab olish">↓</button>
+                    <label class="date-control"><span>▦</span><input id="selectedDate" type="date" aria-label="Sana"></label>
+                    <button class="icon-button" id="exportBackupBtn" title="Ma'lumotlarni zaxiralash (Backup)" aria-label="Backup">↓</button>
                 </div>
             </header>
 
+            <!-- UMUMIY -->
             <section class="view active" id="view-overview">
-                <div class="welcome-row"><div><h2 class="welcome-title" id="welcomeTitle">Kuningiz xayrli o'tsin</h2><p class="welcome-copy">Bugungi rejalaringiz va pul oqimingiz bir joyda.</p></div><div class="day-pill" id="dayLabel">BUGUN</div></div>
+                <div class="welcome-row"><div><h2 class="welcome-title" id="welcomeTitle">Kuningiz xayrli o'tsin</h2><p class="welcome-copy">Bugungi rejalaringiz va pul oqimingiz.</p></div><div class="day-pill" id="dayLabel">BUGUN</div></div>
                 <div class="stats-grid">
                     <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Bugungi kirim</div><strong class="stat-value" id="dayIncome">0 so'm</strong><div class="stat-foot" id="monthIncome">Oy: 0 so'm</div></article>
                     <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Bugungi chiqim</div><strong class="stat-value" id="dayExpense">0 so'm</strong><div class="stat-foot" id="monthExpense">Oy: 0 so'm</div></article>
@@ -261,164 +225,185 @@
                 </div>
                 <div class="overview-grid">
                     <div class="column">
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Bugungi rejalar</h3><p class="panel-subtitle" id="taskSummary">Rejalaringiz shu yerda ko'rinadi</p></div><button class="text-button" data-go="tasks">Barchasi →</button></div><div id="overviewTasks" class="list"></div></section>
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Xarajatlar tarkibi</h3><p class="panel-subtitle">Tanlangan kun bo'yicha</p></div><button class="text-button" data-go="money">Moliya →</button></div><div id="overviewCategories"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Bugungi rejalar</h3><p class="panel-subtitle" id="taskSummary">Rejalaringiz</p></div><button class="text-button" data-go="tasks">Barchasi →</button></div><div id="overviewTasks" class="list"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Xarajatlar tarkibi</h3><p class="panel-subtitle">Kunlik</p></div><button class="text-button" data-go="money">Moliya →</button></div><div id="overviewCategories"></div></section>
                     </div>
                     <div class="column">
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">So'nggi amaliyotlar</h3><p class="panel-subtitle">Kirim va chiqimlaringiz</p></div><button class="text-button" data-go="money">Ko'rish →</button></div><div id="overviewTransactions" class="list"></div></section>
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle" id="budgetMonthLabel">Kategoriya limitlari</p></div><button class="text-button" data-go="money">Boshqarish →</button></div><div id="overviewBudgets"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">So'nggi amaliyotlar</h3><p class="panel-subtitle">Kirim va chiqimlar</p></div><button class="text-button" data-go="money">Ko'rish →</button></div><div id="overviewTransactions" class="list"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle" id="budgetMonthLabel">Limitlar</p></div><button class="text-button" data-go="money">Boshqarish →</button></div><div id="overviewBudgets"></div></section>
                     </div>
                 </div>
             </section>
 
+            <!-- AI YORDAMCHI -->
+            <section class="view" id="view-ai">
+                <p class="page-intro">Gemini AI bilan muloqot qiling. Masalan: <em>"Tushlikka 45000 so'm ishlatdim"</em> yoki <em>"Ertaga 10:00 da uchrashuv"</em> deb yozing.</p>
+                <div class="view-grid">
+                    <section class="panel" style="display:flex; flex-direction:column; min-height:460px;">
+                        <div class="panel-header">
+                            <div><h3 class="panel-title"><span>✨</span> AI Yordamchi</h3><p class="panel-subtitle">Avtomatik yozuvchi</p></div>
+                            <span class="badge" style="background:var(--green-soft); color:var(--green); font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600;">Lokal Faol</span>
+                        </div>
+                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafbf8; border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
+                            <div style="align-self:flex-start; max-width:88%; background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5;">
+                                <strong>Assalomu alaykum!</strong> Men sizning shaxsiy yordamchingizman. Menga xarajat, kirim yoki reja haqida yozing, o'zim darhol saqlab qo'yaman! ✨
+                            </div>
+                        </div>
+                        <form id="aiChatForm" style="display:flex; gap:8px;">
+                            <input class="field" id="aiUserInput" type="text" placeholder="Masalan: Tushlikka 45000 so'm ishlatdim..." required style="flex:1; height:44px; font-size:14px;">
+                            <button class="primary-button" type="submit" style="min-width:75px; height:44px;">Yuborish</button>
+                        </form>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-header"><div><h3 class="panel-title">AI Sozlamalari</h3><p class="panel-subtitle">Gemini API Kaliti (ixtiyoriy)</p></div></div>
+                        <div class="form-stack">
+                            <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">Kalit kiritmasangiz ham oddiy tahlilchi rejimida ishlayveradi.</p>
+                            <div class="field-group"><label class="field-label" for="geminiApiKeyInput">API Kalit</label><input class="field" id="geminiApiKeyInput" type="password" placeholder="AIzaSy..."></div>
+                            <button class="secondary-button" type="button" id="saveGeminiKeyBtn">Kalitni saqlash</button>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <!-- REJALAR -->
             <section class="view" id="view-tasks">
-                <p class="page-intro">Rejalaringizni yozing, muhimini ajrating va bajarilganini belgilang. Takroriy rejalar keyingi sanalarga o'zi o'tadi.</p>
+                <p class="page-intro">Rejalaringizni qo'shing va vaqtini belgilang. Budilnik eslatmalari ishlaydi!</p>
                 <div class="view-grid">
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Rejalar ro'yxati</h3><p class="panel-subtitle" id="taskSummaryFull"></p></div></div><div id="taskList" class="list"></div></section>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Kuningizga vazifa qo'shing</p></div></div>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Vazifa qo'shish</p></div></div>
                         <form id="taskForm" class="form-stack">
-                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, hisobotni tugatish" required></div>
-                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option><option value="low">Keyinroq</option></select></div><div class="field-group"><label class="field-label" for="taskRecurrence">Takrorlanishi</label><select class="field" id="taskRecurrence"><option value="none">Takrorlanmaydi</option><option value="daily">Har kuni</option><option value="weekly">Har hafta</option><option value="monthly">Har oy</option></select></div></div>
-                            <div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (ixtiyoriy)</label><input class="field" id="taskReminder" type="datetime-local"></div>
+                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, kitob o'qish" required></div>
+                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti</label><input class="field" id="taskReminder" type="datetime-local"></div></div>
                             <button class="primary-button" type="submit">+ Reja qo'shish</button>
                         </form>
                     </section>
                 </div>
             </section>
 
+            <!-- MOLIYA -->
             <section class="view" id="view-money">
-                <p class="page-intro">Har bir kirim va chiqimni yozib boring. Sana tanlagich orqali kunlar orasida o'ting, oylik tarixni pastdan ko'ring.</p>
+                <p class="page-intro">Kirim va chiqimlaringizni yozib boring.</p>
                 <div class="stats-grid">
-                    <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Tanlangan kun kirimi</div><strong class="stat-value" id="moneyIncome">0 so'm</strong></article>
-                    <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Tanlangan kun chiqimi</div><strong class="stat-value" id="moneyExpense">0 so'm</strong></article>
-                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Kun balansi</div><strong class="stat-value" id="moneyBalance">0 so'm</strong></article>
+                    <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Kun kirimi</div><strong class="stat-value" id="moneyIncome">0 so'm</strong></article>
+                    <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Kun chiqimi</div><strong class="stat-value" id="moneyExpense">0 so'm</strong></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Balans</div><strong class="stat-value" id="moneyBalance">0 so'm</strong></article>
                 </div>
                 <div class="view-grid">
                     <div class="column">
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Amaliyotlar</h3><p class="panel-subtitle" id="transactionCount"></p></div></div><div id="transactionList" class="list"></div></section>
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle">Tanlangan oyning chiqim limitlari</p></div></div><div id="budgetList"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle">Limitlar</p></div></div><div id="budgetList"></div></section>
                     </div>
                     <div class="column">
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi amaliyot</h3><p class="panel-subtitle">Kirim yoki chiqimni qayd eting</p></div></div>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi amaliyot</h3><p class="panel-subtitle">Kirim / Chiqim</p></div></div>
                             <form id="transactionForm" class="form-stack">
-                                <div class="form-row"><div class="field-group"><label class="field-label" for="transactionType">Turi</label><select class="field" id="transactionType"><option value="expense">Chiqim</option><option value="income">Kirim</option></select></div><div class="field-group"><label class="field-label" for="transactionCategory">Kategoriya</label><input class="field" id="transactionCategory" list="categoryOptions" maxlength="60" placeholder="Oziq-ovqat" required><datalist id="categoryOptions"><option value="Oziq-ovqat"><option value="Transport"><option value="Uy-joy"><option value="Sog'liq"><option value="Ta'lim"><option value="Ko'ngilochar"><option value="Maosh"><option value="Boshqa"></datalist></div></div>
-                                <div class="field-group"><label class="field-label" for="transactionAmount">Summa (so'm)</label><input class="field" id="transactionAmount" type="number" min="1" step="any" placeholder="25000" required></div>
-                                <div class="field-group"><label class="field-label" for="transactionNote">Izoh (ixtiyoriy)</label><input class="field" id="transactionNote" maxlength="240" placeholder="Qisqa izoh"></div>
+                                <div class="form-row"><div class="field-group"><label class="field-label" for="transactionType">Turi</label><select class="field" id="transactionType"><option value="expense">Chiqim</option><option value="income">Kirim</option></select></div><div class="field-group"><label class="field-label" for="transactionCategory">Kategoriya</label><input class="field" id="transactionCategory" placeholder="Oziq-ovqat" required></div></div>
+                                <div class="field-group"><label class="field-label" for="transactionAmount">Summa (so'm)</label><input class="field" id="transactionAmount" type="number" min="1" placeholder="25000" required></div>
+                                <div class="field-group"><label class="field-label" for="transactionNote">Izoh</label><input class="field" id="transactionNote" placeholder="Izoh"></div>
                                 <button class="primary-button accent-button" type="submit">Saqlash</button>
                             </form>
                         </section>
-                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Budjet limiti</h3><p class="panel-subtitle">Kategoriya uchun oylik chegara</p></div></div>
-                            <form id="budgetForm" class="form-stack"><div class="field-group"><label class="field-label" for="budgetCategory">Kategoriya</label><input class="field" id="budgetCategory" maxlength="60" placeholder="Masalan, Transport" required></div><div class="field-group"><label class="field-label" for="budgetLimit">Oylik limit (so'm)</label><input class="field" id="budgetLimit" type="number" min="1" step="any" placeholder="500000" required></div><button class="primary-button" type="submit">Limitni saqlash</button></form>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Budjet limiti</h3><p class="panel-subtitle">Oylik chegara</p></div></div>
+                            <form id="budgetForm" class="form-stack"><div class="field-group"><label class="field-label" for="budgetCategory">Kategoriya</label><input class="field" id="budgetCategory" placeholder="Transport" required></div><div class="field-group"><label class="field-label" for="budgetLimit">Limit (so'm)</label><input class="field" id="budgetLimit" type="number" min="1" placeholder="500000" required></div><button class="primary-button" type="submit">Limitni saqlash</button></form>
                         </section>
                     </div>
                 </div>
             </section>
 
+            <!-- MAQSADLAR -->
             <section class="view" id="view-goals">
-                <p class="page-intro">Yig'moqchi bo'lgan summangizni belgilang, qo'shgan mablag'ingizni kiriting va maqsad sari siljishni kuzating.</p>
+                <p class="page-intro">Jamg'arma maqsadlaringiz.</p>
                 <div class="view-grid">
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Jamg'arma maqsadlari</h3><p class="panel-subtitle">Bajarilish holati va muddatlar</p></div></div><div id="goalList"></div></section>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi maqsad</h3><p class="panel-subtitle">Katta rejani kichik qadamlarga bo'ling</p></div></div>
-                        <form id="goalForm" class="form-stack"><div class="field-group"><label class="field-label" for="goalTitle">Maqsad nomi</label><input class="field" id="goalTitle" maxlength="120" placeholder="Noutbuk uchun jamg'arish" required></div><div class="form-row"><div class="field-group"><label class="field-label" for="goalTarget">Maqsad summasi</label><input class="field" id="goalTarget" type="number" min="1" step="any" placeholder="8000000" required></div><div class="field-group"><label class="field-label" for="goalCurrent">Yig'ilgan</label><input class="field" id="goalCurrent" type="number" min="0" step="any" value="0"></div></div><div class="field-group"><label class="field-label" for="goalDeadline">Muddat (ixtiyoriy)</label><input class="field" id="goalDeadline" type="date"></div><button class="primary-button" type="submit">Maqsad yaratish</button></form>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Maqsadlar</h3></div></div><div id="goalList"></div></section>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi maqsad</h3></div></div>
+                        <form id="goalForm" class="form-stack"><div class="field-group"><label class="field-label" for="goalTitle">Nomi</label><input class="field" id="goalTitle" placeholder="Noutbuk" required></div><div class="form-row"><div class="field-group"><label class="field-label" for="goalTarget">Summa</label><input class="field" id="goalTarget" type="number" min="1" placeholder="8000000" required></div><div class="field-group"><label class="field-label" for="goalCurrent">Yig'ilgan</label><input class="field" id="goalCurrent" type="number" min="0" value="0"></div></div><button class="primary-button" type="submit">Maqsad yaratish</button></form>
                     </section>
                 </div>
             </section>
 
-            <section class="view" id="view-ai">
-                <p class="page-intro">Google Gemini AI bilan shaxsiy muloqot qiling, rejalaringizni tahlil qiling yoki ovozli/matnli yangi reja va xarajatlarni avtomatik qo'shing.</p>
-                <div class="view-grid">
-                    <section class="panel" style="display:flex; flex-direction:column; min-height:460px;">
-                        <div class="panel-header">
-                            <div>
-                                <h3 class="panel-title" style="display:flex; align-items:center; gap:8px;">
-                                    <span>✨</span> Gemini AI Yordamchi
-                                </h3>
-                                <p class="panel-subtitle">Kundalik reja va moliya konsultanti</p>
-                            </div>
-                            <span class="badge" style="background:var(--green-soft); color:var(--green); font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600;">Faol</span>
-                        </div>
-                        
-                        <!-- CHAT XABARLARI JOYI -->
-                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafbf8; border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
-                            <div style="align-self:flex-start; max-width:88%; background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
-                                <strong>Assalomu alaykum!</strong> Men sizning shaxsiy Turkiston Daily AI yordamchingizman. Menga xohlagan savolingizni bering yoki shunchaki yozing:
-                                <br>• <em>"Ertaga soat 10 da uchrashuv belgilash"</em>
-                                <br>• <em>"Tushlikka 45 000 so'm ishlatdim"</em>
-                                <br>deb yozsangiz, o'zim darhol reja va moliyangizga qo'shib qo'yaman! ✨
-                            </div>
-                        </div>
-
-                        <!-- TEZKOR SAVOLLAR / PROMPTLAR -->
-                        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;">
-                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi rejalarim bo\'yicha maslahat ber')">💡 Rejalarim tahlili</button>
-                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Qanday qilib pul tejashim mumkin?')">💰 Moliyaviy maslahat</button>
-                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi kun uchun motivatsiya ber')">🔥 Motivatsiya</button>
-                        </div>
-
-                        <!-- YUBORISH INPUTI -->
-                        <form id="aiChatForm" style="display:flex; gap:8px;">
-                            <input class="field" id="aiUserInput" type="text" placeholder="AI ga yozing... (masalan: Tushlikka 45000 so'm ishlatdim)" required style="flex:1; height:44px; font-size:14px;">
-                            <button class="primary-button" type="submit" id="aiSendBtn" style="min-width:75px; height:44px;">
-                                Yuborish
-                            </button>
-                        </form>
-                    </section>
-
-                    <section class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <h3 class="panel-title">AI Sozlamalari</h3>
-                                <p class="panel-subtitle">Google Gemini API kaliti</p>
-                            </div>
-                        </div>
-                        <div class="form-stack">
-                            <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">
-                                Gemini API mutlaqo <strong>bepul</strong>. Kalit olish uchun <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--green); font-weight:600;">Google AI Studio</a> ga kiring va <em>Create API key</em> tugmasini bosing.
-                            </p>
-                            <div class="field-group">
-                                <label class="field-label" for="geminiApiKeyInput">Gemini API Kalitingiz</label>
-                                <input class="field" id="geminiApiKeyInput" type="password" placeholder="AIzaSy...">
-                            </div>
-                            <button class="secondary-button" type="button" id="saveGeminiKeyBtn">Kalitni brauzerda saqlash</button>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
+            <!-- HISOBOT -->
             <section class="view" id="view-reports">
-                <p class="page-intro">Oy bo'yicha faollikni ko'ring va kuningizga qisqa qayd qoldiring.</p>
+                <p class="page-intro">Kun yakuni va oylik tarix.</p>
                 <div class="view-grid">
                     <div class="column">
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Kun yakuni</h3><p class="panel-subtitle" id="reportDateLabel"></p></div></div>
-                            <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label">Kuningizga baho</label><div class="report-score" id="scoreButtons" role="group" aria-label="Kunga baho"></div></div><div class="field-group"><label class="field-label" for="reportNote">Qayd yoki xulosa</label><textarea class="field" id="reportNote" rows="4" maxlength="1000" placeholder="Bugun nimalar yaxshi o'tdi? Ertaga nimaga e'tibor berasiz?" style="height:auto;min-height:100px;padding:10px;resize:vertical"></textarea></div><button class="primary-button" type="submit">Kun yakunini saqlash</button></form>
+                            <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label">Kunga baho</label><div class="report-score" id="scoreButtons"></div></div><div class="field-group"><label class="field-label" for="reportNote">Qayd</label><textarea class="field" id="reportNote" rows="3" placeholder="Bugun nima yaxshi o'tdi?"></textarea></div><button class="primary-button" type="submit">Saqlash</button></form>
                         </section>
                     </div>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik tarix</h3><p class="panel-subtitle" id="historyMonthLabel"></p></div></div><div id="historyList"></div></section>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik tarix</h3></div></div><div id="historyList"></div></section>
+                </div>
+            </section>
+
+            <!-- PROFIL & BUDILNIK / PUSH -->
+            <section class="view" id="view-profile">
+                <p class="page-intro">Budilnik, push bildirishnomalar va ma'lumotlarni boshqarish.</p>
+                <div class="view-grid">
+                    <section class="panel">
+                        <div class="panel-header"><div><h3 class="panel-title">🔔 Budilnik va Eslatmalar</h3><p class="panel-subtitle">Reja va moliya eslatmalari</p></div></div>
+                        <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+                            <button class="primary-button" type="button" id="enablePushBtn" style="background:var(--green); color:#fff;">
+                                🔔 Push bildirishnomalarni yoqish
+                            </button>
+                            <label style="display:flex; align-items:center; justify-content:space-between; font-size:13px; cursor:pointer; padding:8px; background:var(--paper); border-radius:8px;">
+                                <span>💰 Kunlik moliya eslatmasi (soat 20:00 da)</span>
+                                <input type="checkbox" id="toggleFinanceRem" checked style="width:18px; height:18px; accent-color:var(--green);">
+                            </label>
+                            <label style="display:flex; align-items:center; justify-content:space-between; font-size:13px; cursor:pointer; padding:8px; background:var(--paper); border-radius:8px;">
+                                <span>📋 Kun sarhisobi eslatmasi (soat 21:00 da)</span>
+                                <input type="checkbox" id="toggleEveningRem" checked style="width:18px; height:18px; accent-color:var(--green);">
+                            </label>
+                            <button class="secondary-button" type="button" id="testPushBtn">🧪 Sinov bildirishnomasini yuborish</button>
+                        </div>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-header"><div><h3 class="panel-title">Ma'lumotlar (Backup)</h3><p class="panel-subtitle">Barcha ma'lumotlarni saqlash</p></div></div>
+                        <div class="form-stack">
+                            <button class="secondary-button" type="button" id="exportDataBtn">📥 Ma'lumotlarni faylga yuklab olish (JSON)</button>
+                            <button class="secondary-button" type="button" id="importDataBtn">📤 Fayldan ma'lumotni tiklash</button>
+                            <input type="file" id="importFile" accept=".json" hidden>
+                        </div>
+                    </section>
                 </div>
             </section>
         </main>
     </div>
 
-    <nav class="mobile-nav" aria-label="Asosiy menyu" style="grid-template-columns: repeat(6, 1fr);">
+    <!-- MOBIL MENYU -->
+    <nav class="mobile-nav" aria-label="Menyu">
         <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
         <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
         <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
         <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
         <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
         <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+        <button class="nav-button" data-view="profile"><span class="nav-icon">👤</span>Profil</button>
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        const telegram = window.Telegram?.WebApp;
-        telegram?.ready();
-        telegram?.expand();
-        const telegramInitData = telegram?.initData || '';
-        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix" };
-        const categoryDefaults = ['Oziq-ovqat', 'Transport', 'Uy-joy', 'Sog\'liq', 'Ta\'lim', 'Ko\'ngilochar', 'Maosh', 'Boshqa'];
-        let dashboard = null;
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot", profile: "Profil & Budilnik" };
         let selectedScore = 0;
         let toastTimer;
+
+        // LOKAL STORAGE DATABASE
+        function getDB() {
+            let db = localStorage.getItem('turkiston_local_db');
+            if (!db) {
+                const initial = {
+                    tasks: [],
+                    transactions: [],
+                    budgets: [],
+                    goals: [],
+                    reports: {},
+                    settings: { finance_rem: true, evening_rem: true }
+                };
+                localStorage.setItem('turkiston_local_db', JSON.stringify(initial));
+                return initial;
+            }
+            return JSON.parse(db);
+        }
+        function saveDB(db) {
+            localStorage.setItem('turkiston_local_db', JSON.stringify(db));
+        }
 
         function localDateString(date = new Date()) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -429,10 +414,9 @@
         function money(value) {
             return `${new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 }).format(Math.round(Number(value) || 0))} so'm`;
         }
-        function prettyDate(value, options = { day: 'numeric', month: 'long', weekday: 'long' }) {
-            return new Intl.DateTimeFormat('uz-UZ', options).format(new Date(`${value}T12:00:00`));
+        function prettyDate(value) {
+            return new Intl.DateTimeFormat('uz-UZ', { day: 'numeric', month: 'long', weekday: 'long' }).format(new Date(`${value}T12:00:00`));
         }
-        function monthValue() { return document.getElementById('selectedDate').value.slice(0, 7); }
         function showToast(message) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -440,694 +424,415 @@
             clearTimeout(toastTimer);
             toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
         }
-        // ================= OFFLINE / LOCAL-FIRST STORAGE ENGINE =================
-        // Ma'lumotlar to'g'ridan-to'g'ri telefon/brauzer xotirasida saqlanadi (Server shart emas)
-        const LOCAL_STORAGE_KEY = 'td_offline_data_v1';
-        function getLocalStore() {
-            try {
-                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (raw) return JSON.parse(raw);
-            } catch (e) {}
-            return {
-                tasks: [],
-                transactions: [],
-                budgets: [],
-                goals: [],
-                reports: {}
-            };
-        }
-        function saveLocalStore(store) {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
-        }
 
-        async function api(path, options = {}) {
-            // Agar server ishlayotgan bo'lsa serverga yuboradi, server o'chiq bo'lsa darhol lokal xotiraga o'tadi
-            const method = (options.method || 'GET').toUpperCase();
-            const body = options.body ? JSON.parse(options.body) : {};
-
-            try {
-                const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-                if (telegramInitData) headers['X-Telegram-Init-Data'] = telegramInitData;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2 soniyada javob bermasa lokalga o'tadi
-                const response = await fetch(path, { ...options, headers, signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (response.ok) {
-                    return response.status === 204 ? null : response.json();
-                }
-            } catch (networkError) {
-                // Server yo'q yoki kompyuter o'chiq - to'liq avtonom offline rejimda ishlaymiz!
-            }
-
-            // === LOKAL MOSLASHTIRUVCHI (CLIENT-SIDE BACKEND) ===
-            const store = getLocalStore();
-            const url = new URL(path, window.location.origin || 'http://localhost');
-            const pathname = url.pathname;
-
-            // 1. Dashboard
-            if (pathname === '/api/dashboard') {
-                const date = url.searchParams.get('selected_date') || localDateString();
-                const month = date.slice(0, 7);
-                const dayTasks = store.tasks.filter(t => t.date === date);
-                const dayTrans = store.transactions.filter(t => t.date === date);
-                const monthTrans = store.transactions.filter(t => (t.date || '').slice(0, 7) === month);
-
-                const income = dayTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount || 0), 0);
-                const expense = dayTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount || 0), 0);
-                const month_income = monthTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount || 0), 0);
-                const month_expense = monthTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount || 0), 0);
-
-                // Kategoriya xarajatlari
-                const catMap = {};
-                dayTrans.filter(t => t.type === 'expense').forEach(t => {
-                    catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount || 0);
-                });
-                const categories = Object.keys(catMap).map(k => ({ category: k, amount: catMap[k] }));
-
-                // Budjetlar
-                const budgets = store.budgets.filter(b => (b.month || month) === month).map(b => {
-                    const spent = monthTrans.filter(t => t.type === 'expense' && t.category === b.category).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-                    return { ...b, spent };
-                });
-
-                return {
-                    date,
-                    summary: {
-                        income,
-                        expense,
-                        balance: income - expense,
-                        month_income,
-                        month_expense,
-                        tasks_total: dayTasks.length,
-                        tasks_completed: dayTasks.filter(t => t.is_completed).length
-                    },
-                    tasks: dayTasks,
-                    transactions: dayTrans,
-                    categories,
-                    budgets,
-                    goals: store.goals
-                };
-            }
-
-            // 2. Tasks
-            if (pathname === '/api/tasks' && method === 'POST') {
-                const newTask = {
-                    id: Date.now(),
-                    title: body.title,
-                    date: body.date || localDateString(),
-                    scheduled_time: body.scheduled_time || null,
-                    priority: body.priority || 'normal',
-                    recurrence: body.recurrence || 'none',
-                    remind_at: body.remind_at || null,
-                    is_completed: 0
-                };
-                store.tasks.push(newTask);
-                saveLocalStore(store);
-                scheduleBrowserNotification(newTask);
-                return newTask;
-            }
-            if (pathname.startsWith('/api/tasks/') && method === 'PATCH') {
-                const id = Number(pathname.split('/').pop());
-                const task = store.tasks.find(t => t.id === id);
-                if (task) {
-                    Object.assign(task, body);
-                    saveLocalStore(store);
-                }
-                return { status: 'ok' };
-            }
-            if (pathname.startsWith('/api/tasks/') && method === 'DELETE') {
-                const id = Number(pathname.split('/').pop());
-                store.tasks = store.tasks.filter(t => t.id !== id);
-                saveLocalStore(store);
-                return { status: 'ok' };
-            }
-
-            // 3. Transactions
-            if (pathname === '/api/transactions' && method === 'POST') {
-                const newTr = {
-                    id: Date.now(),
-                    type: body.type,
-                    category: body.category,
-                    amount: Number(body.amount),
-                    date: body.date || localDateString(),
-                    note: body.note || ''
-                };
-                store.transactions.unshift(newTr);
-                saveLocalStore(store);
-                return newTr;
-            }
-            if (pathname.startsWith('/api/transactions/') && method === 'PATCH') {
-                const id = Number(pathname.split('/').pop());
-                const item = store.transactions.find(t => t.id === id);
-                if (item) {
-                    Object.assign(item, body);
-                    saveLocalStore(store);
-                }
-                return { status: 'ok' };
-            }
-            if (pathname.startsWith('/api/transactions/') && method === 'DELETE') {
-                const id = Number(pathname.split('/').pop());
-                store.transactions = store.transactions.filter(t => t.id !== id);
-                saveLocalStore(store);
-                return { status: 'ok' };
-            }
-
-            // 4. Budgets
-            if (pathname === '/api/budgets' && method === 'POST') {
-                const id = Date.now();
-                store.budgets.push({ id, ...body });
-                saveLocalStore(store);
-                return { id };
-            }
-            if (pathname.startsWith('/api/budgets/') && method === 'DELETE') {
-                const id = Number(pathname.split('/').pop());
-                store.budgets = store.budgets.filter(b => b.id !== id);
-                saveLocalStore(store);
-                return { status: 'ok' };
-            }
-
-            // 5. Goals
-            if (pathname === '/api/goals' && method === 'POST') {
-                const id = Date.now();
-                store.goals.push({ id, ...body, current_amount: Number(body.current_amount || 0) });
-                saveLocalStore(store);
-                return { id };
-            }
-            if (pathname.startsWith('/api/goals/') && method === 'PATCH') {
-                const id = Number(pathname.split('/').pop());
-                const item = store.goals.find(g => g.id === id);
-                if (item) {
-                    Object.assign(item, body);
-                    saveLocalStore(store);
-                }
-                return { status: 'ok' };
-            }
-            if (pathname.startsWith('/api/goals/') && method === 'DELETE') {
-                const id = Number(pathname.split('/').pop());
-                store.goals = store.goals.filter(g => g.id !== id);
-                saveLocalStore(store);
-                return { status: 'ok' };
-            }
-
-            // 6. History
-            if (pathname === '/api/history') {
-                return [];
-            }
-
-            // 7. AI Chat (Telefon interneti orqali to'g'ridan-to'g'ri Google Gemini ga ulanish)
-            if (pathname === '/api/ai/chat' && method === 'POST') {
-                return await executeClientSideGemini(body.message, body.api_key);
-            }
-
-            return null;
-        }
-
-        // === BROWSER BILDIRISHNOMA (IPHONE PWA PUSH) ===
-        function requestNotificationPermission() {
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
-            }
-        }
-        function scheduleBrowserNotification(task) {
-            if (!("Notification" in window) || Notification.permission !== "granted") return;
-            if (!task.scheduled_time && !task.remind_at) return;
-
-            const timeStr = task.scheduled_time || task.remind_at?.slice(11, 16);
-            if (!timeStr) return;
-
-            const now = new Date();
-            const [h, m] = timeStr.split(':').map(Number);
-            const taskTime = new Date();
-            taskTime.setHours(h, m, 0, 0);
-
-            const diff = taskTime.getTime() - now.getTime();
-            if (diff > 0 && diff < 86400000) {
-                setTimeout(() => {
-                    new Notification("Turkiston Daily: Reja vaqti!", {
-                        body: `${task.title} vaqti keldi. Boshlash uchun qulay fursat!`,
-                        icon: "/static/icon-192.png"
-                    });
-                }, diff);
-            }
-        }
-        window.addEventListener('load', requestNotificationPermission);
-
-        // === BROWSER GEMINI AI DIRECT CALL (Server shart emas) ===
-                async function executeClientSideGemini(userText, userKey) {
-            let key = (userKey || localStorage.getItem('gemini_api_key') || '').trim();
-            if (!key) {
-                return {
-                    status: 'need_key',
-                    reply: 'Google Gemini API kaliti kiritilmagan. Iltimos, pastdagi maydonga API kalitingizni kiriting va "Kalitni brauzerda saqlash" tugmasini bosing.'
-                };
-            }
-
-            const store = getLocalStore();
-            const today = localDateString();
-            const tasksInfo = store.tasks.filter(t => t.date === today).map(t => t.title).join(', ') || 'reja yo\'q';
-
-            const systemPrompt = `Siz 'Turkiston Daily' ilovasi AI yordamchisisiz. Bugun: ${today}. Rejalar: [${tasksInfo}].
-Vazifangiz foydalanuvchiga muloyim o'zbekcha yordam berish.
-Agar reja aytsa create_task, xarajat aytsa create_transaction shakllantiring.
-Javobni FAQAT JSON formatida bering:
-{
-  "reply": "O'zbekcha chiroyli javobingiz",
-  "action": null | { "type": "create_task" | "create_transaction", "data": { ... } }
-}
-create_task data: {"title": "...", "date": "${today}", "scheduled_time": "15:00"}
-create_transaction data: {"type": "expense"|"income", "category": "Oziq-ovqat"|"Transport"|"Boshqa", "amount": 40000}`;
-
-            const candidateModels = [
-                'gemini-1.5-flash-latest',
-                'gemini-1.5-flash',
-                'gemini-1.5-pro',
-                'gemini-2.0-flash-exp'
-            ];
-
-            let lastError = null;
-            let successData = null;
-
-            for (const model of candidateModels) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `${systemPrompt}\n\nFoydalanuvchi: ${userText}` }] }]
-                        })
-                    });
-
-                    if (response.ok) {
-                        successData = await response.json();
-                        break;
-                    } else {
-                        const errJson = await response.json().catch(() => ({}));
-                        lastError = errJson.error?.message || `Xatolik statusi: ${response.status} (${model})`;
-                    }
-                } catch (fetchErr) {
-                    lastError = fetchErr.message;
-                }
-            }
-
-            if (!successData) {
-                return {
-                    status: 'error',
-                    reply: `Gemini API ulanishda xato: ${lastError}. Iltimos, API kalitingizni to'g'ri nusxalaganingizni tekshiring.`
-                };
-            }
-
-            try {
-                const rawText = successData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-                const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { reply: rawText, action: null };
-
-                let action_result = null;
-                if (parsed.action && parsed.action.data) {
-                    if (parsed.action.type === 'create_task') {
-                        await api('/api/tasks', { method: 'POST', body: JSON.stringify(parsed.action.data) });
-                        action_result = 'Reja telefoningizga saqlandi ✅';
-                    } else if (parsed.action.type === 'create_transaction') {
-                        await api('/api/transactions', { method: 'POST', body: JSON.stringify(parsed.action.data) });
-                        action_result = 'Xarajat telefoningizga saqlandi ✅';
-                    }
-                }
-
-                return {
-                    status: 'ok',
-                    reply: parsed.reply,
-                    action_result
-                };
-            } catch (parseError) {
-                return {
-                    status: 'ok',
-                    reply: successData.candidates?.[0]?.content?.parts?.[0]?.text || 'Bajarildi!'
-                };
-            }
-        }
-
-        async function runAction(action, successMessage) {
-            try {
-                await action();
-                await refresh();
-                if (successMessage) showToast(successMessage);
-            } catch (error) {
-                showToast(error.message);
-            }
-        }
         function setView(name) {
             document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
             document.querySelectorAll('.nav-button[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === name));
             document.getElementById('pageTitle').textContent = titles[name];
         }
-        function transactionMarkup(transaction) {
-            const kind = transaction.type === 'income' ? 'income' : 'expense';
-            const sign = kind === 'income' ? '+' : '−';
-            return `<div class="transaction-item"><div><div class="transaction-name">${escapeHtml(transaction.category)}</div>${transaction.note ? `<div class="transaction-note">${escapeHtml(transaction.note)}</div>` : ''}</div><span class="transaction-amount ${kind}">${sign}${money(transaction.amount)}</span><div class="row-actions"><button class="mini-button" data-edit-transaction="${transaction.id}" title="Tahrirlash" aria-label="Tahrirlash">✎</button><button class="mini-button delete" data-delete-transaction="${transaction.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div>`;
-        }
-        function taskMarkup(task) {
-            const recurrenceNames = { daily: 'Har kuni', weekly: 'Har hafta', monthly: 'Har oy' };
-            const priorityNames = { high: 'Muhim', normal: 'Oddiy', low: 'Keyinroq' };
-            const reminder = task.remind_at ? new Date(task.remind_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
-            return `<div class="task-item ${task.is_completed ? 'completed' : ''}"><button class="task-check ${task.is_completed ? 'done' : ''}" data-toggle-task="${task.id}" aria-label="${task.is_completed ? 'Bajarilmadi deb belgilash' : 'Bajarildi deb belgilash'}">${task.is_completed ? '✓' : ''}</button><div><div class="task-name">${escapeHtml(task.title)}</div><div class="task-meta"><span class="tag ${task.priority === 'high' ? 'high' : ''}">${priorityNames[task.priority] || 'Oddiy'}</span>${task.recurrence !== 'none' ? `<span class="tag">${recurrenceNames[task.recurrence]}</span>` : ''}${reminder ? `<span class="tag">◷ ${reminder}</span>` : ''}</div></div><div class="task-actions"><button class="mini-button" data-edit-task="${task.id}" title="Tahrirlash" aria-label="Tahrirlash">✎</button><button class="mini-button delete" data-delete-task="${task.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div>`;
-        }
-        function categoryMarkup(categories) {
-            if (!categories.length) return '<div class="empty-state">Hozircha chiqim qayd etilmagan</div>';
-            const max = Math.max(...categories.map(item => Number(item.amount)));
-            return categories.map(item => `<div class="category-row"><span class="category-name">${escapeHtml(item.category)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, Number(item.amount) / max * 100)}%"></div></div><strong class="category-value">${money(item.amount)}</strong></div>`).join('');
-        }
-        function budgetMarkup(budget) {
-            const percent = budget.monthly_limit > 0 ? Number(budget.spent) / Number(budget.monthly_limit) * 100 : 0;
-            const state = percent >= 100 ? 'over' : percent >= 80 ? 'warn' : '';
-            return `<div class="budget-item"><div class="budget-heading"><strong>${escapeHtml(budget.category)}</strong><span>${money(budget.spent)} / ${money(budget.monthly_limit)}</span></div><div class="budget-track"><div class="budget-fill ${state}" style="width:${Math.min(100, percent)}%"></div></div><div class="budget-heading" style="margin-top:5px"><span>${percent >= 100 ? 'Limit oshdi' : `${Math.round(percent)}% sarflandi`}</span><button class="mini-button delete" data-delete-budget="${budget.id}" title="Budjetni o'chirish" aria-label="Budjetni o'chirish">×</button></div></div>`;
-        }
-        function renderDashboard() {
-            const summary = dashboard.summary;
-            const selectedDate = dashboard.date;
-            document.getElementById('dayIncome').textContent = money(summary.income);
-            document.getElementById('dayExpense').textContent = money(summary.expense);
-            document.getElementById('dayBalance').textContent = money(summary.balance);
-            document.getElementById('monthIncome').textContent = `Oy: ${money(summary.month_income)}`;
-            document.getElementById('monthExpense').textContent = `Oy: ${money(summary.month_expense)}`;
-            document.getElementById('taskProgress').textContent = `${summary.tasks_completed} / ${summary.tasks_total} ta reja bajarildi`;
-            document.getElementById('moneyIncome').textContent = money(summary.income);
-            document.getElementById('moneyExpense').textContent = money(summary.expense);
-            document.getElementById('moneyBalance').textContent = money(summary.balance);
-            document.getElementById('welcomeTitle').textContent = selectedDate === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(selectedDate);
-            document.getElementById('dayLabel').textContent = selectedDate === localDateString() ? 'BUGUN' : prettyDate(selectedDate, { day: 'numeric', month: 'short' }).toLocaleUpperCase('uz-UZ');
-            document.getElementById('taskSummary').textContent = `${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
-            document.getElementById('taskSummaryFull').textContent = `${prettyDate(selectedDate)} · ${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
-            document.getElementById('reportDateLabel').textContent = prettyDate(selectedDate);
-            document.getElementById('budgetMonthLabel').textContent = `${prettyDate(`${monthValue()}-01`, { month: 'long', year: 'numeric' })} uchun`;
-            const tasks = dashboard.tasks;
-            const taskHtml = tasks.length ? tasks.map(taskMarkup).join('') : '<div class="empty-state">Bu kun uchun reja yo‘q</div>';
+
+        // RENDER DASHBOARD
+        function renderAll() {
+            const db = getDB();
+            const dateStr = document.getElementById('selectedDate').value || localDateString();
+            const monthStr = dateStr.slice(0, 7);
+
+            // Filter today
+            const todayTasks = db.tasks.filter(t => t.date === dateStr);
+            const todayTx = db.transactions.filter(tx => tx.date === dateStr);
+            const monthTx = db.transactions.filter(tx => tx.date.startsWith(monthStr));
+
+            const dayIncome = todayTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
+            const dayExpense = todayTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
+            const monthIncome = monthTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
+            const monthExpense = monthTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
+
+            const completedTasks = todayTasks.filter(t => t.is_completed).length;
+
+            document.getElementById('dayIncome').textContent = money(dayIncome);
+            document.getElementById('dayExpense').textContent = money(dayExpense);
+            document.getElementById('dayBalance').textContent = money(dayIncome - dayExpense);
+            document.getElementById('monthIncome').textContent = `Oy: ${money(monthIncome)}`;
+            document.getElementById('monthExpense').textContent = `Oy: ${money(monthExpense)}`;
+            document.getElementById('taskProgress').textContent = `${completedTasks} / ${todayTasks.length} ta reja bajarildi`;
+
+            document.getElementById('moneyIncome').textContent = money(dayIncome);
+            document.getElementById('moneyExpense').textContent = money(dayExpense);
+            document.getElementById('moneyBalance').textContent = money(dayIncome - dayExpense);
+
+            document.getElementById('welcomeTitle').textContent = dateStr === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(dateStr);
+            document.getElementById('dayLabel').textContent = dateStr === localDateString() ? 'BUGUN' : dateStr;
+            document.getElementById('taskSummary').textContent = `${completedTasks} / ${todayTasks.length} bajarildi`;
+            document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${completedTasks} / ${todayTasks.length} bajarildi`;
+            document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
+
+            // Render Tasks
+            const taskHtml = todayTasks.length ? todayTasks.map(t => `
+                <div class="task-item ${t.is_completed ? 'completed' : ''}">
+                    <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
+                    <div>
+                        <div class="task-name">${escapeHtml(t.title)}</div>
+                        <div class="task-meta">
+                            <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
+                            ${t.reminder ? `<span class="tag">◷ ${t.reminder.slice(11, 16)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="row-actions">
+                        <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
+                    </div>
+                </div>
+            `).join('') : '<div class="empty-state">Bu kun uchun reja yo‘q</div>';
+
             document.getElementById('overviewTasks').innerHTML = taskHtml;
             document.getElementById('taskList').innerHTML = taskHtml;
-            const transactions = dashboard.transactions;
-            const transactionHtml = transactions.length ? transactions.map(transactionMarkup).join('') : '<div class="empty-state">Bu kun uchun amaliyot yo‘q</div>';
-            document.getElementById('overviewTransactions').innerHTML = transactionHtml;
-            document.getElementById('transactionList').innerHTML = transactionHtml;
-            document.getElementById('transactionCount').textContent = `${transactions.length} ta amaliyot · ${prettyDate(selectedDate)}`;
-            const categoryHtml = categoryMarkup(dashboard.categories);
-            document.getElementById('overviewCategories').innerHTML = categoryHtml;
-            const budgetHtml = dashboard.budgets.length ? dashboard.budgets.map(budgetMarkup).join('') : '<div class="empty-state">Hali oylik limit belgilanmagan</div>';
-            document.getElementById('overviewBudgets').innerHTML = budgetHtml;
-            document.getElementById('budgetList').innerHTML = budgetHtml;
-            renderGoals(dashboard.goals);
-            renderReport(dashboard.report);
-        }
-        function renderGoals(goals) {
-            const list = document.getElementById('goalList');
-            if (!goals.length) { list.innerHTML = '<div class="empty-state">Hali jamg‘arma maqsadi yo‘q</div>'; return; }
-            list.innerHTML = goals.map(goal => {
-                const percent = Math.min(100, Number(goal.current_amount) / Number(goal.target_amount) * 100);
-                return `<div class="goal-item"><div class="goal-top"><div><div class="goal-name">${escapeHtml(goal.title)}</div><div class="goal-sub">${goal.deadline ? `Muddat: ${prettyDate(goal.deadline, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Muddat belgilanmagan'}</div></div><div class="row-actions">${!goal.is_completed ? `<button class="mini-button" data-contribute-goal="${goal.id}" title="Jamg'armaga qo'shish" aria-label="Jamg'armaga qo'shish">+</button>` : '<span class="tag">Bajarildi</span>'}<button class="mini-button delete" data-delete-goal="${goal.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div><div class="goal-progress-label"><span>${money(goal.current_amount)} yig‘ildi</span><strong>${Math.round(percent)}%</strong></div><div class="progress-line"><span style="width:${percent}%"></span></div><div class="goal-progress-label"><span>Maqsad: ${money(goal.target_amount)}</span><span>${money(Math.max(0, goal.target_amount - goal.current_amount))} qoldi</span></div></div>`;
-            }).join('');
-        }
-        function renderReport(report) {
-            document.getElementById('reportNote').value = report?.note || '';
-            selectedScore = Number(report?.score || 0);
-            document.getElementById('scoreButtons').innerHTML = [1, 2, 3, 4, 5].map(score => `<button type="button" class="score-button ${selectedScore >= score ? 'selected' : ''}" data-score="${score}" aria-label="${score} ball">★</button>`).join('');
-        }
-        async function refresh() {
-            try {
-                dashboard = await api(`/api/dashboard?selected_date=${encodeURIComponent(document.getElementById('selectedDate').value)}`);
-                renderDashboard();
-                document.getElementById('connectionStatus').textContent = 'Sinxronlandi';
-            } catch (error) {
-                document.getElementById('connectionStatus').textContent = 'Ulanish xatosi';
-                showToast(error.message);
-            }
-        }
-        async function loadHistory() {
-            try {
-                const month = monthValue();
-                const history = await api(`/api/history?month=${encodeURIComponent(month)}`);
-                document.getElementById('historyMonthLabel').textContent = prettyDate(`${month}-01`, { month: 'long', year: 'numeric' });
-                document.getElementById('historyList').innerHTML = history.length ? history.map(day => {
-                    const net = Number(day.income || 0) - Number(day.expense || 0);
-                    return `<div class="history-item"><div><div class="history-date">${prettyDate(day.date)}</div><div class="history-meta">${day.tasks_completed || 0} / ${day.tasks_total || 0} reja · Kirim ${money(day.income || 0)}</div></div><span class="transaction-amount expense">−${money(day.expense || 0)}</span><strong class="history-net" style="color:${net >= 0 ? 'var(--green)' : 'var(--orange)'}">${net >= 0 ? '+' : '−'}${money(Math.abs(net))}</strong></div>`;
-                }).join('') : '<div class="empty-state">Bu oyda tarix yo‘q</div>';
-            } catch (error) { showToast(error.message); }
+
+            // Render Transactions
+            const txHtml = todayTx.length ? todayTx.map(tx => `
+                <div class="transaction-item">
+                    <div>
+                        <div class="transaction-name">${escapeHtml(tx.category)}</div>
+                        ${tx.note ? `<div class="transaction-note">${escapeHtml(tx.note)}</div>` : ''}
+                    </div>
+                    <span class="transaction-amount ${tx.type}">${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}</span>
+                    <button class="mini-button delete" onclick="deleteTx(${tx.id})" title="O'chirish">×</button>
+                </div>
+            `).join('') : '<div class="empty-state">Bu kun uchun amaliyot yo‘q</div>';
+
+            document.getElementById('overviewTransactions').innerHTML = txHtml;
+            document.getElementById('transactionList').innerHTML = txHtml;
+            document.getElementById('transactionCount').textContent = `${todayTx.length} ta amaliyot`;
+
+            // Categories
+            const expCats = {};
+            monthTx.filter(tx => tx.type === 'expense').forEach(tx => {
+                expCats[tx.category] = (expCats[tx.category] || 0) + tx.amount;
+            });
+            const catEntries = Object.entries(expCats);
+            const maxCat = catEntries.length ? Math.max(...catEntries.map(x => x[1])) : 1;
+            document.getElementById('overviewCategories').innerHTML = catEntries.length ? catEntries.map(([cat, amt]) => `
+                <div class="category-row">
+                    <span class="category-name">${escapeHtml(cat)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${Math.max(5, amt/maxCat*100)}%"></div></div>
+                    <strong class="category-value">${money(amt)}</strong>
+                </div>
+            `).join('') : '<div class="empty-state">Hozircha chiqim yo‘q</div>';
+
+            // Budgets
+            const monthBudgets = db.budgets.filter(b => b.month === monthStr);
+            document.getElementById('overviewBudgets').innerHTML = monthBudgets.length ? monthBudgets.map(b => {
+                const spent = expCats[b.category] || 0;
+                const pct = Math.min(100, spent / b.limit * 100);
+                return `
+                    <div class="budget-item">
+                        <div class="budget-heading"><strong>${escapeHtml(b.category)}</strong><span>${money(spent)} / ${money(b.limit)}</span></div>
+                        <div class="budget-track"><div class="budget-fill ${pct>=100?'over':pct>=80?'warn':''}" style="width:${pct}%"></div></div>
+                    </div>
+                `;
+            }).join('') : '<div class="empty-state">Limit belgilanmagan</div>';
+            document.getElementById('budgetList').innerHTML = document.getElementById('overviewBudgets').innerHTML;
+
+            // Goals
+            document.getElementById('goalList').innerHTML = db.goals.length ? db.goals.map(g => {
+                const pct = Math.min(100, g.current / g.target * 100);
+                return `
+                    <div class="goal-item">
+                        <div class="goal-top">
+                            <div><div class="goal-name">${escapeHtml(g.title)}</div></div>
+                            <div class="row-actions"><button class="mini-button" onclick="contributeGoal(${g.id})">+</button><button class="mini-button delete" onclick="deleteGoal(${g.id})">×</button></div>
+                        </div>
+                        <div class="goal-progress-label"><span>${money(g.current)} yig'ildi</span><strong>${Math.round(pct)}%</strong></div>
+                        <div class="progress-line"><span style="width:${pct}%"></span></div>
+                    </div>
+                `;
+            }).join('') : '<div class="empty-state">Maqsadlar yo‘q</div>';
+
+            // History / Reports
+            const rep = db.reports[dateStr] || {};
+            document.getElementById('reportNote').value = rep.note || '';
+            selectedScore = rep.score || 0;
+            document.getElementById('scoreButtons').innerHTML = [1, 2, 3, 4, 5].map(s => `
+                <button type="button" class="score-button ${selectedScore >= s ? 'selected' : ''}" onclick="setScore(${s})">★</button>
+            `).join('');
+
+            // History list
+            const historyDays = Object.keys(db.reports).sort().reverse();
+            document.getElementById('historyList').innerHTML = historyDays.length ? historyDays.map(d => `
+                <div class="history-item">
+                    <div><div class="history-date">${prettyDate(d)}</div><div class="history-meta">Baho: ${db.reports[d].score || 0}★</div></div>
+                    <div>${escapeHtml(db.reports[d].note || '')}</div>
+                </div>
+            `).join('') : '<div class="empty-state">Tarix yo‘q</div>';
         }
 
-        document.querySelectorAll('.nav-button[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
-        document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => setView(button.dataset.go)));
+        // ACTIONS
+        function toggleTask(id) {
+            const db = getDB();
+            const t = db.tasks.find(x => x.id === id);
+            if (t) { t.is_completed = !t.is_completed; saveDB(db); renderAll(); showToast(t.is_completed ? 'Reja bajarildi' : 'Reja ochildi'); }
+        }
+        function deleteTask(id) {
+            const db = getDB();
+            db.tasks = db.tasks.filter(x => x.id !== id);
+            saveDB(db); renderAll(); showToast('Reja o‘chirildi');
+        }
+        function deleteTx(id) {
+            const db = getDB();
+            db.transactions = db.transactions.filter(x => x.id !== id);
+            saveDB(db); renderAll(); showToast('Amaliyot o‘chirildi');
+        }
+        function deleteGoal(id) {
+            const db = getDB();
+            db.goals = db.goals.filter(x => x.id !== id);
+            saveDB(db); renderAll(); showToast('Maqsad o‘chirildi');
+        }
+        function contributeGoal(id) {
+            const db = getDB();
+            const g = db.goals.find(x => x.id === id);
+            const amt = prompt('Qancha qo‘shiladi? (so‘m)');
+            if (g && amt && Number(amt) > 0) {
+                g.current += Number(amt);
+                saveDB(db); renderAll(); showToast('Jamg‘arma yangilandi');
+            }
+        }
+        function setScore(s) {
+            selectedScore = s;
+            document.querySelectorAll('.score-button').forEach((btn, idx) => {
+                btn.classList.toggle('selected', idx < s);
+            });
+        }
+
+        // EVENT LISTENERS
         document.getElementById('selectedDate').value = localDateString();
-        document.getElementById('selectedDate').addEventListener('change', () => { refresh(); loadHistory(); });
+        document.getElementById('selectedDate').addEventListener('change', renderAll);
 
-        document.getElementById('taskForm').addEventListener('submit', event => {
-            event.preventDefault();
-            const reminder = document.getElementById('taskReminder').value;
-            runAction(async () => {
-                await api('/api/tasks', { method: 'POST', body: JSON.stringify({
-                    title: document.getElementById('taskTitle').value.trim(),
-                    date: document.getElementById('selectedDate').value,
-                    priority: document.getElementById('taskPriority').value,
-                    recurrence: document.getElementById('taskRecurrence').value,
-                    remind_at: reminder || null,
-                }) });
-                event.target.reset();
-            }, 'Reja qo‘shildi');
-        });
-        document.getElementById('transactionForm').addEventListener('submit', event => {
-            event.preventDefault();
-            runAction(async () => {
-                await api('/api/transactions', { method: 'POST', body: JSON.stringify({
-                    type: document.getElementById('transactionType').value,
-                    category: document.getElementById('transactionCategory').value.trim(),
-                    amount: Number(document.getElementById('transactionAmount').value),
-                    date: document.getElementById('selectedDate').value,
-                    note: document.getElementById('transactionNote').value.trim(),
-                }) });
-                event.target.reset();
-            }, 'Amaliyot saqlandi');
-        });
-        document.getElementById('budgetForm').addEventListener('submit', event => {
-            event.preventDefault();
-            runAction(async () => {
-                await api('/api/budgets', { method: 'POST', body: JSON.stringify({
-                    category: document.getElementById('budgetCategory').value.trim(),
-                    monthly_limit: Number(document.getElementById('budgetLimit').value),
-                    month: monthValue(),
-                }) });
-                event.target.reset();
-            }, 'Budjet saqlandi');
-        });
-        document.getElementById('goalForm').addEventListener('submit', event => {
-            event.preventDefault();
-            runAction(async () => {
-                await api('/api/goals', { method: 'POST', body: JSON.stringify({
-                    title: document.getElementById('goalTitle').value.trim(),
-                    target_amount: Number(document.getElementById('goalTarget').value),
-                    current_amount: Number(document.getElementById('goalCurrent').value || 0),
-                    deadline: document.getElementById('goalDeadline').value || null,
-                }) });
-                event.target.reset();
-            }, 'Maqsad qo‘shildi');
-        });
-        document.getElementById('reportForm').addEventListener('submit', event => {
-            event.preventDefault();
-            runAction(async () => api('/api/reports', { method: 'POST', body: JSON.stringify({
-                date: document.getElementById('selectedDate').value,
-                note: document.getElementById('reportNote').value,
-                score: selectedScore,
-            }) }), 'Kun yakuni saqlandi');
-        });
-        document.getElementById('scoreButtons').addEventListener('click', event => {
-            const button = event.target.closest('[data-score]');
-            if (!button) return;
-            selectedScore = Number(button.dataset.score);
-            document.querySelectorAll('.score-button').forEach(item => item.classList.toggle('selected', Number(item.dataset.score) <= selectedScore));
-        });
-        document.body.addEventListener('click', event => {
-            const taskToggle = event.target.closest('[data-toggle-task]');
-            const taskDelete = event.target.closest('[data-delete-task]');
-            const taskEdit = event.target.closest('[data-edit-task]');
-            const transactionDelete = event.target.closest('[data-delete-transaction]');
-            const transactionEdit = event.target.closest('[data-edit-transaction]');
-            const budgetDelete = event.target.closest('[data-delete-budget]');
-            const goalDelete = event.target.closest('[data-delete-goal]');
-            const contribute = event.target.closest('[data-contribute-goal]');
-            if (taskToggle) {
-                const task = dashboard.tasks.find(item => item.id === Number(taskToggle.dataset.toggleTask));
-                if (task) runAction(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ is_completed: !task.is_completed }) }), task.is_completed ? 'Reja qayta ochildi' : 'Reja bajarildi');
-            } else if (taskDelete) {
-                if (confirm('Bu rejani o‘chirasizmi?')) runAction(() => api(`/api/tasks/${taskDelete.dataset.deleteTask}`, { method: 'DELETE' }), 'Reja o‘chirildi');
-            } else if (taskEdit) {
-                const task = dashboard.tasks.find(item => item.id === Number(taskEdit.dataset.editTask));
-                const title = task && prompt('Reja nomi', task.title);
-                if (title?.trim()) runAction(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ title: title.trim() }) }), 'Reja yangilandi');
-            } else if (transactionDelete) {
-                if (confirm('Bu amaliyotni o‘chirasizmi?')) runAction(() => api(`/api/transactions/${transactionDelete.dataset.deleteTransaction}`, { method: 'DELETE' }), 'Amaliyot o‘chirildi');
-            } else if (transactionEdit) {
-                const item = dashboard.transactions.find(row => row.id === Number(transactionEdit.dataset.editTransaction));
-                if (item) {
-                    const category = prompt('Kategoriya', item.category);
-                    if (category?.trim()) {
-                        const amount = prompt('Summa (so‘m)', item.amount);
-                        if (amount && Number(amount) > 0) runAction(() => api(`/api/transactions/${item.id}`, { method: 'PATCH', body: JSON.stringify({ category: category.trim(), amount: Number(amount) }) }), 'Amaliyot yangilandi');
-                    }
-                }
-            } else if (budgetDelete) {
-                runAction(() => api(`/api/budgets/${budgetDelete.dataset.deleteBudget}`, { method: 'DELETE' }), 'Budjet o‘chirildi');
-            } else if (goalDelete) {
-                if (confirm('Bu maqsadni o‘chirasizmi?')) runAction(() => api(`/api/goals/${goalDelete.dataset.deleteGoal}`, { method: 'DELETE' }), 'Maqsad o‘chirildi');
-            } else if (contribute) {
-                const goal = dashboard.goals.find(item => item.id === Number(contribute.dataset.contributeGoal));
-                const amount = goal && prompt('Qancha mablag‘ qo‘shildi? (so‘m)', '');
-                if (amount && Number(amount) > 0) runAction(() => api(`/api/goals/${goal.id}`, { method: 'PATCH', body: JSON.stringify({ current_amount: Number(goal.current_amount) + Number(amount) }) }), 'Jamg‘arma yangilandi');
-            }
-        });
-        document.getElementById('exportButton').addEventListener('click', async () => {
-            try {
-                const period = document.getElementById('exportPeriod').value;
-                const query = new URLSearchParams({ period });
-                if (period === 'custom') {
-                    const startDate = document.getElementById('exportStartDate').value;
-                    const endDate = document.getElementById('exportEndDate').value;
-                    if (!startDate || !endDate) throw new Error('Hisobot sanalarini tanlang');
-                    if (startDate > endDate) throw new Error('Boshlanish sanasi tugash sanasidan keyin bo‘lishi mumkin emas');
-                    query.set('start_date', startDate);
-                    query.set('end_date', endDate);
-                }
-                const headers = telegramInitData ? { 'X-Telegram-Init-Data': telegramInitData } : {};
-                const response = await fetch(`/api/export.xlsx?${query}`, { headers });
-                if (!response.ok) {
-                    const detail = await response.json().catch(() => ({}));
-                    throw new Error(detail.detail || 'Excel hisobotini yaratib bo‘lmadi');
-                }
-                const file = await response.blob();
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(file);
-                link.download = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || `turkiston-daily-${period}-${localDateString()}.xlsx`;
-                link.click();
-                URL.revokeObjectURL(link.href);
-                showToast('Excel hisoboti yuklandi');
-            } catch (error) { showToast(error.message); }
-        });
-        document.getElementById('exportPeriod').addEventListener('change', event => {
-            const customDates = document.getElementById('customExportDates');
-            customDates.hidden = event.target.value !== 'custom';
-            if (event.target.value === 'custom') {
-                const today = localDateString();
-                document.getElementById('exportStartDate').value = `${today.slice(0, 7)}-01`;
-                document.getElementById('exportEndDate').value = today;
-            }
-        });
-        document.getElementById('transactionCategory').addEventListener('input', event => {
-            const value = event.target.value.trim();
-            if (value && !categoryDefaults.includes(value)) categoryDefaults.push(value);
-        });
-
-        // ================= GEMINI AI CHAT LOGIC =================
-        const aiChatBox = document.getElementById('aiChatBox');
-        const aiChatForm = document.getElementById('aiChatForm');
-        const aiUserInput = document.getElementById('aiUserInput');
-        const aiSendBtn = document.getElementById('aiSendBtn');
-        const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
-        const saveGeminiKeyBtn = document.getElementById('saveGeminiKeyBtn');
-
-        if (geminiApiKeyInput) {
-            geminiApiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
-        }
-
-        saveGeminiKeyBtn?.addEventListener('click', () => {
-            const val = geminiApiKeyInput.value.trim();
-            localStorage.setItem('gemini_api_key', val);
-            showToast("Gemini API kaliti saqlandi!");
-        });
-
-        function appendChatMessage(sender, text, isSpecial = false) {
-            const msgDiv = document.createElement('div');
-            const isUser = sender === 'user';
-            msgDiv.style.alignSelf = isUser ? 'flex-end' : 'flex-start';
-            msgDiv.style.maxWidth = '88%';
-            msgDiv.style.padding = '10px 14px';
-            msgDiv.style.borderRadius = isUser ? '14px 14px 2px 14px' : '14px 14px 14px 2px';
-            msgDiv.style.fontSize = '13px';
-            msgDiv.style.lineHeight = '1.5';
-            msgDiv.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
-            
-            if (isUser) {
-                msgDiv.style.background = 'var(--green)';
-                msgDiv.style.color = '#fff';
-            } else {
-                msgDiv.style.background = '#fff';
-                msgDiv.style.border = '1px solid var(--line)';
-                msgDiv.style.color = 'var(--ink)';
-            }
-
-            if (isSpecial) {
-                msgDiv.innerHTML = text;
-            } else {
-                msgDiv.textContent = text;
-            }
-
-            aiChatBox.appendChild(msgDiv);
-            aiChatBox.scrollTop = aiChatBox.scrollHeight;
-        }
-
-        async function submitAiChat(text) {
-            if (!text.trim()) return;
-            appendChatMessage('user', text);
-            aiUserInput.value = '';
-            aiUserInput.disabled = true;
-            aiSendBtn.disabled = true;
-
-            const loadingId = 'aiLoadingIndicator';
-            const loadingDiv = document.createElement('div');
-            loadingDiv.id = loadingId;
-            loadingDiv.style.alignSelf = 'flex-start';
-            loadingDiv.style.padding = '8px 12px';
-            loadingDiv.style.fontSize = '12px';
-            loadingDiv.style.color = 'var(--muted)';
-            loadingDiv.textContent = 'Gemini AI o‘ylamoqda... ✨';
-            aiChatBox.appendChild(loadingDiv);
-            aiChatBox.scrollTop = aiChatBox.scrollHeight;
-
-            const apiKey = localStorage.getItem('gemini_api_key') || '';
-
-            try {
-                const res = await api('/api/ai/chat', {
-                    method: 'POST',
-                    body: JSON.stringify({ message: text, api_key: apiKey })
-                });
-
-                document.getElementById(loadingId)?.remove();
-
-                if (res.status === 'need_key') {
-                    appendChatMessage('ai', `⚠️ ${res.reply}`);
-                } else if (res.status === 'error') {
-                    appendChatMessage('ai', `❌ ${res.reply}`);
-                } else {
-                    let formatted = res.reply;
-                    if (res.action_result) {
-                        formatted += `<br><span style="display:inline-block; margin-top:6px; color:var(--green); font-weight:600;">${res.action_result}</span>`;
-                        refresh();
-                    }
-                    appendChatMessage('ai', formatted, true);
-                }
-            } catch (err) {
-                document.getElementById(loadingId)?.remove();
-                appendChatMessage('ai', `Tarmoq yoki server xatosi: ${err.message}`);
-            } finally {
-                aiUserInput.disabled = false;
-                aiSendBtn.disabled = false;
-                aiUserInput.focus();
-            }
-        }
-
-        aiChatForm?.addEventListener('submit', (e) => {
+        document.getElementById('taskForm').addEventListener('submit', e => {
             e.preventDefault();
-            submitAiChat(aiUserInput.value);
+            const db = getDB();
+            db.tasks.push({
+                id: Date.now(),
+                title: document.getElementById('taskTitle').value.trim(),
+                priority: document.getElementById('taskPriority').value,
+                reminder: document.getElementById('taskReminder').value || null,
+                date: document.getElementById('selectedDate').value,
+                is_completed: false
+            });
+            saveDB(db); e.target.reset(); renderAll(); showToast('Reja qo‘shildi');
         });
 
-        window.sendQuickAiPrompt = function(promptText) {
-            submitAiChat(promptText);
-        };
+        document.getElementById('transactionForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const db = getDB();
+            db.transactions.push({
+                id: Date.now(),
+                type: document.getElementById('transactionType').value,
+                category: document.getElementById('transactionCategory').value.trim(),
+                amount: Number(document.getElementById('transactionAmount').value),
+                note: document.getElementById('transactionNote').value.trim(),
+                date: document.getElementById('selectedDate').value
+            });
+            saveDB(db); e.target.reset(); renderAll(); showToast('Amaliyot saqlandi');
+        });
 
-        refresh();
-        loadHistory();
+        document.getElementById('budgetForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const db = getDB();
+            const cat = document.getElementById('budgetCategory').value.trim();
+            const lim = Number(document.getElementById('budgetLimit').value);
+            const month = document.getElementById('selectedDate').value.slice(0, 7);
+            db.budgets = db.budgets.filter(b => !(b.category === cat && b.month === month));
+            db.budgets.push({ category: cat, limit: lim, month: month });
+            saveDB(db); e.target.reset(); renderAll(); showToast('Limit saqlandi');
+        });
+
+        document.getElementById('goalForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const db = getDB();
+            db.goals.push({
+                id: Date.now(),
+                title: document.getElementById('goalTitle').value.trim(),
+                target: Number(document.getElementById('goalTarget').value),
+                current: Number(document.getElementById('goalCurrent').value || 0)
+            });
+            saveDB(db); e.target.reset(); renderAll(); showToast('Maqsad qo‘shildi');
+        });
+
+        document.getElementById('reportForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const db = getDB();
+            const dStr = document.getElementById('selectedDate').value;
+            db.reports[dStr] = {
+                score: selectedScore,
+                note: document.getElementById('reportNote').value.trim()
+            };
+            saveDB(db); renderAll(); showToast('Kun yakuni saqlandi');
+        });
+
+        // AI CHAT & PARSER
+        const aiChatBox = document.getElementById('aiChatBox');
+        function appendChat(sender, text) {
+            const div = document.createElement('div');
+            div.style.cssText = `align-self:${sender==='user'?'flex-end':'flex-start'}; max-width:88%; padding:10px 14px; border-radius:14px; font-size:13px; background:${sender==='user'?'var(--green); color:#fff':'#fff; border:1px solid var(--line)'}`;
+            div.textContent = text;
+            aiChatBox.appendChild(div);
+            aiChatBox.scrollTop = aiChatBox.scrollHeight;
+        }
+
+        document.getElementById('aiChatForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const input = document.getElementById('aiUserInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            appendChat('user', msg);
+            input.value = '';
+
+            const db = getDB();
+            const lower = msg.toLowerCase();
+            let reply = "Tushundim! Qanday yordam bera olaman?";
+            const today = document.getElementById('selectedDate').value;
+
+            // Smart parsing
+            if (lower.includes('sarflagim') || lower.includes('som') || lower.includes('pul') || lower.includes('oldi') || lower.includes('ishlatdim')) {
+                const nums = msg.match(/\d[\d\s]*/g);
+                if (nums) {
+                    const amount = Number(nums[0].replace(/\s/g, ''));
+                    const isIncome = lower.includes('maosh') || lower.includes('oldi') || lower.includes('keldi') || lower.includes('daromad');
+                    db.transactions.push({
+                        id: Date.now(),
+                        type: isIncome ? 'income' : 'expense',
+                        category: isIncome ? 'Maosh / Kirim' : 'Xarajat',
+                        amount: amount,
+                        note: msg,
+                        date: today
+                    });
+                    saveDB(db);
+                    renderAll();
+                    reply = `✅ ${isIncome ? 'Kirim' : 'Chiqim'} avtomatik qo'shildi: ${money(amount)}`;
+                }
+            } else if (lower.includes('reja') || lower.includes('kerak') || lower.includes('ertaga') || lower.includes('soat')) {
+                db.tasks.push({
+                    id: Date.now(),
+                    title: msg,
+                    priority: lower.includes('muhim') ? 'high' : 'normal',
+                    reminder: null,
+                    date: today,
+                    is_completed: false
+                });
+                saveDB(db);
+                renderAll();
+                reply = `✅ Yangi reja saqlandi: "${msg}"`;
+            } else {
+                reply = `Sizning so'rovingiz qabul qilindi: "${msg}". Reja yoki moliya sifatida yozib qo'yishim mumkin!`;
+            }
+            setTimeout(() => appendChat('ai', reply), 400);
+        });
+
+        // ================= BUDILNIK & PUSH NOTIFICATIONS =================
+        async function initNotifications() {
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                await Notification.requestPermission();
+            }
+        }
+        document.getElementById('enablePushBtn').addEventListener('click', async () => {
+            if (!('Notification' in window)) {
+                showToast("Brauzeringiz bildirishnomani qo'llab-quvvatlamaydi");
+                return;
+            }
+            const perm = await Notification.requestPermission();
+            if (perm === 'granted') {
+                showToast("Budilnik va push bildirishnomalar yoqildi! ✅");
+                document.getElementById('enablePushBtn').textContent = '✅ Push bildirishnomalar faol';
+                document.getElementById('enablePushBtn').style.background = 'var(--muted)';
+            } else {
+                showToast("Ruxsat berilmadi");
+            }
+        });
+
+        document.getElementById('testPushBtn').addEventListener('click', () => {
+            if (Notification.permission === 'granted') {
+                new Notification("Turkiston Daily ✨", { body: "Budilnik sinov bildirishnomasi ishlayapti!" });
+                showToast("Sinov bildirishnomasi yuborildi");
+            } else {
+                showToast("Avval push bildirishnomalarni yoqing!");
+            }
+        });
+
+        // Background Reminder Interval (Budilnik)
+        setInterval(() => {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            const now = new Date();
+            const nowIsoStr = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const todayStr = localDateString(now);
+
+            const db = getDB();
+
+            // Check task reminders
+            db.tasks.forEach(t => {
+                if (!t.is_completed && t.reminder && t.reminder.slice(0, 16) === nowIsoStr && !t.notified) {
+                    new Notification("🔔 Reja eslatmasi (Budilnik)", {
+                        body: `Vaqti keldi: ${t.title}`,
+                        icon: "/static/icon-192.png"
+                    });
+                    t.notified = true;
+                    saveDB(db);
+                }
+            });
+
+            // 20:00 Financial Reminder
+            if (currentHour === 20 && currentMinute === 0 && db.settings.finance_rem) {
+                const todayTx = db.transactions.filter(tx => tx.date === todayStr);
+                if (todayTx.length === 0 && !db.settings.last_fin_notif === todayStr) {
+                    new Notification("💰 Moliyaviy eslatma", { body: "Bugun hali xarajat yoki kirim kiritmadingiz. Hisob-kitobni yangilang!" });
+                    db.settings.last_fin_notif = todayStr;
+                    saveDB(db);
+                }
+            }
+
+            // 21:00 Evening Review
+            if (currentHour === 21 && currentMinute === 0 && db.settings.evening_rem) {
+                if (!db.reports[todayStr] && !db.settings.last_eve_notif === todayStr) {
+                    new Notification("📋 Kun sarhisobi", { body: "Kunni sarhisob qilish va ertangi rejalarni tuzish vaqti keldi! ✨" });
+                    db.settings.last_eve_notif = todayStr;
+                    saveDB(db);
+                }
+            }
+        }, 30000); // har 30 sekundda tekshiradi
+
+        // BACKUP & RESTORE
+        document.getElementById('exportDataBtn').addEventListener('click', () => {
+            const data = localStorage.getItem('turkiston_local_db');
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `turkiston-backup-${localDateString()}.json`;
+            a.click();
+            showToast('Zaxira nusxasi yuklandi');
+        });
+        document.getElementById('importDataBtn').addEventListener('click', () => document.getElementById('importFile').click());
+        document.getElementById('importFile').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = event => {
+                try {
+                    JSON.parse(event.target.result);
+                    localStorage.setItem('turkiston_local_db', event.target.result);
+                    renderAll();
+                    showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
+                } catch (err) {
+                    showToast('Xato: Noto‘g‘ri fayl formati');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.querySelectorAll('.nav-button[data-view]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
+        document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.go)));
+
+        initNotifications();
+        renderAll();
     </script>
 </body>
 </html>
