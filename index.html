@@ -408,6 +408,17 @@
         function localDateString(date = new Date()) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
+
+        // FIXED: Local datetime format string matching input datetime-local value (YYYY-MM-DDTHH:MM)
+        function localDatetimeString(date = new Date()) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d}T${h}:${min}`;
+        }
+
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
         }
@@ -756,11 +767,11 @@
             }
         });
 
-        // Background Reminder Interval (Budilnik)
+        // Background Reminder Interval (Budilnik) - FIXED WITH LOCAL DATETIME STRING
         setInterval(() => {
             if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            const nowIsoStr = localDatetimeString(new Date()); // Local time YYYY-MM-DDTHH:MM
             const now = new Date();
-            const nowIsoStr = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
             const currentHour = now.getHours();
             const currentMinute = now.getMinutes();
             const todayStr = localDateString(now);
@@ -780,9 +791,9 @@
             });
 
             // 20:00 Financial Reminder
-            if (currentHour === 20 && currentMinute === 0 && db.settings.finance_rem) {
+            if (currentHour === 20 && currentMinute === 0) {
                 const todayTx = db.transactions.filter(tx => tx.date === todayStr);
-                if (todayTx.length === 0 && !db.settings.last_fin_notif === todayStr) {
+                if (todayTx.length === 0 && db.settings.last_fin_notif !== todayStr) {
                     new Notification("💰 Moliyaviy eslatma", { body: "Bugun hali xarajat yoki kirim kiritmadingiz. Hisob-kitobni yangilang!" });
                     db.settings.last_fin_notif = todayStr;
                     saveDB(db);
@@ -790,8 +801,8 @@
             }
 
             // 21:00 Evening Review
-            if (currentHour === 21 && currentMinute === 0 && db.settings.evening_rem) {
-                if (!db.reports[todayStr] && !db.settings.last_eve_notif === todayStr) {
+            if (currentHour === 21 && currentMinute === 0) {
+                if (!db.reports[todayStr] && db.settings.last_eve_notif !== todayStr) {
                     new Notification("📋 Kun sarhisobi", { body: "Kunni sarhisob qilish va ertangi rejalarni tuzish vaqti keldi! ✨" });
                     db.settings.last_eve_notif = todayStr;
                     saveDB(db);
@@ -820,7 +831,7 @@
                     JSON.parse(event.target.result);
                     localStorage.setItem('turkiston_local_db', event.target.result);
                     renderAll();
-                    showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
+                    xshowToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
                 } catch (err) {
                     showToast('Xato: Noto‘g‘ri fayl formati');
                 }
