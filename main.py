@@ -1319,22 +1319,10 @@ def _fetch_gemini_rest(api_key: str, user_msg: str, system_prompt: str, model_na
 
 
 def _fetch_pollinations_free_ai(user_msg: str, system_prompt: str) -> str:
-    url = "https://text.pollinations.ai/"
-    payload = {
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg}
-        ],
-        "model": "openai",
-        "jsonMode": True
-    }
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
-        method="POST"
-    )
+    combined = f"System: {system_prompt}\n\nUser: {user_msg}\n\nReturn strictly valid JSON: {{\"reply\": \"...\", \"action\": null}}"
+    encoded = urllib.parse.quote(combined)
+    url = f"https://text.pollinations.ai/{encoded}?model=openai&jsonMode=true"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read().decode("utf-8")
 
