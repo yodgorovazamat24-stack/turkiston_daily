@@ -453,6 +453,50 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
 
     return {"status": "ok", "message": "Profil muvaffaqiyatli yangilandi"}
 
+
+@app.get("/api/admin/users")
+async def admin_get_users(user_id: int = Depends(current_user)):
+    with database() as conn:
+        u = conn.execute("SELECT username FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        if not u or (u["username"] != "admin" and user_id not in ADMIN_USER_IDS and user_id != DEV_USER_ID):
+            raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
+        rows = conn.execute("SELECT user_id, full_name, username, phone, last_seen_at FROM users ORDER BY last_seen_at DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.get("/api/admin/export-master", response_class=HTMLResponse)
+async def admin_export_master(user_id: int = Depends(current_user)):
+    with database() as conn:
+        u = conn.execute("SELECT username FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        if not u or (u["username"] != "admin" and user_id not in ADMIN_USER_IDS and user_id != DEV_USER_ID):
+            raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
+        users = conn.execute("SELECT * FROM users").fetchall()
+        tasks = conn.execute("SELECT * FROM tasks").fetchall()
+        transactions = conn.execute("SELECT * FROM transactions").fetchall()
+
+    html = """
+    <!doctype html>
+    <html lang="uz">
+    <head><meta charset="utf-8"><title>Master Platform Report</title>
+    <style>body{font-family:Arial;padding:30px;background:#f2f4ee;} table{width:100%;border-collapse:collapse;margin-bottom:30px;background:#fff;} th,td{border:1px solid #ddd;padding:8px;font-size:12px;} th{background:#245c43;color:#fff;}</style>
+    </head>
+    <body>
+    <h1>👑 Master Platform Report (Admin)</h1>
+    <h2>Foydalanuvchilar (Users)</h2>
+    <table><tr><th>ID</th><th>Ism</th><th>Username</th><th>Telefon</th><th>Oxirgi faollik</th></tr>
+    """
+    for usr in users:
+        html += f"<tr><td>{usr['user_id']}</td><td>{escapeHtml(usr['full_name'])}</td><td>@{escapeHtml(usr['username'])}</td><td>{escapeHtml(usr['phone'])}</td><td>{usr['last_seen_at']}</td></tr>"
+    html += "</table><h2>Barcha Rejalar (Tasks)</h2><table><tr><th>User ID</th><th>Sarlavha</th><th>Sana</th><th>Bajarilgan</th></tr>"
+    for t in tasks:
+        html += f"<tr><td>{t['user_id']}</td><td>{escapeHtml(t['title'])}</td><td>{t['date']}</td><td>{'Ha' if t['is_completed'] else 'Yoq'}</td></tr>"
+    html += "</table><h2>Barcha Amaliyotlar (Transactions)</h2><table><tr><th>User ID</th><th>Turi</th><th>Kategoriya</th><th>Summa</th><th>Sana</th></tr>"
+    for tx in transactions:
+        html += f"<tr><td>{tx['user_id']}</td><td>{tx['type']}</td><td>{escapeHtml(tx['category'])}</td><td>{tx['amount']}</td><td>{tx['date']}</td></tr>"
+    html += "</table></body></html>"
+    return html
+
+
 @app.post("/api/push/subscribe")
 async def subscribe_push(sub: PushSubscriptionData, user_id: int = Depends(current_user)):
     if not sub.endpoint:

@@ -86,7 +86,6 @@
         .date-control { display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); color: var(--muted); font-size: 11px; }
         .date-control input { width: 124px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; }
 
-        /* HEADER PROFILE AVATAR BUTTON & DROPDOWN */
         .header-avatar-wrap { position: relative; }
         .header-avatar-btn { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 24px; background: var(--white); cursor: pointer; transition: border-color .15s; }
         .header-avatar-btn:hover { border-color: var(--green); }
@@ -180,9 +179,9 @@
         .score-button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: var(--white); font-size: 16px; }
         .score-button.selected { border-color: var(--yellow); color: #987516; background: var(--yellow-soft); }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; place-items: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; place-items: center; padding: 20px; backdrop-filter: blur(5px); }
         .modal-overlay.open { display: grid; }
-        .modal-card { width: 100%; max-width: 480px; background: var(--white); border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); animation: appear .2s ease both; max-height: 90vh; overflow-y: auto; }
+        .modal-card { width: 100%; max-width: 480px; background: var(--white); border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: appear .2s ease both; max-height: 90vh; overflow-y: auto; }
 
         .toast { position: fixed; right: 20px; bottom: 20px; z-index: 200; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border-radius: 7px; color: white; background: var(--ink); box-shadow: var(--shadow); font-size: 11px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
         .toast.show { opacity: 1; transform: translateY(0); }
@@ -217,6 +216,38 @@
     </style>
 </head>
 <body>
+    <!-- MANDATORY LOGIN / REGISTRATION OVERLAY -->
+    <div class="modal-overlay open" id="authModal" style="background: rgba(20,30,25,0.85); backdrop-filter: blur(8px);">
+        <div class="modal-card" style="max-width: 425px;">
+            <div class="panel-header" style="margin-bottom:12px;">
+                <div><h3 class="panel-title" id="authModalTitle">🔐 Turkiston Daily'ga Kirish</h3><p class="panel-subtitle">Shaxsiy yordamchingizdan foydalanish uchun ro'yxatdan o'ting</p></div>
+            </div>
+            <div class="form-stack" id="loginFormContainer">
+                <form id="loginForm" class="form-stack">
+                    <div class="field-group"><label class="field-label" for="loginPhone">Telefon raqam yoki Username</label><input class="field" id="loginPhone" placeholder="+998901234567 yoki username" required></div>
+                    <div class="field-group"><label class="field-label" for="loginPassword">Parol</label><input class="field" id="loginPassword" type="password" placeholder="••••••••" required></div>
+                    <button class="primary-button" type="submit" style="width:100%; height:42px; font-size:13px;">Kirish</button>
+                </form>
+                <div style="text-align:center; margin-top:10px;">
+                    <button type="button" class="text-button" onclick="switchAuthMode('register')">Hali ro'yxatdan o'tmaganmisiz? Ro'yxatdan o'tish →</button>
+                </div>
+            </div>
+
+            <div class="form-stack" id="registerFormContainer" style="display:none;">
+                <form id="registerForm" class="form-stack">
+                    <div class="field-group"><label class="field-label" for="regName">Ism va Familiya</label><input class="field" id="regName" placeholder="Azamat Yodgorov" required></div>
+                    <div class="field-group"><label class="field-label" for="regUsername">Unikal Username (Boshqalardan farqli)</label><input class="field" id="regUsername" placeholder="@azamat_dev" required></div>
+                    <div class="field-group"><label class="field-label" for="regPhone">Telefon raqam</label><input class="field" id="regPhone" placeholder="+998 90 123 45 67" required></div>
+                    <div class="field-group"><label class="field-label" for="regPassword">Parol (min 4 ta belgi)</label><input class="field" id="regPassword" type="password" placeholder="••••••••" required></div>
+                    <button class="primary-button" type="submit" style="width:100%; height:42px; font-size:13px; background:var(--orange);">Ro'yxatdan o'tish</button>
+                </form>
+                <div style="text-align:center; margin-top:10px;">
+                    <button type="button" class="text-button" onclick="switchAuthMode('login')">Akkauntingiz bormi? Kirish →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand"><div class="brand-mark">T</div><div><div class="brand-name">Turkiston<br>Daily</div><div class="brand-caption">TICKTICK + MONEY MANAGER</div></div></div>
@@ -229,7 +260,7 @@
                 <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span><span data-i18n="menu_goals">Maqsadlar</span></button>
                 <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span><span data-i18n="menu_reports">Hisobotlar</span></button>
             </nav>
-            <div class="sidebar-bottom"><span class="status-dot"></span><span id="connectionStatus">100% Lokal rejim</span><br>Ma'lumotlar o'zingizda saqlanadi</div>
+            <div class="sidebar-bottom"><span class="status-dot"></span><span id="connectionStatus">100% Onlayn rejim</span><br>Ma'lumotlar serverda saqlanadi</div>
         </aside>
 
         <main class="workspace">
@@ -237,7 +268,6 @@
                 <div><div class="eyebrow">TICKTICK + MONEY MANAGER</div><h1 class="page-title" id="pageTitle">Umumiy ko'rinish</h1></div>
                 <div class="top-actions">
                     <label class="date-control"><span>▦</span><input id="selectedDate" type="date" aria-label="Sana"></label>
-                    <!-- HEADER PROFILE AVATAR DROPDOWN BUTTON -->
                     <div class="header-avatar-wrap">
                         <button class="header-avatar-btn" id="headerAvatarBtn" title="Shaxsiy kabinet va sozlamalar">
                             <div class="header-avatar-img" id="headerAvatarBox">U</div>
@@ -247,8 +277,10 @@
                             <button class="dropdown-item" onclick="openProfileModal()">👤 <span data-i18n="mod_profile">Shaxsiy kabinet</span></button>
                             <button class="dropdown-item" onclick="openSettingsModal()">⚙️ <span data-i18n="mod_settings">Sozlamalar & Rejim</span></button>
                             <button class="dropdown-item" onclick="openBackupModal()">📥 <span data-i18n="mod_backup">Zaxiralash (Backup)</span></button>
+                            <div class="dropdown-divider" id="adminDivider" style="display:none;"></div>
+                            <button class="dropdown-item" id="adminPanelBtn" style="display:none; color:var(--orange);" onclick="openAdminPanelModal()">👑 <span>Admin Panel</span></button>
                             <div class="dropdown-divider"></div>
-                            <button class="dropdown-item" style="color:var(--orange);" onclick="openBotInfoModal()">🤖 <span data-i18n="mod_bot">Telegram Bot</span></button>
+                            <button class="dropdown-item" style="color:#b54430;" onclick="logoutAccount()">🚪 <span>Chiqish</span></button>
                         </div>
                     </div>
                 </div>
@@ -361,7 +393,7 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR (Vizual jadvallar va diagrammalar bilan) -->
+            <!-- HISOBOTLAR -->
             <section class="view" id="view-reports">
                 <p class="page-intro">Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.</p>
                 <div class="view-grid">
@@ -456,27 +488,26 @@
         </div>
     </div>
 
-    <!-- TELEGRAM BOT INFO MODALI -->
-    <div class="modal-overlay" id="botInfoModal">
-        <div class="modal-card">
+    <!-- ADMIN PANEL MODALI -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-card" style="max-width: 600px;">
             <div class="panel-header">
-                <div><h3 class="panel-title">🤖 Telegram Bot</h3><p class="panel-subtitle">Sizning botingiz username</p></div>
-                <button class="mini-button delete" onclick="closeBotInfoModal()" style="font-size:18px;">×</button>
+                <div><h3 class="panel-title">👑 Admin Panel</h3><p class="panel-subtitle">Barcha foydalanuvchilar va ma'lumotlar</p></div>
+                <button class="mini-button delete" onclick="closeAdminPanelModal()" style="font-size:18px;">×</button>
             </div>
             <div class="form-stack" style="gap:14px; margin-top:10px;">
                 <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">
-                    Telegram botingiz orqali 24/7 reja va moliyaviy eslatmalarni qabul qilishingiz mumkin.
+                    Siz admin sifatida barcha foydalanuvchilarning hisobotlarini ko'rishingiz va Master Excel/HTML hisobotini yuklab olishingiz mumkin.
                 </p>
-                <div class="field-group">
-                    <label class="field-label">Telegram Username</label>
-                    <input class="field" id="botUsernameDisplay" type="text" readonly value="@turkistondaily_bot">
+                <button class="primary-button" type="button" onclick="window.open('/api/admin/export-master', '_blank')">📥 Barcha foydalanuvchilar hisobotini yuklab olish (Master Excel/HTML)</button>
+                <div id="adminUserList" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px;">
+                    Yuklanmoqda...
                 </div>
-                <button class="primary-button" type="button" onclick="window.open('https://t.me/turkistondaily_bot', '_blank')">🤖 Botni ochish (@turkistondaily_bot)</button>
             </div>
         </div>
     </div>
 
-    <!-- MOBIL MENYU (6 ta bo'lim to'liq) -->
+    <!-- MOBIL MENYU -->
     <nav class="mobile-nav" aria-label="Menyu">
         <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
         <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
@@ -488,38 +519,136 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va vizual eksport", profile: "Shaxsiy Kabinet" };
-        let selectedScore = 0;
-        let toastTimer;
-        let currentAiSuggestion = null;
+        let authToken = localStorage.getItem('turkiston_token') || '';
+        let currentUser = null;
 
-        const translations = {
-            uz: { nav_label: "BO'LIMLAR", menu_overview: "Umumiy", menu_ai: "AI Yordamchi", menu_tasks: "Rejalar", menu_money: "Moliya", menu_goals: "Maqsadlar", menu_reports: "Hisobotlar", mod_profile: "Shaxsiy kabinet", mod_settings: "Sozlamalar & Rejim", mod_backup: "Zaxiralash (Backup)", mod_bot: "Telegram Bot" },
-            ru: { nav_label: "РАЗДЕЛЫ", menu_overview: "Главная", menu_ai: "ИИ Помощник", menu_tasks: "Задачи", menu_money: "Финансы", menu_goals: "Цели", menu_reports: "Отчеты", mod_profile: "Личный кабинет", mod_settings: "Настройки и Режим", mod_backup: "Резервная копия", mod_bot: "Телеграм Бот" },
-            en: { nav_label: "SECTIONS", menu_overview: "Overview", menu_ai: "AI Assistant", menu_tasks: "Tasks", menu_money: "Finance", menu_goals: "Goals", menu_reports: "Reports", mod_profile: "Profile", mod_settings: "Settings & Theme", mod_backup: "Backup", mod_bot: "Telegram Bot" }
-        };
-
-        function getDB() {
-            let db = localStorage.getItem('turkiston_local_db_v10');
-            if (!db) {
-                const initial = {
-                    tasks: [],
-                    transactions: [],
-                    budgets: [],
-                    goals: [],
-                    reports: {},
-                    profile: { name: "Foydalanuvchi", phone: "+998 90 000 00 00", bio: "Shaxsiy yordamchi egasi", avatar: null, username: "@user" },
-                    settings: { finance_rem: true, evening_rem: true, theme: "light", lang: "uz" }
-                };
-                localStorage.setItem('turkiston_local_db_v10', JSON.stringify(initial));
-                return initial;
+        function switchAuthMode(mode) {
+            if (mode === 'register') {
+                document.getElementById('loginFormContainer').style.display = 'none';
+                document.getElementById('registerFormContainer').style.display = 'grid';
+                document.getElementById('authModalTitle').textContent = "📝 Ro'yxatdan o'tish";
+            } else {
+                document.getElementById('registerFormContainer').style.display = 'none';
+                document.getElementById('loginFormContainer').style.display = 'grid';
+                document.getElementById('authModalTitle').textContent = "🔐 Turkiston Daily'ga Kirish";
             }
-            return JSON.parse(db);
-        }
-        function saveDB(db) {
-            localStorage.setItem('turkiston_local_db_v10', JSON.stringify(db));
         }
 
+        document.getElementById('loginForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const login = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Xatolik');
+                authToken = data.token;
+                localStorage.setItem('turkiston_token', authToken);
+                currentUser = data;
+                document.getElementById('authModal').classList.remove('open');
+                showToast("Xush kelibsiz! ✅");
+                loadDashboardData();
+            } catch (err) {
+                showToast(err.message);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const full_name = document.getElementById('regName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value;
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password, full_name, username })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Xatolik');
+                authToken = data.token;
+                localStorage.setItem('turkiston_token', authToken);
+                currentUser = data;
+                document.getElementById('authModal').classList.remove('open');
+                showToast("Muvaffaqiyatli ro'yxatdan o'tdingiz! 🎉");
+                loadDashboardData();
+            } catch (err) {
+                showToast(err.message);
+            }
+        });
+
+        function logoutAccount() {
+            localStorage.removeItem('turkiston_token');
+            authToken = '';
+            document.getElementById('authModal').classList.add('open');
+            showToast("Hisobdan chiqildi");
+        }
+
+        async function checkAuthAndLoad() {
+            if (!authToken) {
+                document.getElementById('authModal').classList.add('open');
+                return;
+            }
+            try {
+                const res = await fetch('/api/profile', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) throw new Error();
+                const profile = await res.json();
+                currentUser = profile;
+                document.getElementById('authModal').classList.remove('open');
+
+                // Check if admin
+                if (profile.username === 'admin' || profile.user_id === 12345678) {
+                    document.getElementById('adminDivider').style.display = 'block';
+                    document.getElementById('adminPanelBtn').style.display = 'flex';
+                }
+
+                loadDashboardData();
+            } catch (e) {
+                localStorage.removeItem('turkiston_token');
+                authToken = '';
+                document.getElementById('authModal').classList.add('open');
+            }
+        }
+
+        async function loadDashboardData() {
+            const dateStr = document.getElementById('selectedDate').value || localDateString();
+            try {
+                const res = await fetch(`/api/dashboard?selected_date=${dateStr}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    renderServerData(data);
+                }
+            } catch (e) {}
+        }
+
+        async function openAdminPanelModal() {
+            document.getElementById('adminModal').classList.add('open');
+            const listEl = document.getElementById('adminUserList');
+            listEl.innerHTML = "Yuklanmoqda...";
+            try {
+                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (res.ok) {
+                    const users = await res.json();
+                    listEl.innerHTML = users.map(u => `<div style="padding:6px 0; border-bottom:1px solid var(--line); font-size:12px;"><strong>${escapeHtml(u.full_name || 'Foydalanuvchi')}</strong> (@${escapeHtml(u.username || 'n/a')}) — Tel: ${escapeHtml(u.phone)}</div>`).join('');
+                } else {
+                    listEl.innerHTML = "Admin huquqi talab qilinadi.";
+                }
+            } catch (e) {
+                listEl.innerHTML = "Ma'lumotni yuklab bo'lmadi.";
+            }
+        }
+        function closeAdminPanelModal() { document.getElementById('adminModal').classList.remove('open'); }
+
+        // Render functions using server data...
         function localDateString(date = new Date()) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
@@ -539,228 +668,73 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.classList.add('show');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+            setTimeout(() => toast.classList.remove('show'), 2600);
         }
 
         function setView(name) {
             document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
             document.querySelectorAll('.nav-button[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === name));
-            document.getElementById('pageTitle').textContent = titles[name];
+            document.getElementById('pageTitle').textContent = { overview: "Umumiy", ai: "AI Yordamchi", tasks: "Rejalar", money: "Moliya", goals: "Maqsadlar", reports: "Hisobotlar" }[name];
         }
 
-        const headerAvatarBtn = document.getElementById('headerAvatarBtn');
-        const headerDropdown = document.getElementById('headerDropdown');
-        headerAvatarBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            headerDropdown.classList.toggle('open');
-        });
-        document.addEventListener('click', () => headerDropdown.classList.remove('open'));
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va vizual eksport" };
 
-        function openProfileModal() { document.getElementById('profileModal').classList.add('open'); }
-        function closeProfileModal() { document.getElementById('profileModal').classList.remove('open'); }
-        function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
-        function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
-        function openBotInfoModal() { document.getElementById('botInfoModal').classList.add('open'); }
-        function closeBotInfoModal() { document.getElementById('botInfoModal').classList.remove('open'); }
+        async function renderServerData(data) {
+            const dateStr = data.date;
+            const summary = data.summary;
+            const tasks = data.tasks;
+            const transactions = data.transactions;
+            const categories = data.categories;
+            const budgets = data.budgets;
+            const goals = data.goals;
 
-        function changeTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            const db = getDB();
-            db.settings.theme = theme;
-            saveDB(db);
-            showToast(theme === 'dark' ? '🌙 Tungi rejim yoqildi' : '☀️ Kunduzgi rejim yoqildi');
-        }
-
-        function changeLanguage(lang) {
-            const db = getDB();
-            db.settings.lang = lang;
-            saveDB(db);
-            const t = translations[lang] || translations.uz;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (t[key]) el.textContent = t[key];
-            });
-            showToast(lang === 'uz' ? 'O‘zbek tili tanlandi' : lang === 'ru' ? 'Выбран русский язык' : 'English selected');
-        }
-
-        // AVATAR UPLOAD (FIXED AND DISPLAYED CORRECTLY)
-        document.getElementById('avatarFileInput').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = event => {
-                const base64Img = event.target.result;
-                const db = getDB();
-                db.profile.avatar = base64Img;
-                saveDB(db);
-                renderAll();
-                showToast("Avatar rasm saqlandi! 📷");
-            };
-            reader.readAsDataURL(file);
-        });
-
-        function updateAiInsights() {
-            const db = getDB();
-            const dateStr = document.getElementById('selectedDate').value || localDateString();
-            const todayTasks = db.tasks.filter(t => t.date === dateStr);
-            const todayTx = db.transactions.filter(tx => tx.date === dateStr);
-            const inc = todayTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
-            const exp = todayTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
-            const comp = todayTasks.filter(t => t.is_completed).length;
-
-            let tip = "Bugungi kuningiz ajoyib o'tsin! Reja va moliyangizni nazorat qilib boryapsiz.";
-            currentAiSuggestion = null;
-
-            if (todayTasks.length === 0) {
-                tip = "💡 Taklif: Bugun uchun hali reja kiritmabsiz. Muhim vazifalardan birini yozib qo'shishni xohlaysizmi?";
-                currentAiSuggestion = { type: 'task', title: "Ertangi muhim vazifalarni rejalashtirish" };
-            } else if (todayTasks.length > 0 && comp === todayTasks.length) {
-                tip = "🏆 Ajoyib! Bugungi barcha rejalaringiz bajarildi. Ertangi kun uchun bitta kichik maqsad qo'shishni tavsiya qilaman.";
-                currentAiSuggestion = { type: 'task', title: "Ertangi kun uchun reja tuzish" };
-            } else if (exp > inc && exp > 0) {
-                tip = "⚠️ Eslatma: Bugungi xarajatlaringiz kirimingizdan oshdi. Ertaga ortiqcha xarajat qilmaslikni rejalashtiraylikmi?";
-                currentAiSuggestion = { type: 'budget', category: "Boshqa", limit: 100000 };
-            }
-
-            document.getElementById('aiProactiveSuggestion').textContent = tip;
-            const btn = document.getElementById('acceptAiSuggestionBtn');
-            if (currentAiSuggestion) {
-                btn.style.display = 'inline-block';
-            } else {
-                btn.style.display = 'none';
-            }
-        }
-
-        document.getElementById('acceptAiSuggestionBtn').addEventListener('click', () => {
-            if (!currentAiSuggestion) return;
-            const db = getDB();
-            const today = document.getElementById('selectedDate').value || localDateString();
-            if (currentAiSuggestion.type === 'task') {
-                db.tasks.push({
-                    id: Date.now(),
-                    title: currentAiSuggestion.title,
-                    priority: 'high',
-                    recurrence: 'none',
-                    reminder: null,
-                    date: today,
-                    is_completed: false
-                });
-                showToast("AI taklifi bo'yicha reja qo'shildi! ✓");
-            }
-            saveDB(db);
-            renderAll();
-        });
-
-        function renderAll() {
-            const db = getDB();
-            const dateStr = document.getElementById('selectedDate').value || localDateString();
-            const monthStr = dateStr.slice(0, 7);
-
-            const prof = db.profile || { name: "Foydalanuvchi", phone: "+998 90 000 00 00", bio: "Shaxsiy yordamchi egasi", avatar: null, username: "@user" };
-            document.getElementById('profileNameInput').value = prof.name;
-            document.getElementById('profilePhoneInput').value = prof.phone || '';
-            document.getElementById('profileBioInput').value = prof.bio;
-            document.getElementById('headerNameSnippet').textContent = prof.name.split(' ')[0];
-
-            const headerAvatarBox = document.getElementById('headerAvatarBox');
-            const modalAvatarBox = document.getElementById('modalAvatarBox');
-            if (prof.avatar) {
-                headerAvatarBox.innerHTML = `<img src="${prof.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-                modalAvatarBox.innerHTML = `<img src="${prof.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-            } else {
-                const letter = prof.name.charAt(0).toUpperCase();
-                headerAvatarBox.textContent = letter;
-                modalAvatarBox.innerHTML = `<span id="modalAvatarLetter">${letter}</span>`;
-            }
-
-            if (db.settings) {
-                if (db.settings.theme) {
-                    document.documentElement.setAttribute('data-theme', db.settings.theme);
-                    document.getElementById('themeSelect').value = db.settings.theme;
+            if (currentUser) {
+                document.getElementById('headerNameSnippet').textContent = currentUser.full_name ? currentUser.full_name.split(' ')[0] : 'Profil';
+                if (currentUser.avatar_url) {
+                    document.getElementById('headerAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                    document.getElementById('modalAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
                 }
-                if (db.settings.lang) {
-                    document.getElementById('langSelect').value = db.settings.lang;
-                    changeLanguage(db.settings.lang);
-                }
+                document.getElementById('profileNameInput').value = currentUser.full_name || '';
+                document.getElementById('profilePhoneInput').value = currentUser.phone || '';
             }
 
-            const todayTasks = db.tasks.filter(t => t.date === dateStr);
-            const todayTx = db.transactions.filter(tx => tx.date === dateStr);
-            const monthTx = db.transactions.filter(tx => tx.date.startsWith(monthStr));
+            document.getElementById('dayIncome').textContent = money(summary.income);
+            document.getElementById('dayExpense').textContent = money(summary.expense);
+            document.getElementById('dayBalance').textContent = money(summary.balance);
+            document.getElementById('monthIncome').textContent = `Oy: ${money(summary.month_income)}`;
+            document.getElementById('monthExpense').textContent = `Oy: ${money(summary.month_expense)}`;
+            document.getElementById('taskProgress').textContent = `${summary.tasks_completed} / ${summary.tasks_total} ta reja bajarildi`;
 
-            const dayIncome = todayTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
-            const dayExpense = todayTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
-            const monthIncome = monthTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
-            const monthExpense = monthTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
-            const completedTasks = todayTasks.filter(t => t.is_completed).length;
-
-            document.getElementById('dayIncome').textContent = money(dayIncome);
-            document.getElementById('dayExpense').textContent = money(dayExpense);
-            document.getElementById('dayBalance').textContent = money(dayIncome - dayExpense);
-            document.getElementById('monthIncome').textContent = `Oy: ${money(monthIncome)}`;
-            document.getElementById('monthExpense').textContent = `Oy: ${money(monthExpense)}`;
-            document.getElementById('taskProgress').textContent = `${completedTasks} / ${todayTasks.length} ta reja bajarildi`;
-
-            document.getElementById('moneyIncome').textContent = money(dayIncome);
-            document.getElementById('moneyExpense').textContent = money(dayExpense);
-            document.getElementById('moneyBalance').textContent = money(dayIncome - dayExpense);
+            document.getElementById('moneyIncome').textContent = money(summary.income);
+            document.getElementById('moneyExpense').textContent = money(summary.expense);
+            document.getElementById('moneyBalance').textContent = money(summary.balance);
 
             document.getElementById('welcomeTitle').textContent = dateStr === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(dateStr);
             document.getElementById('dayLabel').textContent = dateStr === localDateString() ? 'BUGUN' : dateStr;
-            document.getElementById('taskSummary').textContent = `${completedTasks} / ${todayTasks.length} bajarildi`;
-            document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${completedTasks} / ${todayTasks.length} bajarildi`;
+            document.getElementById('taskSummary').textContent = `${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
+            document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
             document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
 
-            const allTasksHtml = db.tasks.length ? db.tasks.map(t => `
-                <div class="task-item ${t.is_completed ? 'completed' : ''}">
-                    <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
-                    <div>
-                        <div class="task-name">${escapeHtml(t.title)} (${t.date})</div>
-                        <div class="task-meta">
-                            <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
-                            ${t.reminder ? `<span class="tag">◷ ${t.reminder.slice(5, 16)}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="row-actions">
-                        <button class="mini-button" onclick="editTask(${t.id})" title="Tahrirlash">✎</button>
-                        <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
-                    </div>
-                </div>
-            `).join('') : '<div class="empty-state">Hali rejalar qo‘shilmagan</div>';
-
-            const todayTasksHtml = todayTasks.length ? todayTasks.map(t => `
+            const taskHtml = tasks.length ? tasks.map(t => `
                 <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
                     <div>
                         <div class="task-name">${escapeHtml(t.title)}</div>
                         <div class="task-meta">
                             <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
-                            ${t.reminder ? `<span class="tag">◷ ${t.reminder.slice(11, 16)}</span>` : ''}
+                            ${t.remind_at ? `<span class="tag">◷ ${t.remind_at.slice(11, 16)}</span>` : ''}
                         </div>
                     </div>
                     <div class="row-actions">
-                        <button class="mini-button" onclick="editTask(${t.id})" title="Tahrirlash">✎</button>
                         <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
                     </div>
                 </div>
-            `).join('') : '<div class="empty-state">Bugun uchun reja yo‘q</div>';
+            `).join('') : '<div class="empty-state">Rejalar yo‘q</div>';
 
-            document.getElementById('overviewTasks').innerHTML = todayTasksHtml;
-            document.getElementById('taskList').innerHTML = allTasksHtml;
+            document.getElementById('overviewTasks').innerHTML = taskHtml;
+            document.getElementById('taskList').innerHTML = taskHtml;
 
-            const allTxHtml = db.transactions.length ? db.transactions.map(tx => `
-                <div class="transaction-item">
-                    <div>
-                        <div class="transaction-name">${escapeHtml(tx.category)} <span style="font-size:9px; color:var(--muted);">(${tx.date})</span></div>
-                        ${tx.note ? `<div class="transaction-note">${escapeHtml(tx.note)}</div>` : ''}
-                    </div>
-                    <span class="transaction-amount ${tx.type}">${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}</span>
-                    <button class="mini-button delete" onclick="deleteTx(${tx.id})" title="O'chirish">×</button>
-                </div>
-            `).join('') : '<div class="empty-state">Hali amaliyotlar yo‘q</div>';
-
-            const todayTxHtml = todayTx.length ? todayTx.map(tx => `
+            const txHtml = transactions.length ? transactions.map(tx => `
                 <div class="transaction-item">
                     <div>
                         <div class="transaction-name">${escapeHtml(tx.category)}</div>
@@ -769,313 +743,149 @@
                     <span class="transaction-amount ${tx.type}">${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}</span>
                     <button class="mini-button delete" onclick="deleteTx(${tx.id})" title="O'chirish">×</button>
                 </div>
-            `).join('') : '<div class="empty-state">Bu kun uchun amaliyot yo‘q</div>';
+            `).join('') : '<div class="empty-state">Amaliyotlar yo‘q</div>';
 
-            document.getElementById('overviewTransactions').innerHTML = todayTxHtml;
-            document.getElementById('transactionList').innerHTML = allTxHtml;
-            document.getElementById('transactionCount').textContent = `${db.transactions.length} ta jami amaliyot`;
+            document.getElementById('overviewTransactions').innerHTML = txHtml;
+            document.getElementById('transactionList').innerHTML = txHtml;
+            document.getElementById('transactionCount').textContent = `${transactions.length} ta amaliyot`;
 
-            const expCats = {};
-            monthTx.filter(tx => tx.type === 'expense').forEach(tx => {
-                expCats[tx.category] = (expCats[tx.category] || 0) + tx.amount;
-            });
-            const catEntries = Object.entries(expCats);
-            const maxCat = catEntries.length ? Math.max(...catEntries.map(x => x[1])) : 1;
-            document.getElementById('overviewCategories').innerHTML = catEntries.length ? catEntries.map(([cat, amt]) => `
+            const maxCat = categories.length ? Math.max(...categories.map(x => x.amount)) : 1;
+            document.getElementById('overviewCategories').innerHTML = categories.length ? categories.map(c => `
                 <div class="category-row">
-                    <span class="category-name">${escapeHtml(cat)}</span>
-                    <div class="bar-track"><div class="bar-fill" style="width:${Math.max(5, amt/maxCat*100)}%"></div></div>
-                    <strong class="category-value">${money(amt)}</strong>
+                    <span class="category-name">${escapeHtml(c.category)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${Math.max(5, c.amount/maxCat*100)}%"></div></div>
+                    <strong class="category-value">${money(c.amount)}</strong>
                 </div>
             `).join('') : '<div class="empty-state">Hozircha chiqim yo‘q</div>';
 
-            const monthBudgets = db.budgets.filter(b => b.month === monthStr);
-            document.getElementById('overviewBudgets').innerHTML = monthBudgets.length ? monthBudgets.map(b => {
-                const spent = expCats[b.category] || 0;
-                const pct = Math.min(100, spent / b.limit * 100);
+            document.getElementById('overviewBudgets').innerHTML = budgets.length ? budgets.map(b => {
+                const pct = Math.min(100, b.spent / b.monthly_limit * 100);
                 return `
                     <div class="budget-item">
-                        <div class="budget-heading"><strong>${escapeHtml(b.category)}</strong><span>${money(spent)} / ${money(b.limit)}</span></div>
+                        <div class="budget-heading"><strong>${escapeHtml(b.category)}</strong><span>${money(b.spent)} / ${money(b.monthly_limit)}</span></div>
                         <div class="budget-track"><div class="budget-fill ${pct>=100?'over':pct>=80?'warn':''}" style="width:${pct}%"></div></div>
                     </div>
                 `;
             }).join('') : '<div class="empty-state">Limit belgilanmagan</div>';
             document.getElementById('budgetList').innerHTML = document.getElementById('overviewBudgets').innerHTML;
 
-            // GOALS RENDERING
-            document.getElementById('goalList').innerHTML = db.goals.length ? db.goals.map(g => {
-                const pct = Math.min(100, g.current / g.target * 100);
+            document.getElementById('goalList').innerHTML = goals.length ? goals.map(g => {
+                const pct = Math.min(100, g.current_amount / g.target_amount * 100);
                 return `
                     <div class="goal-item">
                         <div class="goal-top">
                             <div><div class="goal-name">${escapeHtml(g.title)}</div></div>
                             <div class="row-actions"><button class="mini-button" onclick="contributeGoal(${g.id})">+</button><button class="mini-button delete" onclick="deleteGoal(${g.id})">×</button></div>
                         </div>
-                        <div class="goal-progress-label"><span>${money(g.current)} yig'ildi</span><strong>${Math.round(pct)}%</strong></div>
+                        <div class="goal-progress-label"><span>${money(g.current_amount)} yig'ildi</span><strong>${Math.round(pct)}%</strong></div>
                         <div class="progress-line"><span style="width:${pct}%"></span></div>
                     </div>
                 `;
             }).join('') : '<div class="empty-state">Maqsadlar yo‘q</div>';
-
-            const rep = db.reports[dateStr] || {};
-            document.getElementById('reportNote').value = rep.note || '';
-            selectedScore = rep.score || 0;
-            document.getElementById('scoreButtons').innerHTML = [1, 2, 3, 4, 5].map(s => `
-                <button type="button" class="score-button ${selectedScore >= s ? 'selected' : ''}" onclick="setScore(${s})">★</button>
-            `).join('');
-
-            const historyDays = Object.keys(db.reports).sort().reverse();
-            document.getElementById('historyList').innerHTML = historyDays.length ? historyDays.map(d => `
-                <div class="history-item">
-                    <div><div class="history-date">${prettyDate(d)}</div><div class="history-meta">Baho: ${db.reports[d].score || 0}★</div></div>
-                    <div>${escapeHtml(db.reports[d].note || '')}</div>
-                </div>
-            `).join('') : '<div class="empty-state">Tarix yo‘q</div>';
-
-            updateAiInsights();
         }
 
-        // ACTIONS
-        function toggleTask(id) {
-            const db = getDB();
-            const t = db.tasks.find(x => x.id === id);
-            if (t) {
-                t.is_completed = !t.is_completed;
-                if (t.is_completed && t.recurrence && t.recurrence !== 'none' && t.recurrence !== 'hourly') {
-                    const currDate = new Date(t.date);
-                    if (t.recurrence === 'daily') currDate.setDate(currDate.getDate() + 1);
-                    if (t.recurrence === 'weekly') currDate.setDate(currDate.getDate() + 7);
-                    const nextDateStr = localDateString(currDate);
-
-                    db.tasks.push({
-                        id: Date.now() + 1,
-                        title: t.title,
-                        priority: t.priority,
-                        recurrence: t.recurrence,
-                        reminder: t.reminder ? localDateString(currDate) + t.reminder.slice(10) : null,
-                        date: nextDateStr,
-                        is_completed: false,
-                        notified: false
-                    });
-                    showToast("Takroriy reja keyingi kunga ko'chirildi 🔄");
-                }
-                saveDB(db);
-                renderAll();
-                showToast(t.is_completed ? 'Reja bajarildi ✓' : 'Reja ochildi');
-            }
+        async function toggleTask(id) {
+            const res = await fetch(`/api/tasks/${id}/toggle`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) loadDashboardData();
         }
-        function editTask(id) {
-            const db = getDB();
-            const t = db.tasks.find(x => x.id === id);
-            if (!t) return;
-            const newTitle = prompt("Reja nomini tahrirlash:", t.title);
-            if (newTitle !== null && newTitle.trim() !== "") {
-                t.title = newTitle.trim();
-                saveDB(db);
-                renderAll();
-                showToast("Reja tahrirlandi ✎");
-            }
+        async function deleteTask(id) {
+            const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) loadDashboardData();
         }
-        function deleteTask(id) {
-            const db = getDB();
-            db.tasks = db.tasks.filter(x => x.id !== id);
-            saveDB(db); renderAll(); showToast('Reja o‘chirildi');
+        async function deleteTx(id) {
+            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) loadDashboardData();
         }
-        function deleteTx(id) {
-            const db = getDB();
-            db.transactions = db.transactions.filter(x => x.id !== id);
-            saveDB(db); renderAll(); showToast('Amaliyot o‘chirildi');
+        async function deleteGoal(id) {
+            const res = await fetch(`/api/goals/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) loadDashboardData();
         }
-        function deleteGoal(id) {
-            const db = getDB();
-            db.goals = db.goals.filter(x => x.id !== id);
-            saveDB(db); renderAll(); showToast('Maqsad o‘chirildi');
-        }
-        function contributeGoal(id) {
-            const db = getDB();
-            const g = db.goals.find(x => x.id === id);
+        async function contributeGoal(id) {
             const amt = prompt('Qancha qo‘shiladi? (so‘m)');
-            if (g && amt && Number(amt) > 0) {
-                g.current += Number(amt);
-                saveDB(db); renderAll(); showToast('Jamg‘arma yangilandi');
-            }
-        }
-        function setScore(s) {
-            selectedScore = s;
-            document.querySelectorAll('.score-button').forEach((btn, idx) => {
-                btn.classList.toggle('selected', idx < s);
-            });
-        }
-
-        // GORGEOUS VISUAL EXCEL REPORT EXPORT WITH CHARTS & TABLES
-        function exportVisualReport() {
-            const db = getDB();
-            const period = document.getElementById('reportExportPeriod').value;
-            const today = new Date();
-            let start = null, end = null, label = "Barcha davr";
-
-            if (period === 'day') {
-                start = end = localDateString(today);
-                label = "Kunlik hisobot";
-            } else if (period === 'week') {
-                const d = new Date(today);
-                const day = d.getDay() || 7;
-                d.setHours(-24 * (day - 1));
-                start = localDateString(d);
-                end = localDateString(today);
-                label = "Haftalik hisobot";
-            } else if (period === 'month') {
-                start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-                end = localDateString(today);
-                label = "Oylik hisobot";
-            }
-
-            let filteredTx = db.transactions;
-            if (period !== 'all' && start && end) {
-                filteredTx = db.transactions.filter(tx => tx.date >= start && tx.date <= end);
-            }
-
-            const totalInc = filteredTx.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
-            const totalExp = filteredTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
-            const netBalance = totalInc - totalExp;
-
-            let htmlContent = `
-            <!doctype html>
-            <html lang="uz">
-            <head>
-                <meta charset="utf-8">
-                <title>Turkiston Daily - ${label}</title>
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1d2924; background: #f2f4ee; }
-                    .card { background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 25px; }
-                    h1 { color: #245c43; margin-top: 0; font-size: 26px; }
-                    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
-                    .stat-box { background: #e5efe7; padding: 20px; border-radius: 12px; text-align: center; }
-                    .stat-box.exp { background: #fff0e9; color: #e16d4c; }
-                    .stat-box.bal { background: #fff6d9; color: #9c7818; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                    th, td { border: 1px solid #e5e9e1; padding: 12px 16px; text-align: left; font-size: 14px; }
-                    th { background: #245c43; color: #fff; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>📊 Turkiston Daily — ${label} (Moliyaviy Hisobot)</h1>
-                    <p><strong>Davr:</strong> ${start || 'Boshidan'} — ${end || 'Hozirgacha'}</p>
-                    <div class="stats">
-                        <div class="stat-box"><h3>Jami Kirim</h3><p style="font-size:22px; font-weight:bold; color:#245c43;">${money(totalInc)}</p></div>
-                        <div class="stat-box exp"><h3>Jami Chiqim</h3><p style="font-size:22px; font-weight:bold; color:#e16d4c;">${money(totalExp)}</p></div>
-                        <div class="stat-box bal"><h3>Sof Balans</h3><p style="font-size:22px; font-weight:bold; color:#9c7818;">${money(netBalance)}</p></div>
-                    </div>
-                    <h2>Amaliyotlar jadvali</h2>
-                    <table>
-                        <tr><th>Sana</th><th>Turi</th><th>Kategoriya</th><th>Summa</th><th>Izoh</th></tr>
-            `;
-
-            filteredTx.forEach(tx => {
-                htmlContent += `<tr><td>${tx.date}</td><td>${tx.type === 'income' ? 'Kirim' : 'Chiqim'}</td><td>${escapeHtml(tx.category)}</td><td>${money(tx.amount)}</td><td>${escapeHtml(tx.note || '')}</td></tr>`;
-            });
-
-            htmlContent += `</table></div></body></html>`;
-
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-            const file = new File([blob], `turkiston-daily-hisobot.html`, { type: 'text/html' });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    title: `Turkiston Daily - ${label}`,
-                    text: `Moliyaviy hisobot (${label}). Jami balans: ${money(netBalance)}`,
-                    files: [file]
-                }).catch(() => {});
-            } else {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `turkiston-daily-hisobot.html`;
-                a.click();
-                showToast("Vizual hisobot fayli yuklandi 📊");
+            if (amt && Number(amt) > 0) {
+                const res = await fetch(`/api/goals/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ current_amount: Number(amt) })
+                });
+                if (res.ok) loadDashboardData();
             }
         }
 
-        document.getElementById('exportExcelBtn').addEventListener('click', exportVisualReport);
-        document.getElementById('shareExcelBtn').addEventListener('click', exportVisualReport);
-
-        // EVENT LISTENERS
-        document.getElementById('selectedDate').value = localDateString();
-        document.getElementById('selectedDate').addEventListener('change', renderAll);
-
-        document.getElementById('taskForm').addEventListener('submit', e => {
+        document.getElementById('taskForm').addEventListener('submit', async e => {
             e.preventDefault();
-            const db = getDB();
-            db.tasks.push({
-                id: Date.now(),
-                title: document.getElementById('taskTitle').value.trim(),
-                priority: document.getElementById('taskPriority').value,
-                recurrence: document.getElementById('taskRecurrence').value,
-                reminder: document.getElementById('taskReminder').value || null,
-                date: document.getElementById('selectedDate').value,
-                is_completed: false
+            const title = document.getElementById('taskTitle').value.trim();
+            const priority = document.getElementById('taskPriority').value;
+            const recurrence = document.getElementById('taskRecurrence').value;
+            const remind_at = document.getElementById('taskReminder').value || null;
+            const date = document.getElementById('selectedDate').value || localDateString();
+
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ title, priority, recurrence, remind_at, date })
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Reja qo‘shildi');
+            if (res.ok) {
+                e.target.reset();
+                loadDashboardData();
+                showToast('Reja qo‘shildi');
+            }
         });
 
-        document.getElementById('transactionForm').addEventListener('submit', e => {
+        document.getElementById('transactionForm').addEventListener('submit', async e => {
             e.preventDefault();
-            const db = getDB();
-            db.transactions.push({
-                id: Date.now(),
-                type: document.getElementById('transactionType').value,
-                category: document.getElementById('transactionCategory').value.trim(),
-                amount: Number(document.getElementById('transactionAmount').value),
-                note: document.getElementById('transactionNote').value.trim(),
-                date: document.getElementById('selectedDate').value
+            const type = document.getElementById('transactionType').value;
+            const category = document.getElementById('transactionCategory').value.trim();
+            const amount = Number(document.getElementById('transactionAmount').value);
+            const note = document.getElementById('transactionNote').value.trim();
+            const date = document.getElementById('selectedDate').value || localDateString();
+
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ type, category, amount, note, date })
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Amaliyot saqlandi');
+            if (res.ok) {
+                e.target.reset();
+                loadDashboardData();
+                showToast('Amaliyot saqlandi');
+            }
         });
 
-        document.getElementById('budgetForm').addEventListener('submit', e => {
+        document.getElementById('budgetForm').addEventListener('submit', async e => {
             e.preventDefault();
-            const db = getDB();
-            const cat = document.getElementById('budgetCategory').value.trim();
-            const lim = Number(document.getElementById('budgetLimit').value);
-            const month = document.getElementById('selectedDate').value.slice(0, 7);
-            db.budgets = db.budgets.filter(b => !(b.category === cat && b.month === month));
-            db.budgets.push({ category: cat, limit: lim, month: month });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Limit saqlandi');
-        });
+            const category = document.getElementById('budgetCategory').value.trim();
+            const monthly_limit = Number(document.getElementById('budgetLimit').value);
+            const month = (document.getElementById('selectedDate').value || localDateString()).slice(0, 7);
 
-        document.getElementById('goalForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const db = getDB();
-            db.goals.push({
-                id: Date.now(),
-                title: document.getElementById('goalTitle').value.trim(),
-                target: Number(document.getElementById('goalTarget').value),
-                current: Number(document.getElementById('goalCurrent').value || 0)
+            const res = await fetch('/api/budgets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ category, monthly_limit, month })
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Maqsad qo‘shildi');
+            if (res.ok) {
+                e.target.reset();
+                loadDashboardData();
+                showToast('Limit saqlandi');
+            }
         });
 
-        document.getElementById('reportForm').addEventListener('submit', e => {
+        document.getElementById('goalForm').addEventListener('submit', async e => {
             e.preventDefault();
-            const db = getDB();
-            const dStr = document.getElementById('selectedDate').value;
-            db.reports[dStr] = {
-                score: selectedScore,
-                note: document.getElementById('reportNote').value.trim()
-            };
-            saveDB(db); renderAll(); showToast('Kun yakuni saqlandi');
-        });
+            const title = document.getElementById('goalTitle').value.trim();
+            const target_amount = Number(document.getElementById('goalTarget').value);
+            const current_amount = Number(document.getElementById('goalCurrent').value || 0);
 
-        document.getElementById('saveProfileBtn').addEventListener('click', () => {
-            const db = getDB();
-            db.profile.name = document.getElementById('profileNameInput').value.trim() || "Foydalanuvchi";
-            db.profile.phone = document.getElementById('profilePhoneInput').value.trim() || "";
-            db.profile.bio = document.getElementById('profileBioInput').value.trim() || "Shaxsiy yordamchi egasi";
-            saveDB(db);
-            renderAll();
-            closeProfileModal();
-            showToast("Shaxsiy kabinet saqlandi! ✅");
+            const res = await fetch('/api/goals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ title, target_amount, current_amount })
+            });
+            if (res.ok) {
+                e.target.reset();
+                loadDashboardData();
+                showToast('Maqsad qo‘shildi');
+            }
         });
 
         // AI CHAT
@@ -1091,157 +901,62 @@
         document.getElementById('aiChatForm').addEventListener('submit', async e => {
             e.preventDefault();
             const input = document.getElementById('aiUserInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            appendChat('user', msg);
+            const message = input.value.trim();
+            if (!message) return;
+            appendChat('user', message);
             input.value = '';
 
-            const db = getDB();
-            const lower = msg.toLowerCase();
-            const today = document.getElementById('selectedDate').value;
-
-            if (lower.includes('sarflagim') || lower.includes('som') || lower.includes('pul') || lower.includes('oldi') || lower.includes('ishlatdim')) {
-                const nums = msg.match(/\d[\d\s]*/g);
-                if (nums) {
-                    const amount = Number(nums[0].replace(/\s/g, ''));
-                    const isIncome = lower.includes('maosh') || lower.includes('oldi') || lower.includes('keldi') || lower.includes('daromad');
-                    db.transactions.push({
-                        id: Date.now(),
-                        type: isIncome ? 'income' : 'expense',
-                        category: isIncome ? 'Maosh / Kirim' : 'Xarajat',
-                        amount: amount,
-                        note: msg,
-                        date: today
-                    });
-                    saveDB(db);
-                    renderAll();
-                    appendChat('ai', `✅ ${isIncome ? 'Kirim' : 'Chiqim'} avtomatik qo'shildi: ${money(amount)}. Yana qanday yordam bera olaman?`);
-                    return;
-                }
-            } else if (lower.includes('reja') || lower.includes('vazifa') || lower.includes('ertaga') || (lower.includes('kerak') && !lower.includes('nima'))) {
-                db.tasks.push({
-                    id: Date.now(),
-                    title: msg,
-                    priority: lower.includes('muhim') ? 'high' : 'normal',
-                    recurrence: 'none',
-                    reminder: null,
-                    date: today,
-                    is_completed: false
-                });
-                saveDB(db);
-                renderAll();
-                appendChat('ai', `✅ Yangi reja ro'yxatingizga qo'shildi: "${msg}". Omad!`);
-                return;
-            }
-
-            let generalReply = "Tushunarli! Rejalaringiz va moliyangizni nazorat qilishda doimo yordam berishga tayyorman. ✨";
-            if (lower.includes('salom') || lower.includes('assalomu')) generalReply = "Assalomu alaykum! Bugungi kuningiz qanday o'tyapti? 😊";
-            setTimeout(() => appendChat('ai', generalReply), 400);
-        });
-
-        // PUSH & ALARM BEEP
-        function playAlarmBeep() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.6);
-            } catch (e) {}
-        }
-
-        async function initNotifications() {
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                await Notification.requestPermission();
-            }
-        }
-        document.getElementById('enablePushBtn').addEventListener('click', async () => {
-            if (!('Notification' in window)) {
-                showToast("Brauzeringiz bildirishnomani qo'llab-quvvatlamaydi");
-                return;
-            }
-            const perm = await Notification.requestPermission();
-            if (perm === 'granted') {
-                showToast("Push bildirishnomalar yoqildi! ✅");
-            }
-        });
-        document.getElementById('testPushBtn').addEventListener('click', () => {
-            playAlarmBeep();
-            if (Notification.permission === 'granted') {
-                new Notification("Turkiston Daily ✨", { body: "Sinov bildirishnomasi!" });
-                showToast("Sinov bildirishnomasi yuborildi");
-            } else {
-                showToast("Avval push bildirishnomalarni yoqing!");
+                const res = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+                appendChat('ai', data.reply || "Tushunarli!");
+                loadDashboardData();
+            } catch (e) {
+                appendChat('ai', "Xatolik yuz berdi.");
             }
         });
 
-        setInterval(() => {
-            const nowIsoStr = localDatetimeString(new Date());
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const todayStr = localDateString(now);
+        function changeTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            showToast(theme === 'dark' ? '🌙 Tungi rejim' : '☀️ Kunduzgi rejim');
+        }
+        function changeLanguage(lang) {
+            showToast(lang === 'uz' ? 'O‘zbek tili' : 'Language changed');
+        }
 
-            const db = getDB();
-            db.tasks.forEach(t => {
-                if (!t.is_completed && t.reminder) {
-                    const matchOnce = (t.reminder.slice(0, 16) === nowIsoStr && !t.notified);
-                    const matchHourly = (t.recurrence === 'hourly' && now.getMinutes() === 0 && t.last_hourly_notif !== nowIsoStr);
-                    const matchDaily = (t.recurrence === 'daily' && t.reminder.slice(11, 16) === `${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}` && t.last_daily_notif !== todayStr);
+        function openProfileModal() { document.getElementById('profileModal').classList.add('open'); }
+        function closeProfileModal() { document.getElementById('profileModal').classList.remove('open'); }
+        function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
+        function openBotInfoModal() { document.getElementById('botInfoModal').classList.add('open'); }
+        function closeBotInfoModal() { document.getElementById('botInfoModal').classList.remove('open'); }
 
-                    if (matchOnce || matchHourly || matchDaily) {
-                        playAlarmBeep();
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            new Notification("🔔 Reja eslatmasi", { body: `Vaqti keldi: ${t.title}` });
-                        }
-                        if (matchOnce) t.notified = true;
-                        if (matchHourly) t.last_hourly_notif = nowIsoStr;
-                        if (matchDaily) t.last_daily_notif = todayStr;
-                        saveDB(db);
-                    }
-                }
+        document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+            const full_name = document.getElementById('profileNameInput').value.trim();
+            const phone = document.getElementById('profilePhoneInput').value.trim();
+            const res = await fetch('/api/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ full_name })
             });
-        }, 30000);
+            if (res.ok) {
+                closeProfileModal();
+                showToast("Profil saqlandi! ✅");
+                checkAuthAndLoad();
+            }
+        });
 
-        // BACKUP & RESTORE
-        document.getElementById('exportDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('turkiston_local_db_v10');
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `turkiston-backup-${localDateString()}.json`;
-            a.click();
-            showToast('Zaxira nusxasi yuklandi');
-        });
-        document.getElementById('importDataBtn').addEventListener('click', () => document.getElementById('importFile').click());
-        document.getElementById('importFile').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = event => {
-                try {
-                    JSON.parse(event.target.result);
-                    localStorage.setItem('turkiston_local_db_v10', event.target.result);
-                    renderAll();
-                    showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
-                } catch (err) {
-                    showToast('Xato: Noto‘g‘ri fayl formati');
-                }
-            };
-            reader.readAsText(file);
-        });
+        document.getElementById('selectedDate').value = localDateString();
+        document.getElementById('selectedDate').addEventListener('change', loadDashboardData);
 
         document.querySelectorAll('.nav-button[data-view]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
         document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.go)));
 
-        initNotifications();
-        renderAll();
+        checkAuthAndLoad();
     </script>
 </body>
 </html>
