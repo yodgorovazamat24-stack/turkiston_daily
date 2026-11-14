@@ -26,9 +26,8 @@ echo Kerakli paketlar tekshirilmoqda...
 ".venv\Scripts\python.exe" -m pip install -r requirements-bot.txt
 if errorlevel 1 goto failed
 
-echo Bot va mini-ilova ishga tushmoqda.
-echo Mini-ilova: http://127.0.0.1:8001
-".venv\Scripts\python.exe" main.py
+echo Telegram Mini App uchun HTTPS tunnel va bot ishga tushmoqda.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_local.ps1"
 if errorlevel 1 goto failed
 goto end
 

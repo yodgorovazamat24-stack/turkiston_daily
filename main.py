@@ -2,7 +2,10 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
+import math
 import os
+import tempfile
 from io import BytesIO
 from calendar import monthrange
 from contextlib import contextmanager
@@ -14,7 +17,8 @@ from urllib.parse import parse_qsl
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -25,23 +29,44 @@ from excel_export import build_excel_report
 
 try:
     from aiogram import Bot, Dispatcher, F
+    from aiogram.exceptions import TelegramAPIError
     from aiogram.filters import Command, CommandStart
-    from aiogram.types import BufferedInputFile, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+    from aiogram.types import BufferedInputFile, BotCommand, BotCommandScopeChat, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, InputProfilePhotoStatic, KeyboardButton, MenuButtonWebApp, ReplyKeyboardMarkup, WebAppInfo
 except ImportError:
     Bot = Dispatcher = F = Command = CommandStart = None
-    BufferedInputFile = InlineKeyboardButton = InlineKeyboardMarkup = WebAppInfo = None
+    TelegramAPIError = Exception
+    BufferedInputFile = BotCommand = BotCommandScopeChat = FSInputFile = InlineKeyboardButton = InlineKeyboardMarkup = InputProfilePhotoStatic = KeyboardButton = MenuButtonWebApp = ReplyKeyboardMarkup = WebAppInfo = None
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip() or os.getenv("RENDER_EXTERNAL_URL", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "12345678"))
+ADMIN_USER_IDS = {
+    int(value.strip())
+    for value in os.getenv("ADMIN_USER_IDS", "").split(",")
+    if value.strip().isdigit()
+}
 TELEGRAM_ENABLED = bool(BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE")
 LOCAL_TZ = timezone(timedelta(hours=5))
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 
 app = FastAPI(title="Turkiston Daily")
+static_dir = Path(__file__).with_name("static")
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+@app.get("/manifest.json")
+async def get_manifest():
+    return FileResponse(static_dir / "manifest.json", media_type="application/manifest+json")
+
+@app.get("/sw.js")
+async def get_sw():
+    return FileResponse(static_dir / "sw.js", media_type="application/javascript")
 dp = Dispatcher() if Dispatcher else None
 bot = Bot(token=BOT_TOKEN) if TELEGRAM_ENABLED and Bot else None
+PENDING_ACTIONS = {}
+ADMIN_PENDING_ACTIONS = {}
 init_db()
 
 
@@ -58,6 +83,16 @@ def database():
         connection.close()
 
 
+def record_user_activity(user_id):
+    seen_at = datetime.now(LOCAL_TZ).isoformat(timespec="seconds")
+    with database() as connection:
+        connection.execute(
+            "INSERT INTO users (user_id, first_seen_at, last_seen_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",
+            (user_id, seen_at, seen_at),
+        )
+
+
 def today_text():
     return datetime.now(LOCAL_TZ).date().isoformat()
 
@@ -69,53 +104,135 @@ def checked_date(value):
         raise HTTPException(status_code=422, detail="Sana YYYY-MM-DD formatida bo'lishi kerak")
 
 
-def verify_telegram_user(init_data: str | None):
-    if not TELEGRAM_ENABLED:
-        return DEV_USER_ID
-    if not init_data:
-        raise HTTPException(status_code=401, detail="Telegram Mini App orqali kiring")
+ACTIVE_SESSIONS = {}  # token -> user_id
 
-    values = dict(parse_qsl(init_data, keep_blank_values=True))
-    received_hash = values.pop("hash", None)
-    if not received_hash:
-        raise HTTPException(status_code=401, detail="Telegram ma'lumotlari tasdiqlanmadi")
-
-    data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(values.items()))
-    secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
-    expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected_hash, received_hash):
-        raise HTTPException(status_code=401, detail="Telegram ma'lumotlari tasdiqlanmadi")
-
+async def generate_uzbek_tts(text: str, voice: str = "uz-UZ-MadinaNeural") -> bytes:
+    if not text or not text.strip():
+        return b""
+    if voice not in {"uz-UZ-MadinaNeural", "uz-UZ-SardorNeural"}:
+        voice = "uz-UZ-MadinaNeural"
     try:
-        auth_date = int(values["auth_date"])
+        import edge_tts
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        tmp_path = tmp_file.name
+        tmp_file.close()
+
+        communicate = edge_tts.Communicate(text.strip(), voice)
+        await communicate.save(tmp_path)
+
+        with open(tmp_path, "rb") as f:
+            data = f.read()
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        return data
+    except Exception as e:
+        logging.exception("Edge TTS xatosi: %s", e)
+        return b""
+
+def hash_password(pwd: str) -> str:
+    return hashlib.sha256(pwd.strip().encode("utf-8")).hexdigest()
+
+def normalize_phone(raw: str) -> str:
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if len(digits) == 9:
+        digits = "998" + digits
+    return digits
+
+def verify_telegram_user(init_data: str | None):
+    if not init_data:
+        return None
+    try:
+        values = dict(parse_qsl(init_data, keep_blank_values=True))
+        received_hash = values.pop("hash", None)
+        if not received_hash or not BOT_TOKEN:
+            return None
+        data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(values.items()))
+        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_hash, received_hash):
+            return None
         user = json.loads(values["user"])
-        user_id = int(user["id"])
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
-        raise HTTPException(status_code=401, detail="Telegram foydalanuvchisi aniqlanmadi")
+        return int(user["id"])
+    except Exception:
+        return None
 
-    if abs(datetime.now(timezone.utc).timestamp() - auth_date) > 86400:
-        raise HTTPException(status_code=401, detail="Telegram sessiyasi eskirgan, ilovani qayta oching")
-    return user_id
+async def current_user(
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None)
+):
+    # 1. Bearer token or Authorization header
+    if authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        if token in ACTIVE_SESSIONS:
+            user_id = ACTIVE_SESSIONS[token]
+            record_user_activity(user_id)
+            return user_id
+        # Check token directly if it's an existing numeric user_id
+        if token.isdigit():
+            user_id = int(token)
+            with database() as conn:
+                row = conn.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,)).fetchone()
+                if row:
+                    record_user_activity(user_id)
+                    return user_id
+
+    # 2. Telegram Mini App
+    tg_user = verify_telegram_user(x_telegram_init_data)
+    if tg_user:
+        record_user_activity(tg_user)
+        return tg_user
+
+    # 3. Default fallback to primary active user in DB
+    with database() as conn:
+        row = conn.execute("SELECT user_id FROM users ORDER BY last_seen_at DESC LIMIT 1").fetchone()
+        if row:
+            uid = int(row["user_id"])
+            record_user_activity(uid)
+            return uid
+
+    return DEV_USER_ID
 
 
-async def current_user(x_telegram_init_data: str | None = Header(default=None)):
-    return verify_telegram_user(x_telegram_init_data)
 
+class RegisterRequest(BaseModel):
+    phone: str
+    password: str = Field(min_length=4, max_length=64)
+    full_name: str = Field(default="", max_length=120)
+    username: str = Field(default="", max_length=60)
+    telegram_user_id: int | None = None
+
+class LoginRequest(BaseModel):
+    login: str  # phone or username
+    password: str
+
+class ProfileUpdate(BaseModel):
+    full_name: str | None = None
+    username: str | None = None
+    avatar_url: str | None = None
+    password: str | None = None
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     date: Date | None = None
     priority: Literal["low", "normal", "high"] = "normal"
+    scheduled_time: str | None = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     remind_at: datetime | None = None
     recurrence: Literal["none", "daily", "weekly", "monthly"] = "none"
+    reminder_interval: Literal["once", "hourly"] = "once"
 
 
 class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=160)
     is_completed: bool | None = None
+    date: Date | None = None
     priority: Literal["low", "normal", "high"] | None = None
+    scheduled_time: str | None = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     remind_at: datetime | None = None
     recurrence: Literal["none", "daily", "weekly", "monthly"] | None = None
+    reminder_interval: Literal["once", "hourly"] | None = None
+    missed_reason: str | None = Field(default=None, max_length=500)
 
 
 class TransactionCreate(BaseModel):
@@ -140,15 +257,29 @@ class BudgetCreate(BaseModel):
     month: str | None = None
 
 
+class AIChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=1500)
+    api_key: str | None = None
+
+
+class BudgetUpdate(BaseModel):
+    category: str | None = Field(default=None, min_length=1, max_length=60)
+    monthly_limit: float | None = Field(default=None, gt=0, le=1_000_000_000_000)
+    month: str | None = None
+
+
 class GoalCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     target_amount: float = Field(gt=0, le=1_000_000_000_000)
-    current_amount: float = Field(default=0, ge=0)
+    current_amount: float = Field(default=0, ge=0, le=1_000_000_000_000)
     deadline: Date | None = None
 
 
 class GoalUpdate(BaseModel):
-    current_amount: float = Field(ge=0)
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    target_amount: float | None = Field(default=None, gt=0, le=1_000_000_000_000)
+    current_amount: float | None = Field(default=None, ge=0, le=1_000_000_000_000)
+    deadline: Date | None = None
 
 
 class ReportCreate(BaseModel):
@@ -162,6 +293,167 @@ async def read_root(request: Request):
     return TEMPLATES.TemplateResponse(request, "index.html", {})
 
 
+
+@app.post("/api/auth/register")
+async def register_account(data: RegisterRequest):
+    phone = normalize_phone(data.phone)
+    if not phone or len(phone) < 7:
+        raise HTTPException(status_code=400, detail="Telefon raqamini to'g'ri kiriting")
+    pwd_hash = hash_password(data.password)
+    username = data.username.strip().lstrip("@")
+    full_name = data.full_name.strip()
+
+    with database() as connection:
+        # Check existing phone
+        existing = connection.execute("SELECT user_id FROM users WHERE phone = ?", (phone,)).fetchone()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bu telefon raqam allaqachon ro'yxatdan o'tgan")
+        if username:
+            exist_user = connection.execute("SELECT user_id FROM users WHERE username = ?", (username,)).fetchone()
+            if exist_user:
+                raise HTTPException(status_code=400, detail="Bu username band, boshqa nom tanlang")
+
+        # Telegramdagi mavjud hisobot va rejalarni ulash (migration)
+        # Agar foydalanuvchi ma'lum telegram_user_id bergan bo'lsa yoki bazadagi eng faol foydalanuvchi ma'lumotlarini birlashtirish
+        target_uid = data.telegram_user_id
+        if not target_uid:
+            # Eng ko'p reja/ma'lumotga ega bo'lgan foydalanuvchini olamiz (odatda 5144043830)
+            active_row = connection.execute(
+                "SELECT user_id, COUNT(*) as cnt FROM tasks GROUP BY user_id ORDER BY cnt DESC LIMIT 1"
+            ).fetchone()
+            if active_row:
+                target_uid = int(active_row["user_id"])
+            else:
+                target_uid = int(phone[-8:]) if phone[-8:].isdigit() else DEV_USER_ID
+
+        # Yangilaymiz yoki yangi yozuv yaratamiz
+        now_str = datetime.now(LOCAL_TZ).isoformat(timespec="seconds")
+        connection.execute(
+            "INSERT INTO users (user_id, phone, full_name, username, password_hash, first_seen_at, last_seen_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET phone=excluded.phone, full_name=excluded.full_name, "
+            "username=excluded.username, password_hash=excluded.password_hash, last_seen_at=excluded.last_seen_at",
+            (target_uid, phone, full_name, username, pwd_hash, now_str, now_str)
+        )
+
+    import uuid
+    token = f"tok_{uuid.uuid4().hex}"
+    ACTIVE_SESSIONS[token] = target_uid
+    return {
+        "status": "ok",
+        "token": token,
+        "user_id": target_uid,
+        "full_name": full_name,
+        "username": username,
+        "phone": phone
+    }
+
+@app.post("/api/auth/login")
+async def login_account(data: LoginRequest):
+    login_val = data.login.strip().lstrip("@")
+    phone_val = normalize_phone(data.login)
+    pwd_hash = hash_password(data.password)
+
+    with database() as connection:
+        user = connection.execute(
+            "SELECT * FROM users WHERE (phone = ? OR username = ? OR CAST(user_id AS TEXT) = ?) AND password_hash = ?",
+            (phone_val, login_val, login_val, pwd_hash)
+        ).fetchone()
+
+        if not user:
+            raise HTTPException(status_code=401, detail="Telefon raqam yoki parol noto'g'ri")
+
+        uid = int(user["user_id"])
+
+    import uuid
+    token = f"tok_{uuid.uuid4().hex}"
+    ACTIVE_SESSIONS[token] = uid
+    return {
+        "status": "ok",
+        "token": token,
+        "user_id": uid,
+        "full_name": user["full_name"],
+        "username": user["username"],
+        "phone": user["phone"],
+        "avatar_url": user["avatar_url"]
+    }
+
+@app.get("/api/profile")
+async def get_profile(user_id: int = Depends(current_user)):
+    with database() as connection:
+        user = connection.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        task_count = connection.execute("SELECT COUNT(*) FROM tasks WHERE user_id = ?", (user_id,)).fetchone()[0]
+        tx_count = connection.execute("SELECT COUNT(*) FROM transactions WHERE user_id = ?", (user_id,)).fetchone()[0]
+        goal_count = connection.execute("SELECT COUNT(*) FROM goals WHERE user_id = ?", (user_id,)).fetchone()[0]
+
+    return {
+        "user_id": user_id,
+        "full_name": (user["full_name"] if user else "") or "Turkiston Daily Foydalanuvchisi",
+        "username": (user["username"] if user else "") or "",
+        "phone": (user["phone"] if user else "") or "",
+        "avatar_url": (user["avatar_url"] if user else "") or "/static/icon-192.png",
+        "has_password": bool(user and user["password_hash"]),
+        "stats": {
+            "tasks": task_count,
+            "transactions": tx_count,
+            "goals": goal_count
+        }
+    }
+
+@app.patch("/api/profile")
+async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_user)):
+    with database() as connection:
+        updates = []
+        params = []
+        if data.full_name is not None:
+            updates.append("full_name = ?")
+            params.append(data.full_name.strip())
+        if data.username is not None:
+            uname = data.username.strip().lstrip("@")
+            if uname:
+                existing = connection.execute("SELECT user_id FROM users WHERE username = ? AND user_id != ?", (uname, user_id)).fetchone()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Bu username allaqachon band")
+            updates.append("username = ?")
+            params.append(uname)
+        if data.avatar_url is not None:
+            updates.append("avatar_url = ?")
+            params.append(data.avatar_url.strip())
+        if data.password:
+            updates.append("password_hash = ?")
+            params.append(hash_password(data.password))
+
+        if updates:
+            params.append(user_id)
+            connection.execute(f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?", params)
+
+    return {"status": "ok", "message": "Profil muvaffaqiyatli yangilandi"}
+
+@app.post("/api/profile/avatar")
+async def upload_avatar(request: Request, user_id: int = Depends(current_user)):
+    body = await request.body()
+    if not body or len(body) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Rasm hajmi 5MB dan oshmasligi kerak")
+    import uuid
+    fname = f"avatar_{user_id}_{uuid.uuid4().hex[:8]}.png"
+    out_dir = Path("static/uploads")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / fname
+    out_path.write_bytes(body)
+    avatar_url = f"/static/uploads/{fname}"
+    with database() as conn:
+        conn.execute("UPDATE users SET avatar_url = ? WHERE user_id = ?", (avatar_url, user_id))
+    return {"status": "ok", "avatar_url": avatar_url}
+
+@app.get("/api/tts")
+async def get_tts(text: str, voice: str = "uz-UZ-MadinaNeural"):
+    if not text or len(text) > 500:
+        raise HTTPException(status_code=400, detail="Matn uzunligi 1 dan 500 belgigacha bo'lishi kerak")
+    audio_bytes = await generate_uzbek_tts(text, voice)
+    if not audio_bytes:
+        raise HTTPException(status_code=500, detail="Ovoz yaratib bo'lmadi")
+    return Response(content=audio_bytes, media_type="audio/mpeg")
+
 @app.get("/api/me")
 async def get_me(user_id: int = Depends(current_user)):
     return {"user_id": user_id, "telegram": TELEGRAM_ENABLED}
@@ -174,6 +466,7 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
     with database() as connection:
         task_rows = connection.execute(
             "SELECT * FROM tasks WHERE user_id = ? AND date = ? ORDER BY is_completed, "
+            "CASE WHEN scheduled_time IS NULL THEN 1 ELSE 0 END, scheduled_time, "
             "CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, id DESC",
             (user_id, chosen_date),
         ).fetchall()
@@ -240,6 +533,104 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
     }
 
 
+@app.get("/api/suggestions")
+async def get_suggestions(selected_date: str | None = None, user_id: int = Depends(current_user)):
+    chosen_date = Date.fromisoformat(checked_date(selected_date or today_text()))
+    month = chosen_date.strftime("%Y-%m")
+    recent_start = (chosen_date - timedelta(days=29)).isoformat()
+    goal_history_start = (chosen_date - timedelta(days=59)).isoformat()
+    suggestions = []
+
+    with database() as connection:
+        overdue_task = connection.execute(
+            "SELECT id, title, date, scheduled_time FROM tasks "
+            "WHERE user_id = ? AND is_completed = 0 AND date < ? "
+            "ORDER BY date, CASE WHEN scheduled_time IS NULL THEN 1 ELSE 0 END, scheduled_time LIMIT 1",
+            (user_id, chosen_date.isoformat()),
+        ).fetchone()
+        if overdue_task:
+            suggestions.append({
+                "kind": "reschedule_task",
+                "task_id": overdue_task["id"],
+                "title": "Bajarilmagan rejani qayta belgilang",
+                "message": f"“{overdue_task['title']}” {overdue_task['date']} kunidan beri bajarilmagan. Uni bugunga ko‘chirish yoki reja ichida muddatini o‘zgartirish mumkin.",
+                "action_label": "Bugunga ko‘chirish",
+            })
+
+        expense_categories = connection.execute(
+            "SELECT category, SUM(amount) amount FROM transactions "
+            "WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ? "
+            "GROUP BY category ORDER BY amount DESC",
+            (user_id, recent_start, chosen_date.isoformat()),
+        ).fetchall()
+        expense_category = None
+        for candidate in expense_categories:
+            existing_budget = connection.execute(
+                "SELECT 1 FROM budgets WHERE user_id = ? AND category = ? AND month = ?",
+                (user_id, candidate["category"], month),
+            ).fetchone()
+            if not existing_budget:
+                expense_category = candidate
+                break
+
+        if expense_category:
+            review_title = f"{expense_category['category']} xarajatlarini ko‘rib chiqish"
+            existing_review = connection.execute(
+                "SELECT 1 FROM tasks WHERE user_id = ? AND title = ? AND date BETWEEN ? AND ? LIMIT 1",
+                (user_id, review_title, recent_start, chosen_date.isoformat()),
+            ).fetchone()
+            if not existing_review:
+                suggestions.append({
+                    "kind": "create_task",
+                    "task_title": review_title,
+                    "title": f"Yangi reja: {expense_category['category']} xarajatlarini ko‘rib chiqing",
+                    "message": f"Oxirgi 30 kunda {expense_category['category']} bo‘yicha eng ko‘p sarf bo‘lgan. 15 daqiqalik tahlil keyingi xarajatlaringizni ongliroq rejalashga yordam beradi.",
+                    "action_label": "Rejani qo‘shish",
+                })
+            recent_spend = float(expense_category["amount"])
+            if recent_spend > 0:
+                monthly_limit = math.ceil((recent_spend * 1.1) / 10000) * 10000
+                suggestions.append({
+                    "kind": "create_budget",
+                    "category": expense_category["category"],
+                    "monthly_limit": monthly_limit,
+                    "month": month,
+                    "title": f"{expense_category['category']} uchun yumshoq limit",
+                    "message": f"Oxirgi 30 kunda bu toifaga {recent_spend:,.0f} so‘m sarflangan. Sarfni kuzatish uchun {monthly_limit:,.0f} so‘mlik oylik limitni ko‘rib chiqing.",
+                    "action_label": "Limitni qo‘shish",
+                })
+
+        active_goal = connection.execute(
+            "SELECT 1 FROM goals WHERE user_id = ? AND is_completed = 0 LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        recent_totals = connection.execute(
+            "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
+            "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
+            "FROM transactions WHERE user_id = ? AND date BETWEEN ? AND ?",
+            (user_id, goal_history_start, chosen_date.isoformat()),
+        ).fetchone()
+
+    if not active_goal:
+        average_monthly_expense = float(recent_totals["expense"]) / 2
+        average_monthly_surplus = (float(recent_totals["income"]) - float(recent_totals["expense"])) / 2
+        if average_monthly_expense > 0 and average_monthly_surplus > 0:
+            target_amount = min(
+                1_000_000_000_000,
+                math.ceil((average_monthly_expense * 3) / 10000) * 10000,
+            )
+            suggestions.append({
+                "kind": "create_goal",
+                "title": "3 oylik zaxira jamg‘armasi",
+                "target_amount": target_amount,
+                "deadline": (chosen_date + timedelta(days=90)).isoformat(),
+                "message": f"Oxirgi 60 kunlik yozuvlarda daromad xarajatdan yuqori. Uch oylik o‘rtacha xarajatga teng {target_amount:,.0f} so‘mlik zaxira maqsadini ko‘rib chiqing.",
+                "action_label": "Maqsadni ko‘rib chiqish",
+            })
+
+    return suggestions[:4]
+
+
 @app.post("/api/tasks")
 async def add_task(task: TaskCreate, user_id: int = Depends(current_user)):
     task_date = (task.date or Date.fromisoformat(today_text())).isoformat()
@@ -249,17 +640,25 @@ async def add_task(task: TaskCreate, user_id: int = Depends(current_user)):
     remind_at = task.remind_at
     if remind_at and remind_at.tzinfo is None:
         remind_at = remind_at.replace(tzinfo=LOCAL_TZ)
+    if remind_at is None and task.scheduled_time:
+        scheduled_datetime = datetime.combine(
+            Date.fromisoformat(task_date),
+            datetime.strptime(task.scheduled_time, "%H:%M").time(),
+        )
+        remind_at = scheduled_datetime.replace(tzinfo=LOCAL_TZ)
     with database() as connection:
         cursor = connection.execute(
-            "INSERT INTO tasks (user_id, title, date, priority, remind_at, recurrence, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            "INSERT INTO tasks (user_id, title, date, priority, scheduled_time, remind_at, recurrence, "
+            "reminder_interval, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
             (
                 user_id,
                 title,
                 task_date,
                 task.priority,
+                task.scheduled_time,
                 remind_at.strftime("%Y-%m-%dT%H:%M") if remind_at else None,
                 task.recurrence,
+                task.reminder_interval,
             ),
         )
         return {"id": cursor.lastrowid, "status": "ok"}
@@ -278,13 +677,24 @@ def next_recurrence(current_date, recurrence):
 @app.patch("/api/tasks/{task_id}")
 async def update_task(task_id: int, update: TaskUpdate, user_id: int = Depends(current_user)):
     values = update.model_dump(exclude_unset=True)
-    invalid_nulls = [key for key, value in values.items() if value is None and key != "remind_at"]
+    invalid_nulls = [
+        key for key, value in values.items()
+        if value is None and key not in {"remind_at", "scheduled_time", "missed_reason"}
+    ]
     if invalid_nulls:
         raise HTTPException(status_code=422, detail="Reja maydonlari bo'sh bo'lishi mumkin emas")
     if not values:
         raise HTTPException(status_code=422, detail="Yangilash uchun ma'lumot yuboring")
     if "title" in values:
         values["title"] = values["title"].strip()
+        if not values["title"]:
+            raise HTTPException(status_code=422, detail="Reja nomini kiriting")
+    if "missed_reason" in values:
+        values["missed_reason"] = values["missed_reason"].strip() if values["missed_reason"] else None
+        if values["missed_reason"] == "":
+            raise HTTPException(status_code=422, detail="Bajarilmagan reja sababini yozing")
+    if "date" in values:
+        values["date"] = values["date"].isoformat()
     if "remind_at" in values and values["remind_at"]:
         remind_at = values["remind_at"]
         if remind_at.tzinfo is None:
@@ -299,22 +709,94 @@ async def update_task(task_id: int, update: TaskUpdate, user_id: int = Depends(c
         ).fetchone()
         if not task:
             raise HTTPException(status_code=404, detail="Reja topilmadi")
+        previous_date = task["date"]
+        previous_scheduled_time = task["scheduled_time"]
+        previous_reminder = task["remind_at"]
+        next_date = values.get("date", previous_date)
+        next_scheduled_time = values.get("scheduled_time", previous_scheduled_time)
+        reminder_follows_schedule = (
+            previous_scheduled_time
+            and previous_reminder == f"{previous_date}T{previous_scheduled_time}"
+        )
+        reminder_unchanged = "remind_at" in values and values["remind_at"] == previous_reminder
+        if reminder_unchanged and (
+            "date" in values or "scheduled_time" in values
+        ):
+            if "scheduled_time" in values and reminder_follows_schedule:
+                values["remind_at"] = (
+                    f"{next_date}T{next_scheduled_time}" if next_scheduled_time else None
+                )
+            elif "date" in values and previous_reminder:
+                values["remind_at"] = f"{next_date}T{previous_reminder[11:16]}"
+        elif "remind_at" not in values:
+            if "scheduled_time" in values and (not previous_reminder or reminder_follows_schedule):
+                values["remind_at"] = (
+                    f"{next_date}T{next_scheduled_time}" if next_scheduled_time else None
+                )
+            elif "date" in values:
+                values["remind_at"] = (
+                    f"{next_date}T{previous_reminder[11:16]}"
+                    if previous_reminder
+                    else f"{next_date}T{next_scheduled_time}"
+                    if next_scheduled_time
+                    else None
+                )
+        if (
+            values.get("remind_at", task["remind_at"]) != task["remind_at"]
+            or values.get("reminder_interval", task["reminder_interval"]) != task["reminder_interval"]
+        ):
+            values["reminder_sent_for"] = None
+            values["last_reminder_sent_at"] = None
+        if values.get("missed_reason"):
+            planned_time = task["scheduled_time"]
+            if planned_time:
+                planned_at = datetime.fromisoformat(f"{values.get('date', task['date'])}T{planned_time}").replace(
+                    tzinfo=LOCAL_TZ
+                )
+                values["late_minutes"] = max(
+                    0, int((datetime.now(LOCAL_TZ) - planned_at).total_seconds() // 60)
+                )
+            else:
+                values["late_minutes"] = 0
+            values["missed_at"] = datetime.now(LOCAL_TZ).isoformat(timespec="minutes")
         assignments = ", ".join(f"{column} = ?" for column in values)
         connection.execute(
             f"UPDATE tasks SET {assignments} WHERE id = ? AND user_id = ?",
             (*values.values(), task_id, user_id),
         )
-        if values.get("is_completed") and task["recurrence"] != "none":
-            next_date = next_recurrence(Date.fromisoformat(task["date"]), task["recurrence"])
+        recurrence = values.get("recurrence", task["recurrence"])
+        if values.get("is_completed") and recurrence != "none":
+            task_date = values.get("date", task["date"])
+            next_date = next_recurrence(Date.fromisoformat(task_date), recurrence)
+            title = values.get("title", task["title"])
+            priority = values.get("priority", task["priority"])
+            scheduled_time = values.get("scheduled_time", task["scheduled_time"])
+            reminder_time = values.get("remind_at", task["remind_at"])
+            next_reminder = (
+                f"{next_date.isoformat()}T{reminder_time[11:16]}"
+                if reminder_time
+                else f"{next_date.isoformat()}T{scheduled_time}"
+                if scheduled_time
+                else None
+            )
             exists = connection.execute(
                 "SELECT 1 FROM tasks WHERE user_id = ? AND title = ? AND date = ?",
-                (user_id, task["title"], next_date.isoformat()),
+                (user_id, title, next_date.isoformat()),
             ).fetchone()
             if not exists:
                 connection.execute(
-                    "INSERT INTO tasks (user_id, title, date, priority, recurrence, created_at) "
-                    "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-                    (user_id, task["title"], next_date.isoformat(), task["priority"], task["recurrence"]),
+                    "INSERT INTO tasks (user_id, title, date, priority, scheduled_time, remind_at, recurrence, "
+                    "reminder_interval, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                    (
+                        user_id,
+                        title,
+                        next_date.isoformat(),
+                        priority,
+                        scheduled_time,
+                        next_reminder,
+                        recurrence,
+                        values.get("reminder_interval", task["reminder_interval"]),
+                    ),
                 )
     return {"status": "ok"}
 
@@ -407,6 +889,45 @@ async def save_budget(budget: BudgetCreate, user_id: int = Depends(current_user)
     return {"status": "ok"}
 
 
+@app.patch("/api/budgets/{budget_id}")
+async def update_budget(budget_id: int, update: BudgetUpdate, user_id: int = Depends(current_user)):
+    values = update.model_dump(exclude_unset=True)
+    if not values:
+        raise HTTPException(status_code=422, detail="Yangilash uchun ma'lumot yuboring")
+    if any(value is None for value in values.values()):
+        raise HTTPException(status_code=422, detail="Budjet maydonlari bo'sh bo'lishi mumkin emas")
+    if "category" in values:
+        values["category"] = values["category"].strip()
+        if not values["category"]:
+            raise HTTPException(status_code=422, detail="Kategoriyani kiriting")
+    if "month" in values:
+        try:
+            datetime.strptime(values["month"], "%Y-%m")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Oy YYYY-MM formatida bo'lishi kerak")
+
+    with database() as connection:
+        budget = connection.execute(
+            "SELECT * FROM budgets WHERE id = ? AND user_id = ?", (budget_id, user_id)
+        ).fetchone()
+        if not budget:
+            raise HTTPException(status_code=404, detail="Budjet topilmadi")
+        category = values.get("category", budget["category"])
+        month = values.get("month", budget["month"])
+        duplicate = connection.execute(
+            "SELECT 1 FROM budgets WHERE user_id = ? AND category = ? AND month = ? AND id != ?",
+            (user_id, category, month, budget_id),
+        ).fetchone()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="Bu kategoriya va oy uchun budjet allaqachon mavjud")
+        assignments = ", ".join(f"{column} = ?" for column in values)
+        connection.execute(
+            f"UPDATE budgets SET {assignments} WHERE id = ? AND user_id = ?",
+            (*values.values(), budget_id, user_id),
+        )
+    return {"status": "ok"}
+
+
 @app.delete("/api/budgets/{budget_id}")
 async def delete_budget(budget_id: int, user_id: int = Depends(current_user)):
     with database() as connection:
@@ -439,19 +960,31 @@ async def add_goal(goal: GoalCreate, user_id: int = Depends(current_user)):
 
 @app.patch("/api/goals/{goal_id}")
 async def update_goal(goal_id: int, update: GoalUpdate, user_id: int = Depends(current_user)):
+    values = update.model_dump(exclude_unset=True)
+    if not values:
+        raise HTTPException(status_code=422, detail="Yangilash uchun ma'lumot yuboring")
+    if any(value is None for key, value in values.items() if key != "deadline"):
+        raise HTTPException(status_code=422, detail="Maqsad maydonlari bo'sh bo'lishi mumkin emas")
+    if "title" in values:
+        values["title"] = values["title"].strip()
+        if not values["title"]:
+            raise HTTPException(status_code=422, detail="Maqsad nomini kiriting")
+    if "deadline" in values and values["deadline"] is not None:
+        values["deadline"] = values["deadline"].isoformat()
+
     with database() as connection:
         goal = connection.execute(
-            "SELECT target_amount FROM goals WHERE id = ? AND user_id = ?", (goal_id, user_id)
+            "SELECT * FROM goals WHERE id = ? AND user_id = ?", (goal_id, user_id)
         ).fetchone()
         if not goal:
             raise HTTPException(status_code=404, detail="Maqsad topilmadi")
-        cursor = connection.execute(
-            "UPDATE goals SET current_amount = ?, is_completed = ? "
-            "WHERE id = ? AND user_id = ?",
-            (update.current_amount, int(update.current_amount >= goal["target_amount"]), goal_id, user_id),
+        new_amount = values.get("current_amount", goal["current_amount"])
+        target_amount = values.get("target_amount", goal["target_amount"])
+        assignments = ", ".join(f"{column} = ?" for column in values)
+        connection.execute(
+            f"UPDATE goals SET {assignments}, is_completed = ? WHERE id = ? AND user_id = ?",
+            (*values.values(), int(new_amount >= target_amount), goal_id, user_id),
         )
-    if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Maqsad topilmadi")
     return {"status": "ok"}
 
 
@@ -563,13 +1096,7 @@ def excel_filename(period_slug):
     return f"turkiston-daily-{period_slug}.xlsx"
 
 
-@app.get("/api/export.xlsx")
-async def export_excel(
-    period: Literal["week", "month", "year", "all", "custom"] = "all",
-    start_date: Date | None = None,
-    end_date: Date | None = None,
-    user_id: int = Depends(current_user),
-):
+def create_excel_report(user_id, period, start_date=None, end_date=None):
     period_start, period_end, period_label, period_slug = resolve_report_period(
         period, start_date, end_date
     )
@@ -577,17 +1104,66 @@ async def export_excel(
     if period_start and period_end:
         report_data = filter_export_data(report_data, period_start, period_end)
     group_by_day = bool(period_start and period_end and (period_end - period_start).days < 31)
-    workbook = build_excel_report(report_data, period_label, group_by_day)
+    try:
+        workbook = build_excel_report(report_data, period_label, group_by_day)
+    except Exception as error:
+        logging.exception("Foydalanuvchi %s uchun Excel hisoboti yaratilmadi", user_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Excel hisobotini yaratishda xato yuz berdi. Keyinroq qayta urinib ko'ring.",
+        ) from error
+    return workbook, excel_filename(period_slug), period_label
+
+
+@app.get("/api/export.xlsx")
+async def export_excel(
+    period: Literal["day", "week", "month", "year", "all", "custom"] = "all",
+    start_date: Date | None = None,
+    end_date: Date | None = None,
+    user_id: int = Depends(current_user),
+):
+    workbook, filename, _ = create_excel_report(user_id, period, start_date, end_date)
     return Response(
         content=workbook,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{excel_filename(period_slug)}"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.post("/api/export.xlsx/send")
+async def send_excel_report_to_telegram(
+    period: Literal["day", "week", "month", "year", "all", "custom"] = "all",
+    start_date: Date | None = None,
+    end_date: Date | None = None,
+    user_id: int = Depends(current_user),
+):
+    if not bot:
+        raise HTTPException(status_code=503, detail="Telegram bot hozircha Excel hisobotini yubora olmaydi")
+    workbook, filename, period_label = create_excel_report(
+        user_id, period, start_date, end_date
+    )
+    document = BufferedInputFile(workbook, filename=filename)
+    try:
+        await bot.send_document(
+            chat_id=user_id,
+            document=document,
+            caption=f"📊 {period_label}\nTo'liq Excel hisobotingiz ilova qilindi.",
+        )
+    except TelegramAPIError as error:
+        logging.exception("Foydalanuvchi %s ga Excel hisoboti yuborilmadi", user_id)
+        raise HTTPException(
+            status_code=502,
+            detail="Excel fayli Telegramga yuborilmadi. Bot chatini /start orqali ochib, qayta urinib ko'ring.",
+        ) from error
+    return {"status": "sent", "filename": filename, "period": period_label}
 
 
 def resolve_report_period(period, start_date=None, end_date=None):
     today = Date.fromisoformat(today_text())
-    if period == "week":
+    if period == "day":
+        start = end = today
+        label = "Kunlik hisobot"
+    elif period == "week":
         start = today - timedelta(days=today.weekday())
         end = start + timedelta(days=6)
         label = "Haftalik hisobot"
@@ -613,6 +1189,186 @@ def resolve_report_period(period, start_date=None, end_date=None):
     return start, end, label, slug
 
 
+def build_period_summary(user_id, period):
+    start, end, label, _ = resolve_report_period(period)
+    start_text, end_text = start.isoformat(), end.isoformat()
+    with database() as connection:
+        tasks = connection.execute(
+            "SELECT COUNT(*) total, COALESCE(SUM(is_completed), 0) completed, "
+            "COALESCE(SUM(CASE WHEN missed_reason IS NOT NULL THEN 1 ELSE 0 END), 0) missed, "
+            "COALESCE(AVG(CASE WHEN late_minutes > 0 THEN late_minutes END), 0) average_late "
+            "FROM tasks WHERE user_id = ? AND date BETWEEN ? AND ?",
+            (user_id, start_text, end_text),
+        ).fetchone()
+        money_totals = connection.execute(
+            "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
+            "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
+            "FROM transactions WHERE user_id = ? AND date BETWEEN ? AND ?",
+            (user_id, start_text, end_text),
+        ).fetchone()
+    return {
+        "period": period,
+        "label": label,
+        "start_date": start_text,
+        "end_date": end_text,
+        "tasks_total": tasks["total"],
+        "tasks_completed": tasks["completed"],
+        "tasks_missed": tasks["missed"],
+        "average_late_minutes": round(tasks["average_late"]),
+        "income": money_totals["income"],
+        "expense": money_totals["expense"],
+        "balance": money_totals["income"] - money_totals["expense"],
+    }
+
+
+@app.get("/api/reports/summary")
+async def report_summary(
+    period: Literal["day", "week", "month"] = "day",
+    user_id: int = Depends(current_user),
+):
+    return build_period_summary(user_id, period)
+
+
+@app.post("/api/reports/send")
+async def send_report_to_telegram(
+    period: Literal["day", "week", "month"] = "day",
+    user_id: int = Depends(current_user),
+):
+    if not bot:
+        raise HTTPException(status_code=503, detail="Telegram bot hozircha hisobot yubora olmaydi")
+    summary = build_period_summary(user_id, period)
+    try:
+        await bot.send_message(user_id, format_report_message(summary))
+    except TelegramAPIError as error:
+        logging.exception("Telegram orqali hisobotni yuborib bo'lmadi")
+        raise HTTPException(
+            status_code=502,
+            detail="Hisobot yuborilmadi. Bot chatini /start orqali ochib, qayta urinib ko'ring.",
+        ) from error
+    return {"status": "sent"}
+
+
+@app.post("/api/ai/chat")
+async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_user)):
+    user_msg = req.message.strip()
+    if not user_msg:
+        raise HTTPException(status_code=422, detail="Xabar matnini kiriting")
+
+    active_key = (req.api_key or "").strip() or GEMINI_API_KEY
+    if not active_key:
+        return {
+            "status": "need_key",
+            "reply": "⚠️ Google Gemini API kaliti kiritilmagan. Sozlamalar bo'limidan yoki shu oynadan Gemini API kalitingizni kiriting (aistudio.google.com saytidan bepul olinadi).",
+            "action": None
+        }
+
+    # Foydalanuvchining bugungi holatini kontekst uchun olish
+    today = today_text()
+    with database() as connection:
+        user_tasks = connection.execute(
+            "SELECT title, is_completed, scheduled_time FROM tasks WHERE user_id = ? AND date = ? ORDER BY id DESC LIMIT 5",
+            (user_id, today)
+        ).fetchall()
+        user_trans = connection.execute(
+            "SELECT type, category, amount FROM transactions WHERE user_id = ? AND date = ? ORDER BY id DESC LIMIT 5",
+            (user_id, today)
+        ).fetchall()
+
+    tasks_info = ", ".join([f"{t['title']} ({'bajarildi' if t['is_completed'] else 'bajarilmagan'})" for t in user_tasks]) or "reja yo'q"
+    trans_info = ", ".join([f"{t['type']}: {t['category']} {t['amount']:,.0f} so'm" for t in user_trans]) or "kirim-chiqim yo'q"
+
+    system_prompt = (
+        f"Siz 'Turkiston Daily' shaxsiy rivojlanish va moliyaviy boshqaruv ilovasining sun'iy intellekt yordamchisisiz. "
+        f"Bugungi sana: {today}. "
+        f"Foydalanuvchining bugungi rejalari: [{tasks_info}]. "
+        f"Bugungi moliyasi: [{trans_info}]. "
+        "Vazifangiz:\n"
+        "1. Foydalanuvchi savollariga o'zbek tilida muloyim, motivatsion va aniq javob berish.\n"
+        "2. Agar foydalanuvchi biror reja tuzishni aytsa (masalan: 'Ertaga 15:00 da kitob o'qishim kerak' yoki 'soat 18 da yugurish'), uni tushunib 'create_task' buyrug'ini shakllantiring.\n"
+        "3. Agar xarajat yoki daromad haqida yozsa (masalan: 'Tushlikka 45 ming sarfladim' yoki '100 ming maosh oldim'), 'create_transaction' buyrug'ini shakllantiring.\n"
+        "Javobingizni FAQAT quyidagi JSON formatida qaytaring, boshqa hech qanday izoh qo'shmang:\n"
+        "{\n"
+        '  "reply": "Foydalanuvchiga ko\'rsatiladigan chiroyli o\'zbekcha javobingiz",\n'
+        '  "action": null | {\n'
+        '     "type": "create_task" | "create_transaction",\n'
+        '     "data": { ... }\n'
+        '  }\n'
+        "}\n"
+        "create_task data formati: {\"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\"}\n"
+        "create_transaction data formati: {\"type\": \"income\" | \"expense\", \"category\": \"Oziq-ovqat\" | \"Transport\" | \"Boshqa\", \"amount\": 45000, \"note\": \"...\"}"
+    )
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=active_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_msg,
+            config={"system_instruction": system_prompt, "response_mime_type": "application/json"}
+        )
+        parsed = json.loads(response.text)
+    except Exception as e:
+        logging.warning("Gemini AI chaqiruvida xato: %s", e)
+        # Fallback oddiy qoidalar asosida
+        return {
+            "status": "error",
+            "reply": f"Gemini AI bilan bog'lanishda xatolik yuz berdi: {str(e)}",
+            "action": None
+        }
+
+    # Agar AI action bergan bo'lsa, to'g'ridan-to'g'ri bazaga saqlash
+    action = parsed.get("action")
+    action_result = None
+    if action and isinstance(action, dict):
+        act_type = action.get("type")
+        act_data = action.get("data") or {}
+        with database() as connection:
+            if act_type == "create_task" and act_data.get("title"):
+                t_date = act_data.get("date") or today
+                t_time = act_data.get("scheduled_time")
+                remind = f"{t_date}T{t_time}" if t_time else None
+                connection.execute(
+                    "INSERT INTO tasks (user_id, title, date, priority, scheduled_time, remind_at, recurrence, reminder_interval, created_at) "
+                    "VALUES (?, ?, ?, 'normal', ?, ?, 'none', 'once', CURRENT_TIMESTAMP)",
+                    (user_id, act_data["title"], t_date, t_time, remind)
+                )
+                action_result = "Reja avtomatik saqlandi ✅"
+            elif act_type == "create_transaction" and act_data.get("amount"):
+                t_type = "income" if act_data.get("type") == "income" else "expense"
+                t_cat = act_data.get("category") or "Boshqa"
+                t_amt = float(act_data.get("amount") or 0)
+                t_note = act_data.get("note") or ""
+                connection.execute(
+                    "INSERT INTO transactions (user_id, type, category, amount, date, note, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                    (user_id, t_type, t_cat, t_amt, today, t_note)
+                )
+                action_result = f"{'Kirim' if t_type == 'income' else 'Chiqim'} avtomatik saqlandi ✅"
+
+    return {
+        "status": "ok",
+        "reply": parsed.get("reply", "Bajarildi!"),
+        "action": action,
+        "action_result": action_result
+    }
+
+
+def format_report_message(summary):
+    return (
+        f"📊 {summary['label']}\n\n"
+        f"📋 Rejalar: {summary['tasks_completed']} / {summary['tasks_total']} bajarildi\n"
+        f"⏳ Bajarilmagan: {summary['tasks_missed']}\n"
+        f"💰 Kirim: {summary['income']:,.0f} so'm\n"
+        f"💸 Chiqim: {summary['expense']:,.0f} so'm\n"
+        f"⚖️ Balans: {summary['balance']:,.0f} so'm"
+        + (
+            f"\n⌛ O'rtacha kechikish: {summary['average_late_minutes']} daqiqa"
+            if summary["average_late_minutes"]
+            else ""
+        )
+    )
+
+
 def filter_export_data(data, start, end):
     start_text, end_text = start.isoformat(), end.isoformat()
     filtered = dict(data)
@@ -629,35 +1385,155 @@ def filter_export_data(data, start, end):
             budget_end = Date(year, month, monthrange(year, month)[1])
         except (TypeError, ValueError):
             raise HTTPException(status_code=422, detail="Budjet oyini YYYY-MM formatida saqlangan bo'lishi kerak")
-        if start <= budget_start and budget_end <= end:
+        if budget_start <= end and budget_end >= start:
             filtered_budgets.append(row)
     filtered["budgets"] = filtered_budgets
     return filtered
 
 
 async def start_cmd(message):
-    keyboard = []
-    if WEBAPP_URL:
-        keyboard.append([InlineKeyboardButton(text="Turkiston Daily'ni ochish", web_app=WebAppInfo(url=WEBAPP_URL))])
-    else:
-        await message.answer(
-            "Mini-ilova hali ulanmagan. Telegram ichida ochish uchun .env faylidagi "
-            "WEBAPP_URL qiymatiga ommaviy HTTPS manzilini kiriting."
-        )
-    keyboard.extend([
-        [InlineKeyboardButton(text="Haftalik Excel hisoboti", callback_data="excel:week")],
-        [InlineKeyboardButton(text="Oylik Excel hisoboti", callback_data="excel:month")],
-        [InlineKeyboardButton(text="Yillik Excel hisoboti", callback_data="excel:year")],
-        [InlineKeyboardButton(text="Barcha davr Excel hisoboti", callback_data="excel:all")],
-    ])
-    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    record_user_activity(message.from_user.id)
     await message.answer(
-        "Hisobot davrini tanlang yoki /excel week, /excel month, /excel year yoxud /excel all yuboring.",
+        "Quyidagi paneldan kerakli bo'limni tanlang yoki /buyruqlar orqali buyruqlarni ko'ring.",
+        reply_markup=build_reply_keyboard(message.from_user.id),
+    )
+    if not WEBAPP_URL:
+        await message.answer(
+            "Mini App manzili sozlanmagan. start_bot.bat orqali botni ishga tushiring va /start ni qayta yuboring."
+        )
+        return
+
+    web_app = WebAppInfo(url=WEBAPP_URL)
+    markup = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Turkiston Daily'ni ochish", web_app=web_app)
+    ]])
+    await message.answer(
+        "Kunlik reja, eslatma, kirim-chiqim va hisobotlaringiz — barchasi Mini App ichida.",
         reply_markup=markup,
+    )
+    await bot.set_chat_menu_button(
+        chat_id=message.chat.id,
+        menu_button=MenuButtonWebApp(text="Turkiston Daily", web_app=web_app),
     )
 
 
+async def add_plan_cmd(message):
+    record_user_activity(message.from_user.id)
+    arguments = (message.text or "").split(maxsplit=1)
+    if len(arguments) < 2 or not arguments[1].strip():
+        await message.answer("Reja qo'shish: /reja [HH:MM] reja matni\nMasalan: /reja 18:30 Kitob o'qish")
+        return
+
+    content = arguments[1].strip()
+    reminder_text, separator, title = content.partition(" ")
+    remind_at = None
+    scheduled_time = None
+    try:
+        scheduled_time = datetime.strptime(reminder_text, "%H:%M").time()
+    except ValueError:
+        title = content
+    else:
+        if not separator or not title.strip():
+            await message.answer("Reja matnini ham yozing. Masalan: /reja 18:30 Kitob o'qish")
+            return
+        remind_at = datetime.combine(Date.fromisoformat(today_text()), scheduled_time).isoformat(timespec="minutes")
+        title = title.strip()
+
+    with database() as connection:
+        connection.execute(
+            "INSERT INTO tasks (user_id, title, date, scheduled_time, remind_at, created_at) "
+            "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (message.from_user.id, title, today_text(), scheduled_time.strftime("%H:%M") if scheduled_time else None, remind_at),
+        )
+
+    if remind_at:
+        await message.answer(f"Reja qo'shildi: {title}\nBajarish vaqti: {scheduled_time:%H:%M}. Shu payt eslataman.")
+    else:
+        await message.answer(f"Bugungi rejaga qo'shildi: {title}\nEslatma uchun /reja HH:MM reja matni deb yozing.")
+
+
+async def add_transaction_cmd(message, transaction_type):
+    record_user_activity(message.from_user.id)
+    arguments = (message.text or "").split(maxsplit=3)
+    if len(arguments) < 3:
+        command = "kirim" if transaction_type == "income" else "chiqim"
+        await message.answer(
+            f"Foydalanish: /{command} summa kategoriya [izoh]\n"
+            f"Masalan: /{command} 25000 {'Maosh' if transaction_type == 'income' else 'Oziq-ovqat'}"
+        )
+        return
+
+    amount_text, category = arguments[1], arguments[2].strip()
+    try:
+        amount = float(amount_text.replace(",", "."))
+    except ValueError:
+        amount = 0
+    if not math.isfinite(amount) or amount <= 0 or amount > 1_000_000_000_000 or not category:
+        await message.answer("Summani musbat son, kategoriyani esa bo'sh bo'lmagan matn qilib kiriting.")
+        return
+
+    note = arguments[3].strip() if len(arguments) > 3 else ""
+    with database() as connection:
+        connection.execute(
+            "INSERT INTO transactions (user_id, type, category, amount, date, note, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (message.from_user.id, transaction_type, category, amount, today_text(), note),
+        )
+
+    label = "Kirim" if transaction_type == "income" else "Chiqim"
+    await message.answer(f"{label} saqlandi: {amount:,.0f} so'm — {category}")
+
+
+async def income_cmd(message):
+    await add_transaction_cmd(message, "income")
+
+
+async def expense_cmd(message):
+    await add_transaction_cmd(message, "expense")
+
+
+async def today_cmd(message):
+    record_user_activity(message.from_user.id)
+    chosen_date = today_text()
+    user_id = message.from_user.id
+    with database() as connection:
+        tasks = connection.execute(
+            "SELECT title, is_completed, scheduled_time, remind_at FROM tasks WHERE user_id = ? AND date = ? "
+            "ORDER BY is_completed, CASE WHEN scheduled_time IS NULL THEN 1 ELSE 0 END, scheduled_time, id",
+            (user_id, chosen_date),
+        ).fetchall()
+        totals = connection.execute(
+            "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
+            "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
+            "FROM transactions WHERE user_id = ? AND date = ?",
+            (user_id, chosen_date),
+        ).fetchone()
+
+    lines = ["Bugungi rejalaringiz:"]
+    if tasks:
+        for task in tasks:
+            status = "✅ Bajarildi" if task["is_completed"] else "▫️ Bajarilmagan"
+            scheduled = f" — soat {task['scheduled_time']}" if task["scheduled_time"] else ""
+            reminder_time = task["remind_at"][11:16] if task["remind_at"] else None
+            reminder = (
+                f" (eslatma {reminder_time})"
+                if reminder_time and reminder_time != task["scheduled_time"]
+                else ""
+            )
+            lines.append(f"{status}: {task['title']}{scheduled}{reminder}")
+    else:
+        lines.append("Hozircha reja yo'q. /reja matn deb yuboring.")
+    lines.extend([
+        "",
+        f"Kirim: {totals['income']:,.0f} so'm",
+        f"Chiqim: {totals['expense']:,.0f} so'm",
+        f"Balans: {totals['income'] - totals['expense']:,.0f} so'm",
+    ])
+    await message.answer("\n".join(lines))
+
+
 async def send_excel(message, user_id, period="month"):
+    record_user_activity(user_id)
     start, end, label, slug = resolve_report_period(period)
     report_data = collect_export_data(user_id)
     if start and end:
@@ -677,34 +1553,769 @@ async def excel_cmd(message):
     await send_excel(message, message.from_user.id, period)
 
 
+async def report_cmd(message):
+    record_user_activity(message.from_user.id)
+    arguments = (message.text or "").split()
+    period = arguments[1].lower() if len(arguments) > 1 else "day"
+    if period not in {"day", "week", "month"}:
+        await message.answer("Davrni tanlang: /hisobot day, /hisobot week yoki /hisobot month")
+        return
+    await message.answer(format_report_message(build_period_summary(message.from_user.id, period)))
+
+
+async def help_cmd(message):
+    admin_commands = (
+        "\n🛠 Admin buyruqlari: /admin, /stat, /users, /user ID, /health, "
+        "/broadcast matn, /cancel"
+        if message.from_user.id in ADMIN_USER_IDS
+        else ""
+    )
+    await message.answer(
+        "📋 Asosiy buyruqlar\n"
+        "/start — Mini App va pastki panel\n"
+        "/reja [HH:MM] matn — reja qo'shish\n"
+        "/bugun — bugungi rejalar va balans\n"
+        "/kirim summa kategoriya — kirim yozish\n"
+        "/chiqim summa kategoriya — chiqim yozish\n"
+        "/hisobot day|week|month — davriy hisobot\n"
+        "/excel week|month|year|all — Excel hisobot\n"
+        "Buyruqlarni yozmasdan pastki panel tugmalaridan ham foydalanishingiz mumkin."
+        f"{admin_commands}"
+    )
+
+
 async def excel_callback(callback):
     await callback.answer("Excel hisoboti tayyorlanmoqda")
     period = (callback.data or "excel:month").partition(":")[2] or "month"
     await send_excel(callback.message, callback.from_user.id, period)
 
 
+async def report_callback(callback):
+    record_user_activity(callback.from_user.id)
+    period = (callback.data or "report:day").partition(":")[2]
+    if period not in {"day", "week", "month"}:
+        await callback.answer("Hisobot davri noto'g'ri", show_alert=True)
+        return
+    await callback.answer("Hisobot tayyorlanmoqda")
+    await callback.message.answer(
+        format_report_message(build_period_summary(callback.from_user.id, period))
+    )
+
+
+async def admin_cmd(message):
+    record_user_activity(message.from_user.id)
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    await message.answer(
+        "🛠 ADMIN BOSHQARUV PANELI\n\n"
+        "Quyidagi tugmalardan kerakli amalni tanlang. Har bir bo'lim bot ichida ochiladi:\n"
+        "📊 Statistika — foydalanish ko'rsatkichlari\n"
+        "👥 Foydalanuvchilar — ro'yxat yoki ID bo'yicha ma'lumot\n"
+        "📢 E'lon — xabarni ko'rib, tasdiqlagandan keyin yuborish\n"
+        "🩺 Tizim holati — bot, baza va Mini App tekshiruvi\n"
+        "ℹ️ Qo'llanma — amallar bo'yicha qisqa izohlar",
+        reply_markup=admin_main_keyboard(),
+    )
+
+
+def admin_main_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stats"),
+            InlineKeyboardButton(text="👥 Foydalanuvchilar ro'yxati", callback_data="admin:users:0"),
+        ],
+        [
+            InlineKeyboardButton(text="🔎 ID bo'yicha qidirish", callback_data="admin:lookup"),
+            InlineKeyboardButton(text="📢 E'lon yuborish", callback_data="admin:broadcast"),
+        ],
+        [
+            InlineKeyboardButton(text="🩺 Tizim holati", callback_data="admin:health"),
+            InlineKeyboardButton(text="ℹ️ Qo'llanma", callback_data="admin:guide"),
+        ],
+    ])
+
+
+def build_admin_stats():
+    now = datetime.now(LOCAL_TZ)
+    today = now.date().isoformat()
+    week_start = (now.date() - timedelta(days=6)).isoformat()
+    month_start = now.date().replace(day=1).isoformat()
+    with database() as connection:
+        users = connection.execute(
+            "SELECT COUNT(*) total, "
+            "COALESCE(SUM(CASE WHEN substr(last_seen_at, 1, 10) = ? THEN 1 ELSE 0 END), 0) today, "
+            "COALESCE(SUM(CASE WHEN substr(last_seen_at, 1, 10) >= ? THEN 1 ELSE 0 END), 0) week, "
+            "COALESCE(SUM(CASE WHEN substr(last_seen_at, 1, 10) >= ? THEN 1 ELSE 0 END), 0) month "
+            "FROM users",
+            (today, week_start, month_start),
+        ).fetchone()
+        tasks = connection.execute(
+            "SELECT COUNT(*) total, COALESCE(SUM(is_completed), 0) completed, "
+            "COALESCE(SUM(CASE WHEN missed_reason IS NOT NULL THEN 1 ELSE 0 END), 0) missed "
+            "FROM tasks"
+        ).fetchone()
+        transactions = connection.execute(
+            "SELECT COUNT(*) total, "
+            "COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
+            "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
+            "FROM transactions"
+        ).fetchone()
+        budgets = connection.execute("SELECT COUNT(*) FROM budgets").fetchone()[0]
+        goals = connection.execute("SELECT COUNT(*) FROM goals").fetchone()[0]
+        reports = connection.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
+    return (
+        "📊 Bot statistikasi\n\n"
+        f"👥 Jami foydalanuvchi: {users['total']}\n"
+        f"🟢 Bugun faol: {users['today']}\n"
+        f"📈 7 kunda faol: {users['week']}\n"
+        f"🗓 Shu oy faol: {users['month']}\n\n"
+        f"📋 Rejalar: {tasks['total']} (✅ {tasks['completed']}, ⏳ {tasks['missed']})\n"
+        f"💳 Moliya yozuvlari: {transactions['total']}\n"
+        f"↗ Jami kirim: {transactions['income']:,.0f} so'm\n"
+        f"↘ Jami chiqim: {transactions['expense']:,.0f} so'm\n"
+        f"🎯 Budjetlar: {budgets} · Jamg'arma maqsadlari: {goals}\n"
+        f"📝 Kun yakuni hisobotlari: {reports}"
+    )
+
+
+def admin_panel_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅️ Admin panelga qaytish", callback_data="admin:home"),
+    ]])
+
+
+def admin_users_keyboard(page, total, page_size):
+    buttons = []
+    if page > 0:
+        buttons.append(InlineKeyboardButton(text="⬅️ Oldingi", callback_data=f"admin:users:{page - 1}"))
+    if (page + 1) * page_size < total:
+        buttons.append(InlineKeyboardButton(text="Keyingi ➡️", callback_data=f"admin:users:{page + 1}"))
+    rows = [buttons] if buttons else []
+    rows.append([InlineKeyboardButton(text="🔎 ID bo'yicha qidirish", callback_data="admin:lookup")])
+    rows.append([InlineKeyboardButton(text="⬅️ Admin panelga qaytish", callback_data="admin:home")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def admin_stats(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    await message.answer(build_admin_stats(), reply_markup=admin_panel_keyboard())
+
+
+async def admin_users_page(target, page=0, edit=False):
+    page = max(0, page)
+    page_size = 8
+    with database() as connection:
+        total = connection.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        rows = connection.execute(
+            "SELECT user_id, first_seen_at, last_seen_at FROM users "
+            "ORDER BY last_seen_at DESC, user_id DESC LIMIT ? OFFSET ?",
+            (page_size, page * page_size),
+        ).fetchall()
+    if not rows and page:
+        page = max(0, (total - 1) // page_size)
+        with database() as connection:
+            rows = connection.execute(
+                "SELECT user_id, first_seen_at, last_seen_at FROM users "
+                "ORDER BY last_seen_at DESC, user_id DESC LIMIT ? OFFSET ?",
+                (page_size, page * page_size),
+            ).fetchall()
+    lines = [f"👥 Foydalanuvchilar: {total}", "So'nggi faollik bo'yicha:"]
+    lines.extend(
+        f"\n• {row['user_id']} — oxirgi faollik: {(row['last_seen_at'] or 'noma’lum')[:16]}"
+        for row in rows
+    )
+    markup = admin_users_keyboard(page, total, page_size)
+    if edit:
+        await target.edit_text("\n".join(lines), reply_markup=markup)
+    else:
+        await target.answer("\n".join(lines), reply_markup=markup)
+
+
+async def admin_users_cmd(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    await admin_users_page(message)
+
+
+async def admin_user_cmd(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    arguments = (message.text or "").split(maxsplit=1)
+    if len(arguments) < 2 or not arguments[1].strip().isdigit():
+        await message.answer("Foydalanish: /user Telegram_ID")
+        return
+    user_id = int(arguments[1].strip())
+    await admin_show_user(message, user_id)
+
+
+async def admin_show_user(target, user_id):
+    with database() as connection:
+        user = connection.execute(
+            "SELECT first_seen_at, last_seen_at FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        counts = {
+            table: connection.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE user_id = ?", (user_id,)
+            ).fetchone()[0]
+            for table in ("tasks", "transactions", "budgets", "goals", "reports")
+        }
+    if not user:
+        await target.answer("Bu ID bilan foydalanuvchi topilmadi.", reply_markup=admin_panel_keyboard())
+        return
+    await target.answer(
+        f"👤 Foydalanuvchi: {user_id}\n"
+        f"🗓 Birinchi faollik: {user['first_seen_at'] or 'noma’lum'}\n"
+        f"🕒 Oxirgi faollik: {user['last_seen_at'] or 'noma’lum'}\n\n"
+        f"📋 Rejalar: {counts['tasks']}\n"
+        f"💳 Moliya yozuvlari: {counts['transactions']}\n"
+        f"🎯 Budjetlar: {counts['budgets']} · Maqsadlar: {counts['goals']}\n"
+        f"📝 Hisobotlar: {counts['reports']}",
+        reply_markup=admin_panel_keyboard(),
+    )
+
+
+async def admin_health(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    try:
+        with database() as connection:
+            connection.execute("SELECT 1").fetchone()
+        database_status = "✅ ishlayapti"
+    except Exception:
+        logging.exception("Admin panelida baza holatini tekshirib bo'lmadi")
+        database_status = "❌ xato (logni tekshiring)"
+    bot_status = "✅ ishlayapti" if bot else "❌ token sozlanmagan"
+    await message.answer(
+        "🩺 Tizim holati\n\n"
+        f"🤖 Telegram bot: {bot_status}\n"
+        f"🗄 Ma'lumotlar bazasi: {database_status}\n"
+        f"🌐 Mini App manzili: {'✅ sozlangan' if WEBAPP_URL else '❌ sozlanmagan'}",
+        reply_markup=admin_panel_keyboard(),
+    )
+
+
+def admin_broadcast_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Yuborish", callback_data="admin:broadcast:confirm"),
+        InlineKeyboardButton(text="❌ Bekor qilish", callback_data="admin:broadcast:cancel"),
+    ]])
+
+
+async def prepare_admin_broadcast(message, text):
+    if not text.strip():
+        ADMIN_PENDING_ACTIONS[message.from_user.id] = "broadcast"
+        await message.answer("Foydalanuvchilarga yuboriladigan e'lon matnini yozing. Bekor qilish: /cancel")
+        return
+    text = text.strip()
+    if len(text) > 3500:
+        await message.answer("E'lon 3500 belgidan oshmasligi kerak.")
+        return
+    ADMIN_PENDING_ACTIONS[message.from_user.id] = {"broadcast": text}
+    await message.answer(
+        f"📢 E'lonni barcha bot foydalanuvchilariga yuborish?\n\n{text}\n\n"
+        "Yuborishdan oldin matnni tekshiring:",
+        reply_markup=admin_broadcast_keyboard(),
+    )
+
+
+async def admin_broadcast_cmd(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    text = (message.text or "").partition(" ")[2]
+    await prepare_admin_broadcast(message, text)
+
+
+async def admin_callback(callback):
+    if callback.from_user.id not in ADMIN_USER_IDS:
+        await callback.answer("Bu bo'lim faqat administratorlar uchun.", show_alert=True)
+        return
+    data = callback.data or ""
+    if data == "admin:home":
+        await callback.answer()
+        await callback.message.edit_text(
+            "🛠 ADMIN BOSHQARUV PANELI\n\n"
+            "📊 Statistika — foydalanish ko'rsatkichlari\n"
+            "👥 Foydalanuvchilar — ro'yxat yoki ID bo'yicha ma'lumot\n"
+            "📢 E'lon — xabarni ko'rib, tasdiqlagandan keyin yuborish\n"
+            "🩺 Tizim holati — bot, baza va Mini App tekshiruvi\n"
+            "ℹ️ Qo'llanma — amallar bo'yicha qisqa izohlar",
+            reply_markup=admin_main_keyboard(),
+        )
+    elif data == "admin:stats":
+        await callback.answer()
+        await callback.message.edit_text(build_admin_stats(), reply_markup=admin_panel_keyboard())
+    elif data == "admin:users:0" or data.startswith("admin:users:"):
+        try:
+            page = int(data.rsplit(":", 1)[1])
+        except ValueError:
+            await callback.answer("Sahifa aniqlanmadi.", show_alert=True)
+            return
+        await callback.answer()
+        await admin_users_page(callback.message, page, edit=True)
+    elif data == "admin:lookup":
+        ADMIN_PENDING_ACTIONS[callback.from_user.id] = "user_lookup"
+        await callback.answer()
+        await callback.message.answer(
+            "🔎 Foydalanuvchi Telegram ID raqamini yuboring.\n"
+            "Masalan: 5144043830\n\nBekor qilish uchun /cancel yozing."
+        )
+    elif data == "admin:guide":
+        await callback.answer()
+        await callback.message.edit_text(
+            "ℹ️ ADMIN PANEL QO'LLANMASI\n\n"
+            "📊 Statistika — jami va yaqinda faol foydalanuvchilar, rejalar, "
+            "kirim-chiqim, budjetlar, maqsadlar va hisobotlar.\n\n"
+            "👥 Foydalanuvchilar ro'yxati — oxirgi faollik bo'yicha sahifalangan ro'yxat.\n\n"
+            "🔎 ID bo'yicha qidirish — Telegram ID kiriting; birinchi/oxirgi faollik "
+            "va yozuvlar soni ko'rsatiladi. Shaxsiy yozuvlar matni ochilmaydi.\n\n"
+            "📢 E'lon yuborish — matnni yuboring, oldindan ko'rib chiqing va "
+            "faqat ✅ Yuborish tugmasini bosganingizda tarqatiladi. ❌ Bekor qilish "
+            "yoki /cancel bilan to'xtatish mumkin.\n\n"
+            "🩺 Tizim holati — bot, ma'lumotlar bazasi va Mini App manzili "
+            "sozlanganini tekshiradi.",
+            reply_markup=admin_panel_keyboard(),
+        )
+    elif data == "admin:health":
+        try:
+            with database() as connection:
+                connection.execute("SELECT 1").fetchone()
+            status = "✅ Baza ishlayapti"
+        except Exception:
+            logging.exception("Admin panelida baza holatini tekshirib bo'lmadi")
+            status = "❌ Baza xatosi (logni tekshiring)"
+        await callback.answer()
+        await callback.message.edit_text(
+            "🩺 Tizim holati\n\n"
+            f"🤖 Telegram bot: {'✅ ishlayapti' if bot else '❌ token sozlanmagan'}\n"
+            f"🗄 Ma'lumotlar bazasi: {status}\n"
+            f"🌐 Mini App manzili: {'✅ sozlangan' if WEBAPP_URL else '❌ sozlanmagan'}",
+            reply_markup=admin_panel_keyboard(),
+        )
+    elif data == "admin:broadcast":
+        ADMIN_PENDING_ACTIONS[callback.from_user.id] = "broadcast"
+        await callback.answer()
+        await callback.message.answer(
+            "📢 Foydalanuvchilarga yuboriladigan e'lon matnini yozing.\n"
+            "Avval matnni ko'rib chiqasiz; tasdiqlamaguningizcha hech kimga yuborilmaydi.\n"
+            "Bekor qilish uchun /cancel yozing."
+        )
+    elif data == "admin:broadcast:cancel":
+        ADMIN_PENDING_ACTIONS.pop(callback.from_user.id, None)
+        await callback.answer("E'lon bekor qilindi.")
+        await callback.message.edit_reply_markup(reply_markup=None)
+    elif data == "admin:broadcast:confirm":
+        pending = ADMIN_PENDING_ACTIONS.get(callback.from_user.id)
+        text = pending.get("broadcast") if isinstance(pending, dict) else None
+        if not text:
+            await callback.answer("E'lon matni topilmadi. Qaytadan boshlang.", show_alert=True)
+            return
+        ADMIN_PENDING_ACTIONS.pop(callback.from_user.id, None)
+        await callback.answer("Yuborish boshlandi.")
+        await callback.message.edit_reply_markup(reply_markup=None)
+        with database() as connection:
+            recipients = [
+                row["user_id"] for row in connection.execute(
+                    "SELECT user_id FROM users ORDER BY user_id"
+                ).fetchall()
+            ]
+        sent = 0
+        failed = 0
+        for recipient_id in recipients:
+            try:
+                await bot.send_message(recipient_id, f"📢 Admin e'loni\n\n{text}")
+                sent += 1
+            except TelegramAPIError:
+                failed += 1
+                logging.exception("Admin e'lonini foydalanuvchiga yuborib bo'lmadi: %s", recipient_id)
+            await asyncio.sleep(0.05)
+        await callback.message.answer(
+            f"📢 E'lon yuborish yakunlandi.\n✅ Yetkazildi: {sent}\n⚠️ Yuborilmadi: {failed}"
+        )
+    else:
+        await callback.answer("Amal topilmadi.", show_alert=True)
+
+
+async def admin_cancel_cmd(message):
+    if message.from_user.id not in ADMIN_USER_IDS:
+        await message.answer("Bu bo'lim faqat administratorlar uchun.")
+        return
+    if ADMIN_PENDING_ACTIONS.pop(message.from_user.id, None) is None:
+        await message.answer("Bekor qilinadigan admin amali yo'q.")
+        return
+    await message.answer("Admin amali bekor qilindi.")
+
+
+async def menu_action(message):
+    user_id = message.from_user.id
+    record_user_activity(user_id)
+    text = (message.text or "").strip()
+    if text == "📱 Mini App":
+        if not WEBAPP_URL:
+            await message.answer("Mini App manzili sozlanmagan.")
+            return
+        await message.answer(
+            "Mini App'ni oching:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="Turkiston Daily'ni ochish", web_app=WebAppInfo(url=WEBAPP_URL))
+            ]]),
+        )
+    elif text == "📋 Reja qo'shish":
+        PENDING_ACTIONS[user_id] = "plan"
+        await message.answer("Reja matnini yuboring. Vaqt bilan: 18:30 Kitob o'qish")
+    elif text in {"💰 Kirim", "💸 Chiqim"}:
+        PENDING_ACTIONS[user_id] = "income" if text == "💰 Kirim" else "expense"
+        await message.answer("Summa va kategoriya yuboring. Masalan: 25000 Oziq-ovqat tushlik")
+    elif text == "📅 Bugun":
+        await today_cmd(message)
+    elif text == "📊 Hisobot":
+        await message.answer(
+            "Qaysi davr hisoboti kerak?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="Kunlik", callback_data="report:day"),
+                InlineKeyboardButton(text="Haftalik", callback_data="report:week"),
+                InlineKeyboardButton(text="Oylik", callback_data="report:month"),
+            ]]),
+        )
+    elif text == "🛠 Admin panel":
+        await admin_cmd(message)
+
+
+async def capture_text_input(message):
+    user_id = message.from_user.id
+    admin_pending = ADMIN_PENDING_ACTIONS.get(user_id)
+    if admin_pending == "user_lookup":
+        if user_id not in ADMIN_USER_IDS:
+            ADMIN_PENDING_ACTIONS.pop(user_id, None)
+            await message.answer("Bu bo'lim faqat administratorlar uchun.")
+            return
+        text = (message.text or "").strip()
+        if not text.isdigit():
+            await message.answer("Telegram ID faqat raqamlardan iborat bo'lishi kerak. Qaytadan kiriting yoki /cancel yozing.")
+            return
+        ADMIN_PENDING_ACTIONS.pop(user_id, None)
+        await admin_show_user(message, int(text))
+        return
+    if admin_pending == "broadcast":
+        if user_id not in ADMIN_USER_IDS:
+            ADMIN_PENDING_ACTIONS.pop(user_id, None)
+            await message.answer("Bu bo'lim faqat administratorlar uchun.")
+            return
+        text = (message.text or "").strip()
+        if not text or text.startswith("/"):
+            await message.answer("E'lon matnini yozing yoki /cancel bilan bekor qiling.")
+            return
+        ADMIN_PENDING_ACTIONS.pop(user_id, None)
+        await prepare_admin_broadcast(message, text)
+        return
+    pending = PENDING_ACTIONS.get(user_id)
+    action = pending.get("action") if isinstance(pending, dict) else pending
+    if not action:
+        await menu_action(message)
+        return
+    text = (message.text or "").strip()
+    if not text or text.startswith("/"):
+        await message.answer("Iltimos, kerakli ma'lumotni matn ko'rinishida yuboring.")
+        return
+    if action == "missed_reason":
+        task_id = pending["task_id"]
+        PENDING_ACTIONS.pop(user_id, None)
+        await update_task(task_id, TaskUpdate(missed_reason=text), user_id)
+        await message.answer("Sabab va kechikish vaqti saqlandi.")
+        return
+    PENDING_ACTIONS.pop(user_id, None)
+    if action == "plan":
+        parts = text.split(maxsplit=1)
+        scheduled_time = None
+        title = text
+        if len(parts) == 2:
+            try:
+                scheduled_time = datetime.strptime(parts[0], "%H:%M").strftime("%H:%M")
+                title = parts[1].strip()
+            except ValueError:
+                pass
+        if not title:
+            await message.answer("Reja nomini kiriting.")
+            return
+        remind_at = f"{today_text()}T{scheduled_time}" if scheduled_time else None
+        with database() as connection:
+            connection.execute(
+                "INSERT INTO tasks (user_id, title, date, scheduled_time, remind_at, created_at) "
+                "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (user_id, title, today_text(), scheduled_time, remind_at),
+            )
+        await message.answer(f"Reja saqlandi: {title}")
+        return
+    parts = text.split(maxsplit=2)
+    if len(parts) < 2:
+        await message.answer("Summa va kategoriya kiriting. Masalan: 25000 Oziq-ovqat")
+        return
+    try:
+        amount = float(parts[0].replace(",", "."))
+    except ValueError:
+        amount = 0
+    if not math.isfinite(amount) or amount <= 0 or amount > 1_000_000_000_000:
+        await message.answer("Summani musbat son ko'rinishida yuboring.")
+        return
+    with database() as connection:
+        connection.execute(
+            "INSERT INTO transactions (user_id, type, category, amount, date, note, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (user_id, action, parts[1].strip(), amount, today_text(), parts[2] if len(parts) > 2 else ""),
+        )
+    await message.answer(f"{'Kirim' if action == 'income' else 'Chiqim'} saqlandi.")
+
+
+async def task_result_callback(callback):
+    record_user_activity(callback.from_user.id)
+    try:
+        action, _, task_id_text = (callback.data or "").partition(":")
+        task_id = int(task_id_text)
+    except ValueError:
+        await callback.answer("Reja aniqlanmadi", show_alert=True)
+        return
+    with database() as connection:
+        task = connection.execute(
+            "SELECT id, user_id, title FROM tasks WHERE id = ? AND user_id = ?",
+            (task_id, callback.from_user.id),
+        ).fetchone()
+    if not task:
+        await callback.answer("Reja topilmadi", show_alert=True)
+        return
+    if action == "done":
+        await update_task(task_id, TaskUpdate(is_completed=True), callback.from_user.id)
+        await callback.answer("Reja bajarildi")
+        await callback.message.answer(f"✅ «{task['title']}» bajarildi.")
+    elif action == "missed":
+        PENDING_ACTIONS[callback.from_user.id] = {"action": "missed_reason", "task_id": task_id}
+        await callback.answer()
+        await callback.message.answer("Nima sababdan reja bajarilmadi? Sababni yozing.")
+    else:
+        await callback.answer("Amal aniqlanmadi", show_alert=True)
+
+
+async def configure_bot_profile():
+    if not bot:
+        return
+
+    profile_updates = (
+        ("nom", bot.set_my_name(name="Turkiston Daily | Reja va Moliya")),
+        (
+            "qisqa tavsif",
+            bot.set_my_short_description(
+                short_description=(
+                    "Kunlik reja va eslatmalar, kirim-chiqim, budjet, jamg'arma va hisobotlar. "
+                    "Admin: @yodgorov_life"
+                )
+            ),
+        ),
+        (
+            "tavsif",
+            bot.set_my_description(
+                description=(
+                    "📋 Rejalaringizni tuzing, vaqtini belgilang va eslatma oling.\n"
+                    "💰 Kirim-chiqim, oylik budjet va jamg'armalarni yuriting.\n"
+                    "📊 Kunlik, haftalik va oylik hisobotlarni ko'ring, Excel hisobotini yuklab oling.\n"
+                    "🚀 Boshlash uchun /start yoki pastdagi Mini App tugmasini bosing.\n"
+                    "✉️ Admin: @yodgorov_life"
+                )
+            ),
+        ),
+        (
+            "buyruqlar",
+            bot.set_my_commands(commands=[
+                BotCommand(command="start", description="Kunlik reja va moliya ilovasini ochish"),
+                BotCommand(command="bugun", description="Bugungi reja va balansni ko'rish"),
+                BotCommand(command="reja", description="Reja qo'shish va eslatma belgilash"),
+                BotCommand(command="kirim", description="Kirim yozuvini qo'shish"),
+                BotCommand(command="chiqim", description="Chiqim yozuvini qo'shish"),
+                BotCommand(command="hisobot", description="Kunlik, haftalik yoki oylik hisobot"),
+                BotCommand(command="excel", description="Excel hisobotini olish"),
+                BotCommand(command="buyruqlar", description="Buyruqlar ro'yxatini ko'rish"),
+            ]),
+        ),
+    )
+    for label, update in profile_updates:
+        try:
+            await update
+        except Exception:
+            logging.exception("Telegram bot profilining %s qismini yangilab bo'lmadi", label)
+
+    for admin_id in ADMIN_USER_IDS:
+        try:
+            await bot.set_my_commands(
+                commands=[
+                    BotCommand(command="admin", description="Admin statistik paneli"),
+                    BotCommand(command="stat", description="Batafsil bot statistikasi"),
+                    BotCommand(command="users", description="So'nggi foydalanuvchilar"),
+                    BotCommand(command="user", description="Foydalanuvchi faolligi: /user ID"),
+                    BotCommand(command="health", description="Bot, baza va Mini App holati"),
+                    BotCommand(command="broadcast", description="Foydalanuvchilarga e'lon yuborish"),
+                    BotCommand(command="cancel", description="Joriy admin amalini bekor qilish"),
+                    BotCommand(command="start", description="Asosiy menyuni ochish"),
+                    BotCommand(command="bugun", description="Bugungi reja va balans"),
+                    BotCommand(command="reja", description="Reja qo'shish"),
+                    BotCommand(command="kirim", description="Kirim yozuvi"),
+                    BotCommand(command="chiqim", description="Chiqim yozuvi"),
+                    BotCommand(command="hisobot", description="Kunlik, haftalik yoki oylik hisobot"),
+                    BotCommand(command="excel", description="Excel hisobotini olish"),
+                    BotCommand(command="buyruqlar", description="Buyruqlar ro'yxati"),
+                ],
+                scope=BotCommandScopeChat(chat_id=admin_id),
+            )
+        except Exception:
+            logging.exception("Admin uchun Telegram buyruqlarini sozlab bo'lmadi")
+
+    avatar_path = Path(__file__).with_name("assets") / "bot-avatar.png"
+    if avatar_path.is_file():
+        try:
+            await bot.set_my_profile_photo(
+                photo=InputProfilePhotoStatic(photo=FSInputFile(avatar_path))
+            )
+        except Exception:
+            logging.exception("Telegram bot profil rasmini yangilab bo'lmadi")
+
+    if WEBAPP_URL:
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Turkiston Daily",
+                    web_app=WebAppInfo(url=WEBAPP_URL),
+                )
+            )
+        except Exception:
+            logging.exception("Telegram botning asosiy Mini App menyusini yangilab bo'lmadi")
+
+
+def build_reminder_message(task):
+    reminder_time = task["remind_at"][11:16]
+    if task["priority"] == "high":
+        prompt = "Siz bu rejani muhim deb belgilagansiz. Avvaliga atigi 5 daqiqalik qadamni bajaring — boshlashning o‘zi oldinga siljish."
+    else:
+        prompt = "Hozir 5 daqiqalik birinchi qadamni tanlang. Davom ettirish keyin osonlashadi; hozir qulay bo‘lmasa, reja vaqtini o‘zgartirishingiz mumkin."
+    previous_late = task["previous_late_minutes"]
+    previous_note = (
+        f"\n\n⏱ O'tgan safar bu rejadan {previous_late} daqiqa kech qolgansiz. "
+        "Bu safar ertaroq boshlashga harakat qiling."
+        if previous_late
+        else ""
+    )
+    interval_note = (
+        "\n\nEslatma har soatda takrorlanadi — rejani bajarganingizda belgilang."
+        if task["reminder_interval"] == "hourly"
+        else ""
+    )
+    return f"🔔 Rejangiz vaqti — {reminder_time}\n\n📌 {task['title']}\n\n{prompt}{previous_note}{interval_note}"
+
+
+def reminder_markup(task_id):
+    rows = [[
+        InlineKeyboardButton(text="✅ Bajarildi", callback_data=f"done:{task_id}"),
+        InlineKeyboardButton(text="⏳ Bajarilmadi", callback_data=f"missed:{task_id}"),
+    ]]
+    if WEBAPP_URL:
+        rows.append([InlineKeyboardButton(
+            text="Rejani Mini App’da ochish",
+            web_app=WebAppInfo(url=WEBAPP_URL),
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def build_reply_keyboard(user_id):
+    rows = [
+        [KeyboardButton(text="📱 Mini App"), KeyboardButton(text="📊 Hisobot")],
+        [KeyboardButton(text="📋 Reja qo'shish"), KeyboardButton(text="📅 Bugun")],
+        [KeyboardButton(text="💰 Kirim"), KeyboardButton(text="💸 Chiqim")],
+    ]
+    if user_id in ADMIN_USER_IDS:
+        rows.append([KeyboardButton(text="🛠 Admin panel")])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Bo'limni tanlang")
+
+
 if dp:
     dp.message(CommandStart())(start_cmd)
+    dp.message(Command("reja"))(add_plan_cmd)
+    dp.message(Command("bugun"))(today_cmd)
+    dp.message(Command("kirim", "daromad"))(income_cmd)
+    dp.message(Command("chiqim"))(expense_cmd)
+    dp.message(Command("hisobot"))(report_cmd)
     dp.message(Command("excel"))(excel_cmd)
+    dp.message(Command("buyruqlar"))(help_cmd)
+    dp.message(Command("admin"))(admin_cmd)
+    dp.message(Command("stat"))(admin_stats)
+    dp.message(Command("users"))(admin_users_cmd)
+    dp.message(Command("user"))(admin_user_cmd)
+    dp.message(Command("health"))(admin_health)
+    dp.message(Command("broadcast"))(admin_broadcast_cmd)
+    dp.message(Command("cancel"))(admin_cancel_cmd)
+    dp.callback_query(F.data.startswith("admin:"))(admin_callback)
     dp.callback_query(F.data.startswith("excel:"))(excel_callback)
+    dp.callback_query(F.data.startswith("report:"))(report_callback)
+    dp.callback_query(F.data.startswith("done:") | F.data.startswith("missed:"))(task_result_callback)
+    dp.message(F.text)(capture_text_input)
 
 
 async def send_reminders():
     while True:
-        current_time = datetime.now(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M")
+        now = datetime.now(LOCAL_TZ)
+        current_time = now.strftime("%Y-%m-%dT%H:%M")
+        hourly_cutoff = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
         with database() as connection:
             due_tasks = connection.execute(
-                "SELECT id, user_id, title, remind_at FROM tasks WHERE is_completed = 0 "
-                "AND remind_at IS NOT NULL AND remind_at <= ? AND (reminder_sent_for IS NULL OR reminder_sent_for != remind_at)",
-                (current_time,),
+                "SELECT t.*, (SELECT p.late_minutes FROM tasks p WHERE p.user_id = t.user_id "
+                "AND p.title = t.title AND p.id != t.id AND p.missed_reason IS NOT NULL "
+                "AND p.late_minutes > 0 ORDER BY p.date DESC, p.id DESC LIMIT 1) previous_late_minutes "
+                "FROM tasks t WHERE t.is_completed = 0 AND t.remind_at IS NOT NULL AND t.remind_at <= ? "
+                "AND ((t.reminder_interval = 'once' AND "
+                "(t.reminder_sent_for IS NULL OR t.reminder_sent_for != t.remind_at)) "
+                "OR (t.reminder_interval = 'hourly' AND "
+                "(t.last_reminder_sent_at IS NULL OR t.last_reminder_sent_at <= ?)))",
+                (current_time, hourly_cutoff),
             ).fetchall()
-            for task in due_tasks:
-                connection.execute("UPDATE tasks SET reminder_sent_for = remind_at WHERE id = ?", (task["id"],))
         for task in due_tasks:
+            msg_text = build_reminder_message(task)
+            markup = reminder_markup(task["id"])
+            sent_ok = False
+
+            # O'zbek tilidagi ravon ovozli eslatma yaratish va yuborish
+            spoken_prompt = f"Vaqt keldi! Rejangiz: {task['title']}. Hoziroq birinchi qadamni boshlang!"
             try:
-                await bot.send_message(task["user_id"], f"Eslatma: {task['title']}")
+                voice_bytes = await generate_uzbek_tts(spoken_prompt, "uz-UZ-MadinaNeural")
+                if voice_bytes:
+                    voice_file = BufferedInputFile(voice_bytes, filename=f"reminder_{task['id']}.mp3")
+                    await bot.send_voice(
+                        task["user_id"],
+                        voice=voice_file,
+                        caption=msg_text,
+                        reply_markup=markup,
+                    )
+                    sent_ok = True
             except Exception:
-                continue
+                logging.exception("Ovozli eslatma yuborishda xatolik yuz berdi, matnli eslatmaga o'tiladi")
+
+            if not sent_ok:
+                try:
+                    await bot.send_message(
+                        task["user_id"],
+                        msg_text,
+                        reply_markup=markup,
+                    )
+                    sent_ok = True
+                except Exception:
+                    logging.exception("Eslatmani Telegram foydalanuvchisiga yuborib bo'lmadi")
+                    continue
+            with database() as connection:
+                connection.execute(
+                    "UPDATE tasks SET reminder_sent_for = remind_at, last_reminder_sent_at = ? "
+                    "WHERE id = ? AND remind_at = ?",
+                    (current_time, task["id"], task["remind_at"]),
+                )
         await asyncio.sleep(30)
 
 
@@ -714,6 +2325,7 @@ async def start_services():
     if not bot:
         await server.serve()
         return
+    await configure_bot_profile()
     reminder_task = asyncio.create_task(send_reminders())
     try:
         await asyncio.gather(server.serve(), dp.start_polling(bot))

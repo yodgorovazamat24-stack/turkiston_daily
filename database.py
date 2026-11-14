@@ -7,8 +7,9 @@ DB_NAME = os.getenv("DATABASE_PATH", str(Path(__file__).with_name("turkiston_dai
 
 
 def get_connection():
-    connection = sqlite3.connect(DB_NAME)
+    connection = sqlite3.connect(DB_NAME, timeout=10)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA busy_timeout = 10000")
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
@@ -22,6 +23,7 @@ def _add_missing_columns(connection, table, columns):
 
 def init_db():
     with get_connection() as connection:
+        connection.execute("PRAGMA journal_mode = WAL")
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS tasks (
@@ -31,10 +33,22 @@ def init_db():
                 is_completed INTEGER NOT NULL DEFAULT 0,
                 date TEXT NOT NULL DEFAULT CURRENT_DATE,
                 priority TEXT NOT NULL DEFAULT 'normal',
+                scheduled_time TEXT,
                 remind_at TEXT,
                 recurrence TEXT NOT NULL DEFAULT 'none',
                 reminder_sent_for TEXT,
+                reminder_interval TEXT NOT NULL DEFAULT 'once',
+                last_reminder_sent_at TEXT,
+                missed_reason TEXT,
+                missed_at TEXT,
+                late_minutes INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT ''
+            );
+
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                first_seen_at TEXT NOT NULL DEFAULT '',
+                last_seen_at TEXT NOT NULL DEFAULT ''
             );
 
             CREATE TABLE IF NOT EXISTS transactions (
@@ -89,12 +103,32 @@ def init_db():
 
         _add_missing_columns(
             connection,
+            "users",
+            {
+                "phone": "TEXT DEFAULT ''",
+                "full_name": "TEXT NOT NULL DEFAULT ''",
+                "username": "TEXT DEFAULT ''",
+                "avatar_url": "TEXT NOT NULL DEFAULT ''",
+                "password_hash": "TEXT NOT NULL DEFAULT ''",
+                "telegram_user_id": "INTEGER",
+            },
+        )
+        connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone != ''")
+        connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username != ''")
+        _add_missing_columns(
+            connection,
             "tasks",
             {
                 "priority": "TEXT NOT NULL DEFAULT 'normal'",
+                "scheduled_time": "TEXT",
                 "remind_at": "TEXT",
                 "recurrence": "TEXT NOT NULL DEFAULT 'none'",
                 "reminder_sent_for": "TEXT",
+                "reminder_interval": "TEXT NOT NULL DEFAULT 'once'",
+                "last_reminder_sent_at": "TEXT",
+                "missed_reason": "TEXT",
+                "missed_at": "TEXT",
+                "late_minutes": "INTEGER NOT NULL DEFAULT 0",
                 "created_at": "TEXT NOT NULL DEFAULT ''",
             },
         )
@@ -115,6 +149,13 @@ def init_db():
                 "income": "REAL NOT NULL DEFAULT 0",
                 "expense": "REAL NOT NULL DEFAULT 0",
             },
+        )
+        connection.execute(
+            "INSERT OR IGNORE INTO users (user_id, first_seen_at, last_seen_at) "
+            "SELECT user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM ("
+            "SELECT user_id FROM tasks UNION SELECT user_id FROM transactions "
+            "UNION SELECT user_id FROM reports UNION SELECT user_id FROM goals "
+            "UNION SELECT user_id FROM budgets)"
         )
         connection.execute(
             "UPDATE tasks SET created_at = CURRENT_TIMESTAMP WHERE created_at = ''"

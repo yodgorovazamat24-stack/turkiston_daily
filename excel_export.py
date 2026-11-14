@@ -281,7 +281,7 @@ def build_excel_report(data, period_label="Shaxsiy reja va moliya hisoboti", gro
         spent = spent_by_budget[(month, item.get("category", ""))]
         budget_rows.append([month, item.get("category", ""), limit, spent, max(0, limit - spent), spent / limit if limit else 0])
     sheet = workbook.create_sheet("Budjet")
-    _title(sheet, "OYLIK BUDJETLAR", "Tanlangan to'liq oylar uchun limitlar va xarajatlar", 6)
+    _title(sheet, "OYLIK BUDJETLAR", "Limitlar va tanlangan hisobot davriga to'g'ri kelgan xarajatlar; qisman oylar ham kiritiladi", 6)
     _write_table(sheet, ["Oy", "Kategoriya", "Limit (so'm)", "Sarflandi (so'm)", "Qoldi (so'm)", "Sarflanish"], budget_rows, [15, 24, 20, 21, 20, 16], "Budgets", money_columns=(3, 4, 5), percent_columns=(6,))
     if budget_rows:
         sheet.conditional_formatting.add(f"F5:F{sheet.max_row}", DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color=GREEN, showValue=True))
