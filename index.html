@@ -242,7 +242,7 @@
                 </div>
             </section>
 
-            <!-- AI YORDAMCHI (Notion + ChatGPT uslubidagi haqiqiy suhbatdosh va yordamchi) -->
+            <!-- AI YORDAMCHI -->
             <section class="view" id="view-ai">
                 <p class="page-intro">Sun'iy intellekt bilan erkin suhbatlashing, rejalaringiz yoki moliyangiz haqida so'rang. Xohlasangiz xarajat yoki reja qo'shishni buyuring — o'zi avtomatik bajara oladi.</p>
                 <div class="view-grid">
@@ -272,7 +272,7 @@
                 </div>
             </section>
 
-            <!-- REJALAR (TickTick uslubida) -->
+            <!-- REJALAR (TickTick) -->
             <section class="view" id="view-tasks">
                 <p class="page-intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va budilnik eslatmalari.</p>
                 <div class="view-grid">
@@ -287,7 +287,7 @@
                 </div>
             </section>
 
-            <!-- MOLIYA (Money Manager uslubida batafsil va sodda) -->
+            <!-- MOLIYA (Money Manager) -->
             <section class="view" id="view-money">
                 <p class="page-intro">Money Manager kabi klassik, aniq va batafsil kirim-chiqim hisobotlari.</p>
                 <div class="stats-grid">
@@ -316,7 +316,7 @@
                 </div>
             </section>
 
-            <!-- MAQSADLAR (Notion uslubida) -->
+            <!-- MAQSADLAR (Notion) -->
             <section class="view" id="view-goals">
                 <p class="page-intro">Notion kabi erkin jamg'arma va loyihalar konstruktori.</p>
                 <div class="view-grid">
@@ -327,22 +327,29 @@
                 </div>
             </section>
 
-            <!-- HISOBOT -->
+            <!-- HISOBOT (Excel hisobot va ulashish tugmasi bilan) -->
             <section class="view" id="view-reports">
-                <p class="page-intro">Kun yakuni va batafsil oylik hisobotlar.</p>
+                <p class="page-intro">Kun yakuni, oylik tarix va Excel (CSV) hisobotlarni yuklab olish va ulashish.</p>
                 <div class="view-grid">
                     <div class="column">
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Kun yakuni</h3><p class="panel-subtitle" id="reportDateLabel"></p></div></div>
                             <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label">Kunga baho</label><div class="report-score" id="scoreButtons"></div></div><div class="field-group"><label class="field-label" for="reportNote">Qayd va eslatmalar</label><textarea class="field" id="reportNote" rows="3" placeholder="Bugun nima yaxshi o'tdi?"></textarea></div><button class="primary-button" type="submit">Saqlash</button></form>
+                        </section>
+                        <section class="panel">
+                            <div class="panel-header"><div><h3 class="panel-title">📊 Excel Hisobot (CSV)</h3><p class="panel-subtitle">Barcha moliyaviy yozuvlarni Excel orqali ko'rish</p></div></div>
+                            <div class="form-stack">
+                                <button class="primary-button" type="button" id="exportExcelBtn" style="background:var(--green);">📥 Excel / CSV hisobotini yuklab olish</button>
+                                <button class="secondary-button" type="button" id="shareExcelBtn">📤 Hisobotni Telegram orqali ulashish</button>
+                            </div>
                         </section>
                     </div>
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik tarix</h3></div></div><div id="historyList"></div></section>
                 </div>
             </section>
 
-            <!-- PROFIL -->
+            <!-- PROFIL (Shaxsiy kabinet tepada, nastroyka pastda) -->
             <section class="view" id="view-profile">
-                <p class="page-intro">Shaxsiy kabinet va budilnik eslatmalari sozlamasi.</p>
+                <p class="page-intro">Sizning shaxsiy kabinetingiz va sozlamalaringiz.</p>
                 <div class="view-grid">
                     <section class="panel">
                         <div class="panel-header"><div><h3 class="panel-title">👤 Shaxsiy Kabinet</h3><p class="panel-subtitle">Sizning ma'lumotlaringiz</p></div></div>
@@ -361,7 +368,7 @@
                     </section>
 
                     <section class="panel">
-                        <div class="panel-header"><div><h3 class="panel-title">🔔 Budilnik va Eslatmalar</h3><p class="panel-subtitle">Push bildirishnomalar</p></div></div>
+                        <div class="panel-header"><div><h3 class="panel-title">⚙️ Nastroyka va Budilnik</h3><p class="panel-subtitle">Eslatmalar va ma'lumotlar</p></div></div>
                         <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
                             <button class="primary-button" type="button" id="enablePushBtn" style="background:var(--green); color:#fff;">
                                 🔔 Push bildirishnomalarni yoqish
@@ -375,8 +382,8 @@
                                 <input type="checkbox" id="toggleEveningRem" checked style="width:18px; height:18px; accent-color:var(--green);">
                             </label>
                             <button class="secondary-button" type="button" id="testPushBtn">🧪 Sinov bildirishnomasini yuborish</button>
-                            <button class="secondary-button" type="button" id="exportDataBtn">📥 Ma'lumotlarni faylga yuklab olish (JSON)</button>
-                            <button class="secondary-button" type="button" id="importDataBtn">📤 Fayldan ma'lumotni tiklash</button>
+                            <button class="secondary-button" type="button" id="exportDataBtn">📥 Ma'lumotlarni zaxiralash (JSON)</button>
+                            <button class="secondary-button" type="button" id="importDataBtn">📤 Zaxiradan tiklash</button>
                             <input type="file" id="importFile" accept=".json" hidden>
                         </div>
                     </section>
@@ -398,12 +405,12 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar (TickTick)", money: "Kirim va chiqim (Money Manager)", goals: "Jamg'arma va Loyihalar (Notion)", reports: "Hisobot", profile: "Shaxsiy Kabinet" };
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobotlar va Excel", profile: "Shaxsiy Kabinet" };
         let selectedScore = 0;
         let toastTimer;
 
         function getDB() {
-            let db = localStorage.getItem('turkiston_local_db_v3');
+            let db = localStorage.getItem('turkiston_local_db_v4');
             if (!db) {
                 const initial = {
                     tasks: [],
@@ -414,13 +421,13 @@
                     profile: { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi" },
                     settings: { finance_rem: true, evening_rem: true }
                 };
-                localStorage.setItem('turkiston_local_db_v3', JSON.stringify(initial));
+                localStorage.setItem('turkiston_local_db_v4', JSON.stringify(initial));
                 return initial;
             }
             return JSON.parse(db);
         }
         function saveDB(db) {
-            localStorage.setItem('turkiston_local_db_v3', JSON.stringify(db));
+            localStorage.setItem('turkiston_local_db_v4', JSON.stringify(db));
         }
 
         function localDateString(date = new Date()) {
@@ -511,7 +518,6 @@
             document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${completedTasks} / ${todayTasks.length} bajarildi`;
             document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
 
-            // TickTick Tasks Markup
             const taskHtml = todayTasks.length ? todayTasks.map(t => `
                 <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
@@ -527,12 +533,11 @@
                         <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
                     </div>
                 </div>
-            `).join('') : '<div class="empty-state">Bu kun uchun reja yo‘q (TickTick)</div>';
+            `).join('') : '<div class="empty-state">Bu kun uchun reja yo‘q</div>';
 
             document.getElementById('overviewTasks').innerHTML = taskHtml;
             document.getElementById('taskList').innerHTML = taskHtml;
 
-            // Money Manager Transactions Markup
             const txHtml = todayTx.length ? todayTx.map(tx => `
                 <div class="transaction-item">
                     <div>
@@ -548,7 +553,6 @@
             document.getElementById('transactionList').innerHTML = txHtml;
             document.getElementById('transactionCount').textContent = `${todayTx.length} ta amaliyot`;
 
-            // Categories
             const expCats = {};
             monthTx.filter(tx => tx.type === 'expense').forEach(tx => {
                 expCats[tx.category] = (expCats[tx.category] || 0) + tx.amount;
@@ -563,7 +567,6 @@
                 </div>
             `).join('') : '<div class="empty-state">Hozircha chiqim yo‘q</div>';
 
-            // Budgets
             const monthBudgets = db.budgets.filter(b => b.month === monthStr);
             document.getElementById('overviewBudgets').innerHTML = monthBudgets.length ? monthBudgets.map(b => {
                 const spent = expCats[b.category] || 0;
@@ -577,7 +580,6 @@
             }).join('') : '<div class="empty-state">Limit belgilanmagan</div>';
             document.getElementById('budgetList').innerHTML = document.getElementById('overviewBudgets').innerHTML;
 
-            // Goals (Notion style)
             document.getElementById('goalList').innerHTML = db.goals.length ? db.goals.map(g => {
                 const pct = Math.min(100, g.current / g.target * 100);
                 return `
@@ -590,9 +592,8 @@
                         <div class="progress-line"><span style="width:${pct}%"></span></div>
                     </div>
                 `;
-            }).join('') : '<div class="empty-state">Maqsadlar yo‘q (Notion)</div>';
+            }).join('') : '<div class="empty-state">Maqsadlar yo‘q</div>';
 
-            // History / Reports
             const rep = db.reports[dateStr] || {};
             document.getElementById('reportNote').value = rep.note || '';
             selectedScore = rep.score || 0;
@@ -660,6 +661,40 @@
             });
         }
 
+        // EXCEL / CSV EXPORT AND SHARE FOR TELEGRAM
+        function exportExcelReport() {
+            const db = getDB();
+            if (!db.transactions.length && !db.tasks.length) {
+                showToast("Eksport qilish uchun ma'lumotlar yo'q");
+                return;
+            }
+            let csv = "Sana,Turi/Kategoriya,Summa,Izoh\n";
+            db.transactions.forEach(tx => {
+                csv += `${tx.date},${tx.type} - "${tx.category}",${tx.amount},"${tx.note || ''}"\n`;
+            });
+
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const file = new File([blob], `turkiston-daily-hisobot.csv`, { type: 'text/csv' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    title: 'Turkiston Daily Hisobot',
+                    text: 'Moliyaviy hisobot va amaliyotlar CSV fayli',
+                    files: [file]
+                }).catch(() => {});
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `turkiston-daily-hisobot.csv`;
+                a.click();
+                showToast("Hisobot fayli yuklandi 📊");
+            }
+        }
+
+        document.getElementById('exportExcelBtn').addEventListener('click', exportExcelReport);
+        document.getElementById('shareExcelBtn').addEventListener('click', exportExcelReport);
+
         // EVENT LISTENERS
         document.getElementById('selectedDate').value = localDateString();
         document.getElementById('selectedDate').addEventListener('change', renderAll);
@@ -675,7 +710,7 @@
                 date: document.getElementById('selectedDate').value,
                 is_completed: false
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Reja qo‘shildi (TickTick)');
+            saveDB(db); e.target.reset(); renderAll(); showToast('Reja qo‘shildi');
         });
 
         document.getElementById('transactionForm').addEventListener('submit', e => {
@@ -689,7 +724,7 @@
                 note: document.getElementById('transactionNote').value.trim(),
                 date: document.getElementById('selectedDate').value
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Amaliyot saqlandi (Money Manager)');
+            saveDB(db); e.target.reset(); renderAll(); showToast('Amaliyot saqlandi');
         });
 
         document.getElementById('budgetForm').addEventListener('submit', e => {
@@ -712,7 +747,7 @@
                 target: Number(document.getElementById('goalTarget').value),
                 current: Number(document.getElementById('goalCurrent').value || 0)
             });
-            saveDB(db); e.target.reset(); renderAll(); showToast('Maqsad qo‘shildi (Notion)');
+            saveDB(db); e.target.reset(); renderAll(); showToast('Maqsad qo‘shildi');
         });
 
         document.getElementById('reportForm').addEventListener('submit', e => {
@@ -897,7 +932,7 @@
 
         // BACKUP & RESTORE
         document.getElementById('exportDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('turkiston_local_db_v3');
+            const data = localStorage.getItem('turkiston_local_db_v4');
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -914,7 +949,7 @@
             reader.onload = event => {
                 try {
                     JSON.parse(event.target.result);
-                    localStorage.setItem('turkiston_local_db_v3', event.target.result);
+                    localStorage.setItem('turkiston_local_db_v4', event.target.result);
                     renderAll();
                     showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
                 } catch (err) {
