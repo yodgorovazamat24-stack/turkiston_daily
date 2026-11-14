@@ -276,16 +276,16 @@
                 </div>
             </section>
 
-            <!-- REJALAR (TickTick kabi takroriy eslatmalar) -->
+            <!-- REJALAR (TickTick kabi mukammal takroriy va qo'lda belgilash) -->
             <section class="view" id="view-tasks">
-                <p class="page-intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va har soatda qayta eslatuvchi budilniklar.</p>
+                <p class="page-intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va vaqti qo'lda belgilanadigan budilnik eslatmalari.</p>
                 <div class="view-grid">
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Rejalar ro'yxati (TickTick)</h3><p class="panel-subtitle" id="taskSummaryFull"></p></div></div><div id="taskList" class="list"></div></section>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Vazifa, vaqt va takrorlanish</p></div></div>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Vazifa, qo'lda vaqt va takrorlanish</p></div></div>
                         <form id="taskForm" class="form-stack">
-                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, suv ichish" required></div>
-                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskInterval">Takroriy eslatish</label><select class="field" id="taskInterval"><option value="once">Bir marta</option><option value="hourly">Har soatda (bajarilguncha)</option></select></div></div>
-                            <div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (Budilnik)</label><input class="field" id="taskReminder" type="datetime-local"></div>
+                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, kitob o'qish" required></div>
+                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskRecurrence">Takrorlanishi</label><select class="field" id="taskRecurrence"><option value="none">Takrorlanmaydi</option><option value="daily">Har kuni</option><option value="weekly">Har hafta</option><option value="hourly">Har soatda</option></select></div></div>
+                            <div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (Budilnik vaqti)</label><input class="field" id="taskReminder" type="datetime-local"></div>
                             <button class="primary-button" type="submit">+ Reja qo'shish</button>
                         </form>
                     </section>
@@ -332,9 +332,9 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR (Davr bo'yicha Excel/CSV eksport va ulashish) -->
+            <!-- HISOBOTLAR -->
             <section class="view" id="view-reports">
-                <p class="page-intro">Kun yakuni, oylik tarix va istalgan davr (kunlik, haftalik, oylik) bo'yicha Excel hisobotlarini yuklab olish va Telegram orqali ulashish.</p>
+                <p class="page-intro">Kun yakuni, oylik tarix va Excel (CSV) hisobotlarni yuklab olish va Telegram orqali ulashish.</p>
                 <div class="view-grid">
                     <div class="column">
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Kun yakuni</h3><p class="panel-subtitle" id="reportDateLabel"></p></div></div>
@@ -425,7 +425,7 @@
         let toastTimer;
 
         function getDB() {
-            let db = localStorage.getItem('turkiston_local_db_v6');
+            let db = localStorage.getItem('turkiston_local_db_v7');
             if (!db) {
                 const initial = {
                     tasks: [],
@@ -436,13 +436,13 @@
                     profile: { name: "Foydalanuvchi", bio: "Shaxsiy yordamchi egasi", avatar: null },
                     settings: { finance_rem: true, evening_rem: true }
                 };
-                localStorage.setItem('turkiston_local_db_v6', JSON.stringify(initial));
+                localStorage.setItem('turkiston_local_db_v7', JSON.stringify(initial));
                 return initial;
             }
             return JSON.parse(db);
         }
         function saveDB(db) {
-            localStorage.setItem('turkiston_local_db_v6', JSON.stringify(db));
+            localStorage.setItem('turkiston_local_db_v7', JSON.stringify(db));
         }
 
         function localDateString(date = new Date()) {
@@ -474,13 +474,11 @@
             document.getElementById('pageTitle').textContent = titles[name];
         }
 
-        // PROFILE MODAL TOGGLE
         const profileModal = document.getElementById('profileModal');
         document.getElementById('openProfileModalBtn').addEventListener('click', () => profileModal.classList.add('open'));
         document.getElementById('closeProfileModalBtn').addEventListener('click', () => profileModal.classList.remove('open'));
         profileModal.addEventListener('click', (e) => { if (e.target === profileModal) profileModal.classList.remove('open'); });
 
-        // AVATAR UPLOAD
         document.getElementById('avatarFileInput').addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -561,6 +559,7 @@
             document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${completedTasks} / ${todayTasks.length} bajarildi`;
             document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
 
+            const recurrenceNames = { none: '', daily: 'Har kuni', weekly: 'Har hafta', hourly: 'Har soatda' };
             const taskHtml = todayTasks.length ? todayTasks.map(t => `
                 <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
@@ -568,7 +567,7 @@
                         <div class="task-name">${escapeHtml(t.title)}</div>
                         <div class="task-meta">
                             <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
-                            ${t.interval === 'hourly' ? '<span class="tag">Har soatda</span>' : ''}
+                            ${t.recurrence && t.recurrence !== 'none' ? `<span class="tag">${recurrenceNames[t.recurrence]}</span>` : ''}
                             ${t.reminder ? `<span class="tag">◷ ${t.reminder.slice(11, 16)}</span>` : ''}
                         </div>
                     </div>
@@ -660,7 +659,32 @@
         function toggleTask(id) {
             const db = getDB();
             const t = db.tasks.find(x => x.id === id);
-            if (t) { t.is_completed = !t.is_completed; saveDB(db); renderAll(); showToast(t.is_completed ? 'Reja bajarildi ✓' : 'Reja ochildi'); }
+            if (t) {
+                t.is_completed = !t.is_completed;
+                // If recurring and completed, roll over to next day/week
+                if (t.is_completed && t.recurrence && t.recurrence !== 'none' && t.recurrence !== 'hourly') {
+                    const currDate = new Date(t.date);
+                    if (t.recurrence === 'daily') currDate.setDate(currDate.getDate() + 1);
+                    if (t.recurrence === 'weekly') currDate.setDate(currDate.getDate() + 7);
+                    const nextDateStr = localDateString(currDate);
+
+                    // Clone task for next date
+                    db.tasks.push({
+                        id: Date.now() + 1,
+                        title: t.title,
+                        priority: t.priority,
+                        recurrence: t.recurrence,
+                        reminder: t.reminder ? localDateString(currDate) + t.reminder.slice(10) : null,
+                        date: nextDateStr,
+                        is_completed: false,
+                        notified: false
+                    });
+                    showToast("Takroriy reja keyingi kunga ko'chirildi 🔄");
+                }
+                saveDB(db);
+                renderAll();
+                showToast(t.is_completed ? 'Reja bajarildi ✓' : 'Reja ochildi');
+            }
         }
         function editTask(id) {
             const db = getDB();
@@ -705,7 +729,7 @@
             });
         }
 
-        // ADVANCED PERIOD-BASED EXCEL / CSV EXPORT AND SHARE FOR TELEGRAM
+        // EXCEL / CSV EXPORT
         function exportExcelReport() {
             const db = getDB();
             const period = document.getElementById('reportExportPeriod').value;
@@ -785,7 +809,7 @@
                 id: Date.now(),
                 title: document.getElementById('taskTitle').value.trim(),
                 priority: document.getElementById('taskPriority').value,
-                interval: document.getElementById('taskInterval').value,
+                recurrence: document.getElementById('taskRecurrence').value,
                 reminder: document.getElementById('taskReminder').value || null,
                 date: document.getElementById('selectedDate').value,
                 is_completed: false
@@ -851,7 +875,7 @@
             showToast("Shaxsiy kabinet saqlandi! ✅");
         });
 
-        // ================= CONVERSATIONAL AI ASSISTANT =================
+        // ================= CONVERSATIONAL AI =================
         const aiChatBox = document.getElementById('aiChatBox');
         function appendChat(sender, text) {
             const div = document.createElement('div');
@@ -896,7 +920,7 @@
                     id: Date.now(),
                     title: msg,
                     priority: lower.includes('muhim') ? 'high' : 'normal',
-                    interval: 'once',
+                    recurrence: 'none',
                     reminder: null,
                     date: today,
                     is_completed: false
@@ -944,14 +968,14 @@
             showToast("Gemini API kaliti saqlandi! ✅");
         });
 
-        // ================= AUDIO ALARM BEEP (AUDIBLE BUDILNIK) =================
+        // ================= AUDIO ALARM BEEP =================
         function playAlarmBeep() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
                 gain.gain.setValueAtTime(0.5, ctx.currentTime);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
@@ -990,7 +1014,7 @@
             }
         });
 
-        // Background Reminder Interval (TickTick style hourly / once + audible alarm)
+        // Background Reminder Interval (TickTick style custom time + hourly/daily/weekly)
         setInterval(() => {
             const nowIsoStr = localDatetimeString(new Date());
             const now = new Date();
@@ -1003,9 +1027,10 @@
             db.tasks.forEach(t => {
                 if (!t.is_completed && t.reminder) {
                     const matchOnce = (t.reminder.slice(0, 16) === nowIsoStr && !t.notified);
-                    const matchHourly = (t.interval === 'hourly' && now.getMinutes() === 0 && t.reminder.slice(11, 13) <= String(currentHour) && t.last_hourly_notif !== nowIsoStr);
+                    const matchHourly = (t.recurrence === 'hourly' && now.getMinutes() === 0 && t.last_hourly_notif !== nowIsoStr);
+                    const matchDaily = (t.recurrence === 'daily' && t.reminder.slice(11, 16) === `${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}` && t.last_daily_notif !== todayStr);
 
-                    if (matchOnce || matchHourly) {
+                    if (matchOnce || matchHourly || matchDaily) {
                         playAlarmBeep();
                         if ('Notification' in window && Notification.permission === 'granted') {
                             new Notification("🔔 Reja eslatmasi (Budilnik)", {
@@ -1015,6 +1040,7 @@
                         }
                         if (matchOnce) t.notified = true;
                         if (matchHourly) t.last_hourly_notif = nowIsoStr;
+                        if (matchDaily) t.last_daily_notif = todayStr;
                         saveDB(db);
                     }
                 }
@@ -1046,7 +1072,7 @@
 
         // BACKUP & RESTORE
         document.getElementById('exportDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('turkiston_local_db_v6');
+            const data = localStorage.getItem('turkiston_local_db_v7');
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1063,7 +1089,7 @@
             reader.onload = event => {
                 try {
                     JSON.parse(event.target.result);
-                    localStorage.setItem('turkiston_local_db_v6', event.target.result);
+                    localStorage.setItem('turkiston_local_db_v7', event.target.result);
                     renderAll();
                     showToast('Ma’lumotlar muvaffaqiyatli tiklandi!');
                 } catch (err) {
