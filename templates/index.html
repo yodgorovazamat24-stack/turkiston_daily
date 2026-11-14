@@ -2,8 +2,15 @@
 <html lang="uz">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f2f4ee">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#245c43">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Turkiston Daily">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <title>Turkiston Daily</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,6 +43,12 @@
             background-color: var(--paper);
             background-image: radial-gradient(rgba(36, 92, 67, .075) .7px, transparent .7px);
             background-size: 15px 15px;
+            touch-action: pan-x pan-y;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+        }
+        @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; }
         }
         button, input, select, textarea { font: inherit; }
         button { cursor: pointer; }
@@ -210,6 +223,7 @@
             <div class="nav-label">ISH STOLI</div>
             <nav class="nav-list" aria-label="Asosiy menyu">
                 <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
+                <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI Yordamchi</button>
                 <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
                 <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
                 <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsadlar</button>
@@ -310,6 +324,67 @@
                 </div>
             </section>
 
+            <section class="view" id="view-ai">
+                <p class="page-intro">Google Gemini AI bilan shaxsiy muloqot qiling, rejalaringizni tahlil qiling yoki ovozli/matnli yangi reja va xarajatlarni avtomatik qo'shing.</p>
+                <div class="view-grid">
+                    <section class="panel" style="display:flex; flex-direction:column; min-height:460px;">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title" style="display:flex; align-items:center; gap:8px;">
+                                    <span>✨</span> Gemini AI Yordamchi
+                                </h3>
+                                <p class="panel-subtitle">Kundalik reja va moliya konsultanti</p>
+                            </div>
+                            <span class="badge" style="background:var(--green-soft); color:var(--green); font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600;">Faol</span>
+                        </div>
+                        
+                        <!-- CHAT XABARLARI JOYI -->
+                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafbf8; border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
+                            <div style="align-self:flex-start; max-width:88%; background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+                                <strong>Assalomu alaykum!</strong> Men sizning shaxsiy Turkiston Daily AI yordamchingizman. Menga xohlagan savolingizni bering yoki shunchaki yozing:
+                                <br>• <em>"Ertaga soat 10 da uchrashuv belgilash"</em>
+                                <br>• <em>"Tushlikka 45 000 so'm ishlatdim"</em>
+                                <br>deb yozsangiz, o'zim darhol reja va moliyangizga qo'shib qo'yaman! ✨
+                            </div>
+                        </div>
+
+                        <!-- TEZKOR SAVOLLAR / PROMPTLAR -->
+                        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;">
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi rejalarim bo\'yicha maslahat ber')">💡 Rejalarim tahlili</button>
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Qanday qilib pul tejashim mumkin?')">💰 Moliyaviy maslahat</button>
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi kun uchun motivatsiya ber')">🔥 Motivatsiya</button>
+                        </div>
+
+                        <!-- YUBORISH INPUTI -->
+                        <form id="aiChatForm" style="display:flex; gap:8px;">
+                            <input class="field" id="aiUserInput" type="text" placeholder="AI ga yozing... (masalan: Tushlikka 45000 so'm ishlatdim)" required style="flex:1; height:44px; font-size:14px;">
+                            <button class="primary-button" type="submit" id="aiSendBtn" style="min-width:75px; height:44px;">
+                                Yuborish
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title">AI Sozlamalari</h3>
+                                <p class="panel-subtitle">Google Gemini API kaliti</p>
+                            </div>
+                        </div>
+                        <div class="form-stack">
+                            <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">
+                                Gemini API mutlaqo <strong>bepul</strong>. Kalit olish uchun <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--green); font-weight:600;">Google AI Studio</a> ga kiring va <em>Create API key</em> tugmasini bosing.
+                            </p>
+                            <div class="field-group">
+                                <label class="field-label" for="geminiApiKeyInput">Gemini API Kalitingiz</label>
+                                <input class="field" id="geminiApiKeyInput" type="password" placeholder="AIzaSy...">
+                            </div>
+                            <button class="secondary-button" type="button" id="saveGeminiKeyBtn">Kalitni brauzerda saqlash</button>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
             <section class="view" id="view-reports">
                 <p class="page-intro">Oy bo'yicha faollikni ko'ring va kuningizga qisqa qayd qoldiring.</p>
                 <div class="view-grid">
@@ -324,8 +399,9 @@
         </main>
     </div>
 
-    <nav class="mobile-nav" aria-label="Asosiy menyu">
+    <nav class="mobile-nav" aria-label="Asosiy menyu" style="grid-template-columns: repeat(6, 1fr);">
         <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
+        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
         <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
         <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
         <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
@@ -338,7 +414,7 @@
         telegram?.ready();
         telegram?.expand();
         const telegramInitData = telegram?.initData || '';
-        const titles = { overview: "Umumiy ko'rinish", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix" };
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix" };
         const categoryDefaults = ['Oziq-ovqat', 'Transport', 'Uy-joy', 'Sog\'liq', 'Ta\'lim', 'Ko\'ngilochar', 'Maosh', 'Boshqa'];
         let dashboard = null;
         let selectedScore = 0;
@@ -627,6 +703,113 @@
             const value = event.target.value.trim();
             if (value && !categoryDefaults.includes(value)) categoryDefaults.push(value);
         });
+
+        // ================= GEMINI AI CHAT LOGIC =================
+        const aiChatBox = document.getElementById('aiChatBox');
+        const aiChatForm = document.getElementById('aiChatForm');
+        const aiUserInput = document.getElementById('aiUserInput');
+        const aiSendBtn = document.getElementById('aiSendBtn');
+        const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+        const saveGeminiKeyBtn = document.getElementById('saveGeminiKeyBtn');
+
+        if (geminiApiKeyInput) {
+            geminiApiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
+        }
+
+        saveGeminiKeyBtn?.addEventListener('click', () => {
+            const val = geminiApiKeyInput.value.trim();
+            localStorage.setItem('gemini_api_key', val);
+            showToast("Gemini API kaliti saqlandi!");
+        });
+
+        function appendChatMessage(sender, text, isSpecial = false) {
+            const msgDiv = document.createElement('div');
+            const isUser = sender === 'user';
+            msgDiv.style.alignSelf = isUser ? 'flex-end' : 'flex-start';
+            msgDiv.style.maxWidth = '88%';
+            msgDiv.style.padding = '10px 14px';
+            msgDiv.style.borderRadius = isUser ? '14px 14px 2px 14px' : '14px 14px 14px 2px';
+            msgDiv.style.fontSize = '13px';
+            msgDiv.style.lineHeight = '1.5';
+            msgDiv.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
+            
+            if (isUser) {
+                msgDiv.style.background = 'var(--green)';
+                msgDiv.style.color = '#fff';
+            } else {
+                msgDiv.style.background = '#fff';
+                msgDiv.style.border = '1px solid var(--line)';
+                msgDiv.style.color = 'var(--ink)';
+            }
+
+            if (isSpecial) {
+                msgDiv.innerHTML = text;
+            } else {
+                msgDiv.textContent = text;
+            }
+
+            aiChatBox.appendChild(msgDiv);
+            aiChatBox.scrollTop = aiChatBox.scrollHeight;
+        }
+
+        async function submitAiChat(text) {
+            if (!text.trim()) return;
+            appendChatMessage('user', text);
+            aiUserInput.value = '';
+            aiUserInput.disabled = true;
+            aiSendBtn.disabled = true;
+
+            const loadingId = 'aiLoadingIndicator';
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = loadingId;
+            loadingDiv.style.alignSelf = 'flex-start';
+            loadingDiv.style.padding = '8px 12px';
+            loadingDiv.style.fontSize = '12px';
+            loadingDiv.style.color = 'var(--muted)';
+            loadingDiv.textContent = 'Gemini AI o‘ylamoqda... ✨';
+            aiChatBox.appendChild(loadingDiv);
+            aiChatBox.scrollTop = aiChatBox.scrollHeight;
+
+            const apiKey = localStorage.getItem('gemini_api_key') || '';
+
+            try {
+                const res = await api('/api/ai/chat', {
+                    method: 'POST',
+                    body: JSON.stringify({ message: text, api_key: apiKey })
+                });
+
+                document.getElementById(loadingId)?.remove();
+
+                if (res.status === 'need_key') {
+                    appendChatMessage('ai', `⚠️ ${res.reply}`);
+                } else if (res.status === 'error') {
+                    appendChatMessage('ai', `❌ ${res.reply}`);
+                } else {
+                    let formatted = res.reply;
+                    if (res.action_result) {
+                        formatted += `<br><span style="display:inline-block; margin-top:6px; color:var(--green); font-weight:600;">${res.action_result}</span>`;
+                        refresh();
+                    }
+                    appendChatMessage('ai', formatted, true);
+                }
+            } catch (err) {
+                document.getElementById(loadingId)?.remove();
+                appendChatMessage('ai', `Tarmoq yoki server xatosi: ${err.message}`);
+            } finally {
+                aiUserInput.disabled = false;
+                aiSendBtn.disabled = false;
+                aiUserInput.focus();
+            }
+        }
+
+        aiChatForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitAiChat(aiUserInput.value);
+        });
+
+        window.sendQuickAiPrompt = function(promptText) {
+            submitAiChat(promptText);
+        };
 
         refresh();
         loadHistory();

@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="uz">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#245c43">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Turkiston Daily">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <title>Turkiston Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #f2f4ee;
+            --white: #fff;
+            --ink: #1d2924;
+            --muted: #78827b;
+            --line: #e5e9e1;
+            --green: #245c43;
+            --green-soft: #e5efe7;
+            --orange: #e16d4c;
+            --orange-soft: #fff0e9;
+            --yellow: #e8be4c;
+            --yellow-soft: #fff6d9;
+            --shadow: 0 12px 34px rgba(34, 55, 42, .055);
+            font-family: "DM Sans", sans-serif;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            background-color: var(--paper);
+            background-image: radial-gradient(rgba(36, 92, 67, .075) .7px, transparent .7px);
+            background-size: 15px 15px;
+            touch-action: pan-x pan-y;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+        }
+        @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
+        button, input, select, textarea { font: inherit; }
+        button { cursor: pointer; }
+        .app-shell { display: grid; grid-template-columns: 238px minmax(0, 1fr); min-height: 100vh; max-width: 1540px; margin: 0 auto; }
+        .sidebar {
+            position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh;
+            padding: 27px 18px 20px; border-right: 1px solid rgba(29, 41, 36, .08);
+            background: rgba(242, 244, 238, .88); backdrop-filter: blur(14px);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 34px; }
+        .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px 13px 13px 4px; color: white; background: var(--green); font-family: Fraunces, Georgia, serif; font-size: 22px; }
+        .brand-name { font-family: Fraunces, Georgia, serif; font-size: 19px; line-height: 1.05; }
+        .brand-caption { margin-top: 4px; color: var(--muted); font-size: 10px; letter-spacing: 0; }
+        .nav-label { padding: 0 12px 10px; color: #929b93; font-size: 10px; font-weight: 700; }
+        .nav-list { display: grid; gap: 5px; }
+        .nav-button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; color: #667169; background: transparent; text-align: left; font-size: 13px; font-weight: 600; transition: background .18s, color .18s, transform .18s; }
+        .nav-button:hover { color: var(--ink); background: rgba(255,255,255,.7); }
+        .nav-button.active { color: var(--green); background: var(--white); box-shadow: 0 3px 12px rgba(34,55,42,.06); }
+        .nav-icon { display: grid; place-items: center; width: 22px; color: var(--orange); font-size: 18px; }
+        .sidebar-bottom { margin-top: auto; padding: 14px 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .status-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #54a879; }
+        .workspace { min-width: 0; padding: 28px clamp(18px, 4vw, 58px) 50px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 27px; }
+        .eyebrow { color: var(--orange); font-size: 10px; font-weight: 700; }
+        .page-title { margin: 4px 0 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 500; }
+        .top-actions { display: flex; align-items: center; gap: 9px; }
+        .date-control { display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--muted); font-size: 11px; }
+        .date-control input { width: 124px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; }
+        .report-period-control { display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--muted); font-size: 10px; }
+        .report-period-control select { max-width: 115px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 10px; }
+        .custom-export-dates { display: flex; align-items: center; gap: 5px; }
+        .custom-export-dates[hidden] { display: none; }
+        .custom-export-dates input { width: 120px; height: 40px; padding: 0 7px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.8); color: var(--ink); font-size: 10px; }
+        .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 7px; color: var(--green); background: var(--white); font-size: 16px; }
+        .icon-button:hover { border-color: var(--green); }
+        .view { display: none; animation: appear .26s ease both; }
+        .view.active { display: block; }
+        @keyframes appear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .welcome-row { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+        .welcome-title { margin: 0; font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 500; }
+        .welcome-copy { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+        .day-pill { padding: 7px 10px; border-radius: 5px; color: var(--green); background: var(--green-soft); font-size: 10px; font-weight: 700; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .stat { position: relative; overflow: hidden; min-height: 111px; padding: 17px 18px; border: 1px solid rgba(29, 41, 36, .045); border-radius: 9px; background: var(--white); box-shadow: var(--shadow); }
+        .stat::after { position: absolute; right: -14px; bottom: -31px; width: 82px; height: 82px; border: 13px solid currentColor; border-radius: 50%; opacity: .055; content: ""; }
+        .stat.income { color: var(--green); }
+        .stat.expense { color: var(--orange); }
+        .stat.balance { color: #9c7818; }
+        .stat-label { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+        .stat-symbol { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--paper); color: currentColor; font-size: 14px; }
+        .stat-value { display: block; margin-top: 12px; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 700; letter-spacing: 0; }
+        .stat-foot { margin-top: 3px; color: var(--muted); font-size: 10px; }
+        .overview-grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(280px, .82fr); gap: 15px; align-items: start; }
+        .column { display: grid; gap: 15px; min-width: 0; }
+        .panel { min-width: 0; padding: 19px; border: 1px solid rgba(29, 41, 36, .045); border-radius: 9px; background: var(--white); box-shadow: var(--shadow); }
+        .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+        .panel-title { margin: 0; font-size: 14px; font-weight: 700; }
+        .panel-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+        .text-button { padding: 0; border: 0; color: var(--green); background: none; font-size: 10px; font-weight: 700; }
+        .text-button:hover { text-decoration: underline; }
+        .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+        .field { width: 100%; min-width: 0; height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; outline: 0; background: #fcfdfb; color: var(--ink); font-size: 11px; }
+        .field:focus { border-color: #80a58e; box-shadow: 0 0 0 3px rgba(36, 92, 67, .08); }
+        .field::placeholder { color: #a4aca5; }
+        .field-label { display: block; margin: 0 0 6px; color: #758078; font-size: 10px; font-weight: 600; }
+        .field-group { min-width: 0; }
+        .primary-button { min-height: 39px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: var(--green); font-size: 11px; font-weight: 700; transition: background .16s, transform .16s; }
+        .primary-button:hover { background: #194a34; transform: translateY(-1px); }
+        .accent-button { background: var(--orange); }
+        .accent-button:hover { background: #c9583b; }
+        .secondary-button { min-height: 35px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px; color: var(--green); background: white; font-size: 10px; font-weight: 700; }
+        .secondary-button:hover { border-color: #9db8a6; }
+        .form-stack { display: grid; gap: 10px; }
+        .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+        .form-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .list { display: grid; }
+        .task-item { display: grid; grid-template-columns: 21px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 49px; border-top: 1px solid #eef0ec; }
+        .task-check { display: grid; place-items: center; width: 19px; height: 19px; padding: 0; border: 1.5px solid #b9c5bc; border-radius: 6px; color: white; background: transparent; font-size: 12px; }
+        .task-check.done { border-color: var(--green); background: var(--green); }
+        .task-name { overflow-wrap: anywhere; font-size: 11px; font-weight: 600; }
+        .task-item.completed .task-name { color: #9aa39c; text-decoration: line-through; }
+        .task-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+        .tag { padding: 3px 6px; border-radius: 4px; color: #738078; background: #f1f3ef; font-size: 9px; }
+        .tag.high { color: #b94a36; background: var(--orange-soft); }
+        .task-actions, .row-actions { display: flex; gap: 5px; }
+        .mini-button { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 0; border-radius: 5px; color: #89938b; background: transparent; font-size: 13px; }
+        .mini-button:hover { color: var(--ink); background: var(--paper); }
+        .mini-button.delete:hover { color: #b54430; background: var(--orange-soft); }
+        .transaction-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 9px; min-height: 48px; border-top: 1px solid #eef0ec; }
+        .transaction-name { font-size: 11px; font-weight: 600; }
+        .transaction-note { margin-top: 3px; color: var(--muted); font-size: 9px; }
+        .transaction-amount { white-space: nowrap; font-size: 11px; font-weight: 700; }
+        .transaction-amount.income { color: var(--green); }
+        .transaction-amount.expense { color: var(--orange); }
+        .category-row { display: grid; grid-template-columns: minmax(70px, .7fr) 1fr auto; align-items: center; gap: 10px; margin-top: 13px; font-size: 10px; }
+        .category-name { overflow: hidden; color: #68746c; text-overflow: ellipsis; white-space: nowrap; }
+        .bar-track { height: 6px; overflow: hidden; border-radius: 8px; background: #edf0eb; }
+        .bar-fill { height: 100%; border-radius: inherit; background: var(--orange); }
+        .category-value { color: var(--ink); font-size: 10px; font-weight: 700; }
+        .budget-item { padding: 12px 0; border-top: 1px solid #eef0ec; }
+        .budget-heading { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
+        .budget-heading strong { font-weight: 700; }
+        .budget-heading span { color: var(--muted); }
+        .budget-track { height: 7px; margin-top: 8px; overflow: hidden; border-radius: 9px; background: #edf0eb; }
+        .budget-fill { height: 100%; border-radius: inherit; background: var(--green); }
+        .budget-fill.warn { background: var(--yellow); }
+        .budget-fill.over { background: var(--orange); }
+        .empty-state { padding: 17px 0; color: #919a93; font-size: 11px; text-align: center; }
+        .month-strip { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; padding: 13px 15px; border-radius: 7px; background: var(--green); color: white; }
+        .month-strip span { color: rgba(255,255,255,.72); font-size: 10px; }
+        .month-strip strong { display: block; margin-top: 4px; font-size: 17px; }
+        .month-strip .month-net { text-align: right; }
+        .view-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); gap: 15px; align-items: start; }
+        .page-intro { margin: 0 0 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .progress-line { height: 8px; margin-top: 9px; overflow: hidden; border-radius: 6px; background: #edf0eb; }
+        .progress-line span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+        .goal-item { padding: 14px 0; border-top: 1px solid #eef0ec; }
+        .goal-top { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+        .goal-name { font-size: 12px; font-weight: 700; }
+        .goal-sub { margin-top: 4px; color: var(--muted); font-size: 10px; }
+        .goal-progress-label { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; color: #737e76; font-size: 9px; }
+        .history-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 15px; min-height: 54px; border-top: 1px solid #eef0ec; font-size: 10px; }
+        .history-date { font-weight: 700; }
+        .history-meta { margin-top: 3px; color: var(--muted); font-size: 9px; }
+        .history-net { min-width: 94px; text-align: right; font-weight: 700; }
+        .report-score { display: flex; gap: 6px; }
+        .score-button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; color: #a9b0aa; background: white; font-size: 16px; }
+        .score-button.selected { border-color: var(--yellow); color: #987516; background: var(--yellow-soft); }
+        .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border-radius: 7px; color: white; background: var(--ink); box-shadow: var(--shadow); font-size: 11px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .mobile-nav { display: none; }
+        @media (max-width: 900px) {
+            .app-shell { grid-template-columns: 205px minmax(0, 1fr); }
+            .workspace { padding-right: 24px; padding-left: 24px; }
+            .overview-grid, .view-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .app-shell { display: block; padding-bottom: 72px; }
+            .sidebar { display: none; }
+            .workspace { padding: 19px 15px 28px; }
+            .topbar { align-items: flex-start; margin-bottom: 20px; }
+            .page-title { font-size: 24px; }
+            .top-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+            .date-control { height: 36px; gap: 5px; padding: 0 7px; }
+            .date-control input { width: 112px; font-size: 10px; }
+            .report-period-control { height: 36px; }
+            .custom-export-dates { width: 100%; justify-content: flex-end; }
+            .custom-export-dates input { width: 112px; height: 36px; }
+            .icon-button { width: 36px; height: 36px; }
+            .welcome-title { font-size: 21px; }
+            .stats-grid { gap: 7px; }
+            .stat { min-height: 96px; padding: 12px 10px; }
+            .stat-label { gap: 5px; font-size: 9px; }
+            .stat-symbol { width: 18px; height: 18px; font-size: 12px; }
+            .stat-value { margin-top: 11px; font-size: 16px; }
+            .stat-foot { font-size: 9px; }
+            .panel { padding: 15px; }
+            .form-row.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .form-row.three .field-group:last-child { grid-column: 1 / -1; }
+            .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 10; display: grid; grid-template-columns: repeat(5, 1fr); padding: 7px 5px max(7px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
+            .mobile-nav .nav-button { flex-direction: column; justify-content: center; gap: 2px; min-height: 49px; padding: 4px 2px; border-radius: 6px; font-size: 8px; }
+            .mobile-nav .nav-icon { width: auto; font-size: 16px; }
+            .toast { right: 12px; bottom: 78px; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand"><div class="brand-mark">T</div><div><div class="brand-name">Turkiston<br>Daily</div><div class="brand-caption">KUNINGIZNI BOSHQARING</div></div></div>
+            <div class="nav-label">ISH STOLI</div>
+            <nav class="nav-list" aria-label="Asosiy menyu">
+                <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
+                <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI Yordamchi</button>
+                <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
+                <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
+                <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsadlar</button>
+                <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+            </nav>
+            <div class="sidebar-bottom"><span class="status-dot"></span><span id="connectionStatus">Ulanmoqda</span><br>Ma'lumotlar xavfsiz saqlanadi</div>
+        </aside>
+
+        <main class="workspace">
+            <header class="topbar">
+                <div><div class="eyebrow">BUGUNGI RITMINGIZ</div><h1 class="page-title" id="pageTitle">Umumiy ko'rinish</h1></div>
+                <div class="top-actions">
+                    <label class="date-control"><span>▦</span><input id="selectedDate" type="date" aria-label="Ko'rilayotgan sana"></label>
+                    <label class="report-period-control" for="exportPeriod"><span>Excel</span><select id="exportPeriod" aria-label="Excel hisobot davri">
+                        <option value="week">Haftalik</option>
+                        <option value="month" selected>Oylik</option>
+                        <option value="year">Yillik</option>
+                        <option value="all">Barcha davr</option>
+                        <option value="custom">Sana oralig'i</option>
+                    </select></label>
+                    <div class="custom-export-dates" id="customExportDates" hidden>
+                        <input id="exportStartDate" type="date" aria-label="Hisobot boshlanish sanasi">
+                        <input id="exportEndDate" type="date" aria-label="Hisobot tugash sanasi">
+                    </div>
+                    <button class="icon-button" id="exportButton" aria-label="Excel hisobotini yuklab olish" title="Excel hisobotini yuklab olish">↓</button>
+                </div>
+            </header>
+
+            <section class="view active" id="view-overview">
+                <div class="welcome-row"><div><h2 class="welcome-title" id="welcomeTitle">Kuningiz xayrli o'tsin</h2><p class="welcome-copy">Bugungi rejalaringiz va pul oqimingiz bir joyda.</p></div><div class="day-pill" id="dayLabel">BUGUN</div></div>
+                <div class="stats-grid">
+                    <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Bugungi kirim</div><strong class="stat-value" id="dayIncome">0 so'm</strong><div class="stat-foot" id="monthIncome">Oy: 0 so'm</div></article>
+                    <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Bugungi chiqim</div><strong class="stat-value" id="dayExpense">0 so'm</strong><div class="stat-foot" id="monthExpense">Oy: 0 so'm</div></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Kun balansi</div><strong class="stat-value" id="dayBalance">0 so'm</strong><div class="stat-foot" id="taskProgress">0 ta reja bajarildi</div></article>
+                </div>
+                <div class="overview-grid">
+                    <div class="column">
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Bugungi rejalar</h3><p class="panel-subtitle" id="taskSummary">Rejalaringiz shu yerda ko'rinadi</p></div><button class="text-button" data-go="tasks">Barchasi →</button></div><div id="overviewTasks" class="list"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Xarajatlar tarkibi</h3><p class="panel-subtitle">Tanlangan kun bo'yicha</p></div><button class="text-button" data-go="money">Moliya →</button></div><div id="overviewCategories"></div></section>
+                    </div>
+                    <div class="column">
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">So'nggi amaliyotlar</h3><p class="panel-subtitle">Kirim va chiqimlaringiz</p></div><button class="text-button" data-go="money">Ko'rish →</button></div><div id="overviewTransactions" class="list"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle" id="budgetMonthLabel">Kategoriya limitlari</p></div><button class="text-button" data-go="money">Boshqarish →</button></div><div id="overviewBudgets"></div></section>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view" id="view-tasks">
+                <p class="page-intro">Rejalaringizni yozing, muhimini ajrating va bajarilganini belgilang. Takroriy rejalar keyingi sanalarga o'zi o'tadi.</p>
+                <div class="view-grid">
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Rejalar ro'yxati</h3><p class="panel-subtitle" id="taskSummaryFull"></p></div></div><div id="taskList" class="list"></div></section>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi reja</h3><p class="panel-subtitle">Kuningizga vazifa qo'shing</p></div></div>
+                        <form id="taskForm" class="form-stack">
+                            <div class="field-group"><label class="field-label" for="taskTitle">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, hisobotni tugatish" required></div>
+                            <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority">Muhimligi</label><select class="field" id="taskPriority"><option value="normal">Oddiy</option><option value="high">Muhim</option><option value="low">Keyinroq</option></select></div><div class="field-group"><label class="field-label" for="taskRecurrence">Takrorlanishi</label><select class="field" id="taskRecurrence"><option value="none">Takrorlanmaydi</option><option value="daily">Har kuni</option><option value="weekly">Har hafta</option><option value="monthly">Har oy</option></select></div></div>
+                            <div class="field-group"><label class="field-label" for="taskReminder">Eslatma vaqti (ixtiyoriy)</label><input class="field" id="taskReminder" type="datetime-local"></div>
+                            <button class="primary-button" type="submit">+ Reja qo'shish</button>
+                        </form>
+                    </section>
+                </div>
+            </section>
+
+            <section class="view" id="view-money">
+                <p class="page-intro">Har bir kirim va chiqimni yozib boring. Sana tanlagich orqali kunlar orasida o'ting, oylik tarixni pastdan ko'ring.</p>
+                <div class="stats-grid">
+                    <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Tanlangan kun kirimi</div><strong class="stat-value" id="moneyIncome">0 so'm</strong></article>
+                    <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Tanlangan kun chiqimi</div><strong class="stat-value" id="moneyExpense">0 so'm</strong></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Kun balansi</div><strong class="stat-value" id="moneyBalance">0 so'm</strong></article>
+                </div>
+                <div class="view-grid">
+                    <div class="column">
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Amaliyotlar</h3><p class="panel-subtitle" id="transactionCount"></p></div></div><div id="transactionList" class="list"></div></section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik budjetlar</h3><p class="panel-subtitle">Tanlangan oyning chiqim limitlari</p></div></div><div id="budgetList"></div></section>
+                    </div>
+                    <div class="column">
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi amaliyot</h3><p class="panel-subtitle">Kirim yoki chiqimni qayd eting</p></div></div>
+                            <form id="transactionForm" class="form-stack">
+                                <div class="form-row"><div class="field-group"><label class="field-label" for="transactionType">Turi</label><select class="field" id="transactionType"><option value="expense">Chiqim</option><option value="income">Kirim</option></select></div><div class="field-group"><label class="field-label" for="transactionCategory">Kategoriya</label><input class="field" id="transactionCategory" list="categoryOptions" maxlength="60" placeholder="Oziq-ovqat" required><datalist id="categoryOptions"><option value="Oziq-ovqat"><option value="Transport"><option value="Uy-joy"><option value="Sog'liq"><option value="Ta'lim"><option value="Ko'ngilochar"><option value="Maosh"><option value="Boshqa"></datalist></div></div>
+                                <div class="field-group"><label class="field-label" for="transactionAmount">Summa (so'm)</label><input class="field" id="transactionAmount" type="number" min="1" step="any" placeholder="25000" required></div>
+                                <div class="field-group"><label class="field-label" for="transactionNote">Izoh (ixtiyoriy)</label><input class="field" id="transactionNote" maxlength="240" placeholder="Qisqa izoh"></div>
+                                <button class="primary-button accent-button" type="submit">Saqlash</button>
+                            </form>
+                        </section>
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Budjet limiti</h3><p class="panel-subtitle">Kategoriya uchun oylik chegara</p></div></div>
+                            <form id="budgetForm" class="form-stack"><div class="field-group"><label class="field-label" for="budgetCategory">Kategoriya</label><input class="field" id="budgetCategory" maxlength="60" placeholder="Masalan, Transport" required></div><div class="field-group"><label class="field-label" for="budgetLimit">Oylik limit (so'm)</label><input class="field" id="budgetLimit" type="number" min="1" step="any" placeholder="500000" required></div><button class="primary-button" type="submit">Limitni saqlash</button></form>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view" id="view-goals">
+                <p class="page-intro">Yig'moqchi bo'lgan summangizni belgilang, qo'shgan mablag'ingizni kiriting va maqsad sari siljishni kuzating.</p>
+                <div class="view-grid">
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Jamg'arma maqsadlari</h3><p class="panel-subtitle">Bajarilish holati va muddatlar</p></div></div><div id="goalList"></div></section>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Yangi maqsad</h3><p class="panel-subtitle">Katta rejani kichik qadamlarga bo'ling</p></div></div>
+                        <form id="goalForm" class="form-stack"><div class="field-group"><label class="field-label" for="goalTitle">Maqsad nomi</label><input class="field" id="goalTitle" maxlength="120" placeholder="Noutbuk uchun jamg'arish" required></div><div class="form-row"><div class="field-group"><label class="field-label" for="goalTarget">Maqsad summasi</label><input class="field" id="goalTarget" type="number" min="1" step="any" placeholder="8000000" required></div><div class="field-group"><label class="field-label" for="goalCurrent">Yig'ilgan</label><input class="field" id="goalCurrent" type="number" min="0" step="any" value="0"></div></div><div class="field-group"><label class="field-label" for="goalDeadline">Muddat (ixtiyoriy)</label><input class="field" id="goalDeadline" type="date"></div><button class="primary-button" type="submit">Maqsad yaratish</button></form>
+                    </section>
+                </div>
+            </section>
+
+            <section class="view" id="view-ai">
+                <p class="page-intro">Google Gemini AI bilan shaxsiy muloqot qiling, rejalaringizni tahlil qiling yoki ovozli/matnli yangi reja va xarajatlarni avtomatik qo'shing.</p>
+                <div class="view-grid">
+                    <section class="panel" style="display:flex; flex-direction:column; min-height:460px;">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title" style="display:flex; align-items:center; gap:8px;">
+                                    <span>✨</span> Gemini AI Yordamchi
+                                </h3>
+                                <p class="panel-subtitle">Kundalik reja va moliya konsultanti</p>
+                            </div>
+                            <span class="badge" style="background:var(--green-soft); color:var(--green); font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600;">Faol</span>
+                        </div>
+                        
+                        <!-- CHAT XABARLARI JOYI -->
+                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafbf8; border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
+                            <div style="align-self:flex-start; max-width:88%; background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+                                <strong>Assalomu alaykum!</strong> Men sizning shaxsiy Turkiston Daily AI yordamchingizman. Menga xohlagan savolingizni bering yoki shunchaki yozing:
+                                <br>• <em>"Ertaga soat 10 da uchrashuv belgilash"</em>
+                                <br>• <em>"Tushlikka 45 000 so'm ishlatdim"</em>
+                                <br>deb yozsangiz, o'zim darhol reja va moliyangizga qo'shib qo'yaman! ✨
+                            </div>
+                        </div>
+
+                        <!-- TEZKOR SAVOLLAR / PROMPTLAR -->
+                        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;">
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi rejalarim bo\'yicha maslahat ber')">💡 Rejalarim tahlili</button>
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Qanday qilib pul tejashim mumkin?')">💰 Moliyaviy maslahat</button>
+                            <button type="button" class="mini-button" onclick="sendQuickAiPrompt('Bugungi kun uchun motivatsiya ber')">🔥 Motivatsiya</button>
+                        </div>
+
+                        <!-- YUBORISH INPUTI -->
+                        <form id="aiChatForm" style="display:flex; gap:8px;">
+                            <input class="field" id="aiUserInput" type="text" placeholder="AI ga yozing... (masalan: Tushlikka 45000 so'm ishlatdim)" required style="flex:1; height:44px; font-size:14px;">
+                            <button class="primary-button" type="submit" id="aiSendBtn" style="min-width:75px; height:44px;">
+                                Yuborish
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="panel-title">AI Sozlamalari</h3>
+                                <p class="panel-subtitle">Google Gemini API kaliti</p>
+                            </div>
+                        </div>
+                        <div class="form-stack">
+                            <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">
+                                Gemini API mutlaqo <strong>bepul</strong>. Kalit olish uchun <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--green); font-weight:600;">Google AI Studio</a> ga kiring va <em>Create API key</em> tugmasini bosing.
+                            </p>
+                            <div class="field-group">
+                                <label class="field-label" for="geminiApiKeyInput">Gemini API Kalitingiz</label>
+                                <input class="field" id="geminiApiKeyInput" type="password" placeholder="AIzaSy...">
+                            </div>
+                            <button class="secondary-button" type="button" id="saveGeminiKeyBtn">Kalitni brauzerda saqlash</button>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="view" id="view-reports">
+                <p class="page-intro">Oy bo'yicha faollikni ko'ring va kuningizga qisqa qayd qoldiring.</p>
+                <div class="view-grid">
+                    <div class="column">
+                        <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Kun yakuni</h3><p class="panel-subtitle" id="reportDateLabel"></p></div></div>
+                            <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label">Kuningizga baho</label><div class="report-score" id="scoreButtons" role="group" aria-label="Kunga baho"></div></div><div class="field-group"><label class="field-label" for="reportNote">Qayd yoki xulosa</label><textarea class="field" id="reportNote" rows="4" maxlength="1000" placeholder="Bugun nimalar yaxshi o'tdi? Ertaga nimaga e'tibor berasiz?" style="height:auto;min-height:100px;padding:10px;resize:vertical"></textarea></div><button class="primary-button" type="submit">Kun yakunini saqlash</button></form>
+                        </section>
+                    </div>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title">Oylik tarix</h3><p class="panel-subtitle" id="historyMonthLabel"></p></div></div><div id="historyList"></div></section>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Asosiy menyu" style="grid-template-columns: repeat(6, 1fr);">
+        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
+        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
+        <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
+        <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
+        <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
+        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+    </nav>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        const telegram = window.Telegram?.WebApp;
+        telegram?.ready();
+        telegram?.expand();
+        const telegramInitData = telegram?.initData || '';
+        const titles = { overview: "Umumiy ko'rinish", ai: "AI Yordamchi", tasks: "Kunlik rejalar", money: "Kirim va chiqim", goals: "Jamg'arma maqsadlari", reports: "Hisobot va tarix" };
+        const categoryDefaults = ['Oziq-ovqat', 'Transport', 'Uy-joy', 'Sog\'liq', 'Ta\'lim', 'Ko\'ngilochar', 'Maosh', 'Boshqa'];
+        let dashboard = null;
+        let selectedScore = 0;
+        let toastTimer;
+
+        function localDateString(date = new Date()) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+        }
+        function money(value) {
+            return `${new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 }).format(Math.round(Number(value) || 0))} so'm`;
+        }
+        function prettyDate(value, options = { day: 'numeric', month: 'long', weekday: 'long' }) {
+            return new Intl.DateTimeFormat('uz-UZ', options).format(new Date(`${value}T12:00:00`));
+        }
+        function monthValue() { return document.getElementById('selectedDate').value.slice(0, 7); }
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+        }
+        // ================= OFFLINE / LOCAL-FIRST STORAGE ENGINE =================
+        // Ma'lumotlar to'g'ridan-to'g'ri telefon/brauzer xotirasida saqlanadi (Server shart emas)
+        const LOCAL_STORAGE_KEY = 'td_offline_data_v1';
+        function getLocalStore() {
+            try {
+                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            return {
+                tasks: [],
+                transactions: [],
+                budgets: [],
+                goals: [],
+                reports: {}
+            };
+        }
+        function saveLocalStore(store) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
+        }
+
+        async function api(path, options = {}) {
+            // Agar server ishlayotgan bo'lsa serverga yuboradi, server o'chiq bo'lsa darhol lokal xotiraga o'tadi
+            const method = (options.method || 'GET').toUpperCase();
+            const body = options.body ? JSON.parse(options.body) : {};
+
+            try {
+                const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+                if (telegramInitData) headers['X-Telegram-Init-Data'] = telegramInitData;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2 soniyada javob bermasa lokalga o'tadi
+                const response = await fetch(path, { ...options, headers, signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    return response.status === 204 ? null : response.json();
+                }
+            } catch (networkError) {
+                // Server yo'q yoki kompyuter o'chiq - to'liq avtonom offline rejimda ishlaymiz!
+            }
+
+            // === LOKAL MOSLASHTIRUVCHI (CLIENT-SIDE BACKEND) ===
+            const store = getLocalStore();
+            const url = new URL(path, window.location.origin || 'http://localhost');
+            const pathname = url.pathname;
+
+            // 1. Dashboard
+            if (pathname === '/api/dashboard') {
+                const date = url.searchParams.get('selected_date') || localDateString();
+                const month = date.slice(0, 7);
+                const dayTasks = store.tasks.filter(t => t.date === date);
+                const dayTrans = store.transactions.filter(t => t.date === date);
+                const monthTrans = store.transactions.filter(t => (t.date || '').slice(0, 7) === month);
+
+                const income = dayTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const expense = dayTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const month_income = monthTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const month_expense = monthTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+                // Kategoriya xarajatlari
+                const catMap = {};
+                dayTrans.filter(t => t.type === 'expense').forEach(t => {
+                    catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount || 0);
+                });
+                const categories = Object.keys(catMap).map(k => ({ category: k, amount: catMap[k] }));
+
+                // Budjetlar
+                const budgets = store.budgets.filter(b => (b.month || month) === month).map(b => {
+                    const spent = monthTrans.filter(t => t.type === 'expense' && t.category === b.category).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                    return { ...b, spent };
+                });
+
+                return {
+                    date,
+                    summary: {
+                        income,
+                        expense,
+                        balance: income - expense,
+                        month_income,
+                        month_expense,
+                        tasks_total: dayTasks.length,
+                        tasks_completed: dayTasks.filter(t => t.is_completed).length
+                    },
+                    tasks: dayTasks,
+                    transactions: dayTrans,
+                    categories,
+                    budgets,
+                    goals: store.goals
+                };
+            }
+
+            // 2. Tasks
+            if (pathname === '/api/tasks' && method === 'POST') {
+                const newTask = {
+                    id: Date.now(),
+                    title: body.title,
+                    date: body.date || localDateString(),
+                    scheduled_time: body.scheduled_time || null,
+                    priority: body.priority || 'normal',
+                    recurrence: body.recurrence || 'none',
+                    remind_at: body.remind_at || null,
+                    is_completed: 0
+                };
+                store.tasks.push(newTask);
+                saveLocalStore(store);
+                scheduleBrowserNotification(newTask);
+                return newTask;
+            }
+            if (pathname.startsWith('/api/tasks/') && method === 'PATCH') {
+                const id = Number(pathname.split('/').pop());
+                const task = store.tasks.find(t => t.id === id);
+                if (task) {
+                    Object.assign(task, body);
+                    saveLocalStore(store);
+                }
+                return { status: 'ok' };
+            }
+            if (pathname.startsWith('/api/tasks/') && method === 'DELETE') {
+                const id = Number(pathname.split('/').pop());
+                store.tasks = store.tasks.filter(t => t.id !== id);
+                saveLocalStore(store);
+                return { status: 'ok' };
+            }
+
+            // 3. Transactions
+            if (pathname === '/api/transactions' && method === 'POST') {
+                const newTr = {
+                    id: Date.now(),
+                    type: body.type,
+                    category: body.category,
+                    amount: Number(body.amount),
+                    date: body.date || localDateString(),
+                    note: body.note || ''
+                };
+                store.transactions.unshift(newTr);
+                saveLocalStore(store);
+                return newTr;
+            }
+            if (pathname.startsWith('/api/transactions/') && method === 'PATCH') {
+                const id = Number(pathname.split('/').pop());
+                const item = store.transactions.find(t => t.id === id);
+                if (item) {
+                    Object.assign(item, body);
+                    saveLocalStore(store);
+                }
+                return { status: 'ok' };
+            }
+            if (pathname.startsWith('/api/transactions/') && method === 'DELETE') {
+                const id = Number(pathname.split('/').pop());
+                store.transactions = store.transactions.filter(t => t.id !== id);
+                saveLocalStore(store);
+                return { status: 'ok' };
+            }
+
+            // 4. Budgets
+            if (pathname === '/api/budgets' && method === 'POST') {
+                const id = Date.now();
+                store.budgets.push({ id, ...body });
+                saveLocalStore(store);
+                return { id };
+            }
+            if (pathname.startsWith('/api/budgets/') && method === 'DELETE') {
+                const id = Number(pathname.split('/').pop());
+                store.budgets = store.budgets.filter(b => b.id !== id);
+                saveLocalStore(store);
+                return { status: 'ok' };
+            }
+
+            // 5. Goals
+            if (pathname === '/api/goals' && method === 'POST') {
+                const id = Date.now();
+                store.goals.push({ id, ...body, current_amount: Number(body.current_amount || 0) });
+                saveLocalStore(store);
+                return { id };
+            }
+            if (pathname.startsWith('/api/goals/') && method === 'PATCH') {
+                const id = Number(pathname.split('/').pop());
+                const item = store.goals.find(g => g.id === id);
+                if (item) {
+                    Object.assign(item, body);
+                    saveLocalStore(store);
+                }
+                return { status: 'ok' };
+            }
+            if (pathname.startsWith('/api/goals/') && method === 'DELETE') {
+                const id = Number(pathname.split('/').pop());
+                store.goals = store.goals.filter(g => g.id !== id);
+                saveLocalStore(store);
+                return { status: 'ok' };
+            }
+
+            // 6. History
+            if (pathname === '/api/history') {
+                return [];
+            }
+
+            // 7. AI Chat (Telefon interneti orqali to'g'ridan-to'g'ri Google Gemini ga ulanish)
+            if (pathname === '/api/ai/chat' && method === 'POST') {
+                return await executeClientSideGemini(body.message, body.api_key);
+            }
+
+            return null;
+        }
+
+        // === BROWSER BILDIRISHNOMA (IPHONE PWA PUSH) ===
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+        function scheduleBrowserNotification(task) {
+            if (!("Notification" in window) || Notification.permission !== "granted") return;
+            if (!task.scheduled_time && !task.remind_at) return;
+
+            const timeStr = task.scheduled_time || task.remind_at?.slice(11, 16);
+            if (!timeStr) return;
+
+            const now = new Date();
+            const [h, m] = timeStr.split(':').map(Number);
+            const taskTime = new Date();
+            taskTime.setHours(h, m, 0, 0);
+
+            const diff = taskTime.getTime() - now.getTime();
+            if (diff > 0 && diff < 86400000) {
+                setTimeout(() => {
+                    new Notification("Turkiston Daily: Reja vaqti!", {
+                        body: `${task.title} vaqti keldi. Boshlash uchun qulay fursat!`,
+                        icon: "/static/icon-192.png"
+                    });
+                }, diff);
+            }
+        }
+        window.addEventListener('load', requestNotificationPermission);
+
+        // === BROWSER GEMINI AI DIRECT CALL (Server shart emas) ===
+        async function executeClientSideGemini(userText, userKey) {
+            const key = userKey || localStorage.getItem('gemini_api_key');
+            if (!key) {
+                return {
+                    status: 'need_key',
+                    reply: 'Google Gemini API kaliti kiritilmagan. Sozlamalar oynasidan kalitingizni kiriting.'
+                };
+            }
+
+            const store = getLocalStore();
+            const today = localDateString();
+            const tasksInfo = store.tasks.filter(t => t.date === today).map(t => t.title).join(', ') || 'reja yo\'q';
+
+            const systemPrompt = `Siz 'Turkiston Daily' ilovasi AI maslahatchisisiz. Bugun: ${today}. Rejalar: [${tasksInfo}].
+Vazifangiz foydalanuvchiga muloyim o'zbekcha yordam berish. Agar reja aytsa create_task, xarajat aytsa create_transaction shakllantiring.
+Javobni FAQAT JSON formatida bering:
+{
+  "reply": "O'zbekcha chiroyli javobingiz",
+  "action": null | { "type": "create_task" | "create_transaction", "data": { ... } }
+}
+create_task data: {"title": "...", "date": "${today}", "scheduled_time": "15:00"}
+create_transaction data: {"type": "expense"|"income", "category": "Oziq-ovqat"|"Transport"|"Boshqa", "amount": 40000}`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `${systemPrompt}\n\nFoydalanuvchi: ${userText}` }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API xatosi (${response.status})`);
+                }
+
+                const data = await response.json();
+                const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { reply: rawText, action: null };
+
+                let action_result = null;
+                if (parsed.action && parsed.action.data) {
+                    if (parsed.action.type === 'create_task') {
+                        await api('/api/tasks', { method: 'POST', body: JSON.stringify(parsed.action.data) });
+                        action_result = 'Reja telefoningizga saqlandi ✅';
+                    } else if (parsed.action.type === 'create_transaction') {
+                        await api('/api/transactions', { method: 'POST', body: JSON.stringify(parsed.action.data) });
+                        action_result = 'Xarajat telefoningizga saqlandi ✅';
+                    }
+                }
+
+                return {
+                    status: 'ok',
+                    reply: parsed.reply,
+                    action_result
+                };
+            } catch (e) {
+                return {
+                    status: 'error',
+                    reply: `AI bilan ulanishda xato: ${e.message}`
+                };
+            }
+        }
+        async function runAction(action, successMessage) {
+            try {
+                await action();
+                await refresh();
+                if (successMessage) showToast(successMessage);
+            } catch (error) {
+                showToast(error.message);
+            }
+        }
+        function setView(name) {
+            document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+            document.querySelectorAll('.nav-button[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === name));
+            document.getElementById('pageTitle').textContent = titles[name];
+        }
+        function transactionMarkup(transaction) {
+            const kind = transaction.type === 'income' ? 'income' : 'expense';
+            const sign = kind === 'income' ? '+' : '−';
+            return `<div class="transaction-item"><div><div class="transaction-name">${escapeHtml(transaction.category)}</div>${transaction.note ? `<div class="transaction-note">${escapeHtml(transaction.note)}</div>` : ''}</div><span class="transaction-amount ${kind}">${sign}${money(transaction.amount)}</span><div class="row-actions"><button class="mini-button" data-edit-transaction="${transaction.id}" title="Tahrirlash" aria-label="Tahrirlash">✎</button><button class="mini-button delete" data-delete-transaction="${transaction.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div>`;
+        }
+        function taskMarkup(task) {
+            const recurrenceNames = { daily: 'Har kuni', weekly: 'Har hafta', monthly: 'Har oy' };
+            const priorityNames = { high: 'Muhim', normal: 'Oddiy', low: 'Keyinroq' };
+            const reminder = task.remind_at ? new Date(task.remind_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
+            return `<div class="task-item ${task.is_completed ? 'completed' : ''}"><button class="task-check ${task.is_completed ? 'done' : ''}" data-toggle-task="${task.id}" aria-label="${task.is_completed ? 'Bajarilmadi deb belgilash' : 'Bajarildi deb belgilash'}">${task.is_completed ? '✓' : ''}</button><div><div class="task-name">${escapeHtml(task.title)}</div><div class="task-meta"><span class="tag ${task.priority === 'high' ? 'high' : ''}">${priorityNames[task.priority] || 'Oddiy'}</span>${task.recurrence !== 'none' ? `<span class="tag">${recurrenceNames[task.recurrence]}</span>` : ''}${reminder ? `<span class="tag">◷ ${reminder}</span>` : ''}</div></div><div class="task-actions"><button class="mini-button" data-edit-task="${task.id}" title="Tahrirlash" aria-label="Tahrirlash">✎</button><button class="mini-button delete" data-delete-task="${task.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div>`;
+        }
+        function categoryMarkup(categories) {
+            if (!categories.length) return '<div class="empty-state">Hozircha chiqim qayd etilmagan</div>';
+            const max = Math.max(...categories.map(item => Number(item.amount)));
+            return categories.map(item => `<div class="category-row"><span class="category-name">${escapeHtml(item.category)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, Number(item.amount) / max * 100)}%"></div></div><strong class="category-value">${money(item.amount)}</strong></div>`).join('');
+        }
+        function budgetMarkup(budget) {
+            const percent = budget.monthly_limit > 0 ? Number(budget.spent) / Number(budget.monthly_limit) * 100 : 0;
+            const state = percent >= 100 ? 'over' : percent >= 80 ? 'warn' : '';
+            return `<div class="budget-item"><div class="budget-heading"><strong>${escapeHtml(budget.category)}</strong><span>${money(budget.spent)} / ${money(budget.monthly_limit)}</span></div><div class="budget-track"><div class="budget-fill ${state}" style="width:${Math.min(100, percent)}%"></div></div><div class="budget-heading" style="margin-top:5px"><span>${percent >= 100 ? 'Limit oshdi' : `${Math.round(percent)}% sarflandi`}</span><button class="mini-button delete" data-delete-budget="${budget.id}" title="Budjetni o'chirish" aria-label="Budjetni o'chirish">×</button></div></div>`;
+        }
+        function renderDashboard() {
+            const summary = dashboard.summary;
+            const selectedDate = dashboard.date;
+            document.getElementById('dayIncome').textContent = money(summary.income);
+            document.getElementById('dayExpense').textContent = money(summary.expense);
+            document.getElementById('dayBalance').textContent = money(summary.balance);
+            document.getElementById('monthIncome').textContent = `Oy: ${money(summary.month_income)}`;
+            document.getElementById('monthExpense').textContent = `Oy: ${money(summary.month_expense)}`;
+            document.getElementById('taskProgress').textContent = `${summary.tasks_completed} / ${summary.tasks_total} ta reja bajarildi`;
+            document.getElementById('moneyIncome').textContent = money(summary.income);
+            document.getElementById('moneyExpense').textContent = money(summary.expense);
+            document.getElementById('moneyBalance').textContent = money(summary.balance);
+            document.getElementById('welcomeTitle').textContent = selectedDate === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(selectedDate);
+            document.getElementById('dayLabel').textContent = selectedDate === localDateString() ? 'BUGUN' : prettyDate(selectedDate, { day: 'numeric', month: 'short' }).toLocaleUpperCase('uz-UZ');
+            document.getElementById('taskSummary').textContent = `${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
+            document.getElementById('taskSummaryFull').textContent = `${prettyDate(selectedDate)} · ${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
+            document.getElementById('reportDateLabel').textContent = prettyDate(selectedDate);
+            document.getElementById('budgetMonthLabel').textContent = `${prettyDate(`${monthValue()}-01`, { month: 'long', year: 'numeric' })} uchun`;
+            const tasks = dashboard.tasks;
+            const taskHtml = tasks.length ? tasks.map(taskMarkup).join('') : '<div class="empty-state">Bu kun uchun reja yo‘q</div>';
+            document.getElementById('overviewTasks').innerHTML = taskHtml;
+            document.getElementById('taskList').innerHTML = taskHtml;
+            const transactions = dashboard.transactions;
+            const transactionHtml = transactions.length ? transactions.map(transactionMarkup).join('') : '<div class="empty-state">Bu kun uchun amaliyot yo‘q</div>';
+            document.getElementById('overviewTransactions').innerHTML = transactionHtml;
+            document.getElementById('transactionList').innerHTML = transactionHtml;
+            document.getElementById('transactionCount').textContent = `${transactions.length} ta amaliyot · ${prettyDate(selectedDate)}`;
+            const categoryHtml = categoryMarkup(dashboard.categories);
+            document.getElementById('overviewCategories').innerHTML = categoryHtml;
+            const budgetHtml = dashboard.budgets.length ? dashboard.budgets.map(budgetMarkup).join('') : '<div class="empty-state">Hali oylik limit belgilanmagan</div>';
+            document.getElementById('overviewBudgets').innerHTML = budgetHtml;
+            document.getElementById('budgetList').innerHTML = budgetHtml;
+            renderGoals(dashboard.goals);
+            renderReport(dashboard.report);
+        }
+        function renderGoals(goals) {
+            const list = document.getElementById('goalList');
+            if (!goals.length) { list.innerHTML = '<div class="empty-state">Hali jamg‘arma maqsadi yo‘q</div>'; return; }
+            list.innerHTML = goals.map(goal => {
+                const percent = Math.min(100, Number(goal.current_amount) / Number(goal.target_amount) * 100);
+                return `<div class="goal-item"><div class="goal-top"><div><div class="goal-name">${escapeHtml(goal.title)}</div><div class="goal-sub">${goal.deadline ? `Muddat: ${prettyDate(goal.deadline, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Muddat belgilanmagan'}</div></div><div class="row-actions">${!goal.is_completed ? `<button class="mini-button" data-contribute-goal="${goal.id}" title="Jamg'armaga qo'shish" aria-label="Jamg'armaga qo'shish">+</button>` : '<span class="tag">Bajarildi</span>'}<button class="mini-button delete" data-delete-goal="${goal.id}" title="O'chirish" aria-label="O'chirish">×</button></div></div><div class="goal-progress-label"><span>${money(goal.current_amount)} yig‘ildi</span><strong>${Math.round(percent)}%</strong></div><div class="progress-line"><span style="width:${percent}%"></span></div><div class="goal-progress-label"><span>Maqsad: ${money(goal.target_amount)}</span><span>${money(Math.max(0, goal.target_amount - goal.current_amount))} qoldi</span></div></div>`;
+            }).join('');
+        }
+        function renderReport(report) {
+            document.getElementById('reportNote').value = report?.note || '';
+            selectedScore = Number(report?.score || 0);
+            document.getElementById('scoreButtons').innerHTML = [1, 2, 3, 4, 5].map(score => `<button type="button" class="score-button ${selectedScore >= score ? 'selected' : ''}" data-score="${score}" aria-label="${score} ball">★</button>`).join('');
+        }
+        async function refresh() {
+            try {
+                dashboard = await api(`/api/dashboard?selected_date=${encodeURIComponent(document.getElementById('selectedDate').value)}`);
+                renderDashboard();
+                document.getElementById('connectionStatus').textContent = 'Sinxronlandi';
+            } catch (error) {
+                document.getElementById('connectionStatus').textContent = 'Ulanish xatosi';
+                showToast(error.message);
+            }
+        }
+        async function loadHistory() {
+            try {
+                const month = monthValue();
+                const history = await api(`/api/history?month=${encodeURIComponent(month)}`);
+                document.getElementById('historyMonthLabel').textContent = prettyDate(`${month}-01`, { month: 'long', year: 'numeric' });
+                document.getElementById('historyList').innerHTML = history.length ? history.map(day => {
+                    const net = Number(day.income || 0) - Number(day.expense || 0);
+                    return `<div class="history-item"><div><div class="history-date">${prettyDate(day.date)}</div><div class="history-meta">${day.tasks_completed || 0} / ${day.tasks_total || 0} reja · Kirim ${money(day.income || 0)}</div></div><span class="transaction-amount expense">−${money(day.expense || 0)}</span><strong class="history-net" style="color:${net >= 0 ? 'var(--green)' : 'var(--orange)'}">${net >= 0 ? '+' : '−'}${money(Math.abs(net))}</strong></div>`;
+                }).join('') : '<div class="empty-state">Bu oyda tarix yo‘q</div>';
+            } catch (error) { showToast(error.message); }
+        }
+
+        document.querySelectorAll('.nav-button[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+        document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => setView(button.dataset.go)));
+        document.getElementById('selectedDate').value = localDateString();
+        document.getElementById('selectedDate').addEventListener('change', () => { refresh(); loadHistory(); });
+
+        document.getElementById('taskForm').addEventListener('submit', event => {
+            event.preventDefault();
+            const reminder = document.getElementById('taskReminder').value;
+            runAction(async () => {
+                await api('/api/tasks', { method: 'POST', body: JSON.stringify({
+                    title: document.getElementById('taskTitle').value.trim(),
+                    date: document.getElementById('selectedDate').value,
+                    priority: document.getElementById('taskPriority').value,
+                    recurrence: document.getElementById('taskRecurrence').value,
+                    remind_at: reminder || null,
+                }) });
+                event.target.reset();
+            }, 'Reja qo‘shildi');
+        });
+        document.getElementById('transactionForm').addEventListener('submit', event => {
+            event.preventDefault();
+            runAction(async () => {
+                await api('/api/transactions', { method: 'POST', body: JSON.stringify({
+                    type: document.getElementById('transactionType').value,
+                    category: document.getElementById('transactionCategory').value.trim(),
+                    amount: Number(document.getElementById('transactionAmount').value),
+                    date: document.getElementById('selectedDate').value,
+                    note: document.getElementById('transactionNote').value.trim(),
+                }) });
+                event.target.reset();
+            }, 'Amaliyot saqlandi');
+        });
+        document.getElementById('budgetForm').addEventListener('submit', event => {
+            event.preventDefault();
+            runAction(async () => {
+                await api('/api/budgets', { method: 'POST', body: JSON.stringify({
+                    category: document.getElementById('budgetCategory').value.trim(),
+                    monthly_limit: Number(document.getElementById('budgetLimit').value),
+                    month: monthValue(),
+                }) });
+                event.target.reset();
+            }, 'Budjet saqlandi');
+        });
+        document.getElementById('goalForm').addEventListener('submit', event => {
+            event.preventDefault();
+            runAction(async () => {
+                await api('/api/goals', { method: 'POST', body: JSON.stringify({
+                    title: document.getElementById('goalTitle').value.trim(),
+                    target_amount: Number(document.getElementById('goalTarget').value),
+                    current_amount: Number(document.getElementById('goalCurrent').value || 0),
+                    deadline: document.getElementById('goalDeadline').value || null,
+                }) });
+                event.target.reset();
+            }, 'Maqsad qo‘shildi');
+        });
+        document.getElementById('reportForm').addEventListener('submit', event => {
+            event.preventDefault();
+            runAction(async () => api('/api/reports', { method: 'POST', body: JSON.stringify({
+                date: document.getElementById('selectedDate').value,
+                note: document.getElementById('reportNote').value,
+                score: selectedScore,
+            }) }), 'Kun yakuni saqlandi');
+        });
+        document.getElementById('scoreButtons').addEventListener('click', event => {
+            const button = event.target.closest('[data-score]');
+            if (!button) return;
+            selectedScore = Number(button.dataset.score);
+            document.querySelectorAll('.score-button').forEach(item => item.classList.toggle('selected', Number(item.dataset.score) <= selectedScore));
+        });
+        document.body.addEventListener('click', event => {
+            const taskToggle = event.target.closest('[data-toggle-task]');
+            const taskDelete = event.target.closest('[data-delete-task]');
+            const taskEdit = event.target.closest('[data-edit-task]');
+            const transactionDelete = event.target.closest('[data-delete-transaction]');
+            const transactionEdit = event.target.closest('[data-edit-transaction]');
+            const budgetDelete = event.target.closest('[data-delete-budget]');
+            const goalDelete = event.target.closest('[data-delete-goal]');
+            const contribute = event.target.closest('[data-contribute-goal]');
+            if (taskToggle) {
+                const task = dashboard.tasks.find(item => item.id === Number(taskToggle.dataset.toggleTask));
+                if (task) runAction(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ is_completed: !task.is_completed }) }), task.is_completed ? 'Reja qayta ochildi' : 'Reja bajarildi');
+            } else if (taskDelete) {
+                if (confirm('Bu rejani o‘chirasizmi?')) runAction(() => api(`/api/tasks/${taskDelete.dataset.deleteTask}`, { method: 'DELETE' }), 'Reja o‘chirildi');
+            } else if (taskEdit) {
+                const task = dashboard.tasks.find(item => item.id === Number(taskEdit.dataset.editTask));
+                const title = task && prompt('Reja nomi', task.title);
+                if (title?.trim()) runAction(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ title: title.trim() }) }), 'Reja yangilandi');
+            } else if (transactionDelete) {
+                if (confirm('Bu amaliyotni o‘chirasizmi?')) runAction(() => api(`/api/transactions/${transactionDelete.dataset.deleteTransaction}`, { method: 'DELETE' }), 'Amaliyot o‘chirildi');
+            } else if (transactionEdit) {
+                const item = dashboard.transactions.find(row => row.id === Number(transactionEdit.dataset.editTransaction));
+                if (item) {
+                    const category = prompt('Kategoriya', item.category);
+                    if (category?.trim()) {
+                        const amount = prompt('Summa (so‘m)', item.amount);
+                        if (amount && Number(amount) > 0) runAction(() => api(`/api/transactions/${item.id}`, { method: 'PATCH', body: JSON.stringify({ category: category.trim(), amount: Number(amount) }) }), 'Amaliyot yangilandi');
+                    }
+                }
+            } else if (budgetDelete) {
+                runAction(() => api(`/api/budgets/${budgetDelete.dataset.deleteBudget}`, { method: 'DELETE' }), 'Budjet o‘chirildi');
+            } else if (goalDelete) {
+                if (confirm('Bu maqsadni o‘chirasizmi?')) runAction(() => api(`/api/goals/${goalDelete.dataset.deleteGoal}`, { method: 'DELETE' }), 'Maqsad o‘chirildi');
+            } else if (contribute) {
+                const goal = dashboard.goals.find(item => item.id === Number(contribute.dataset.contributeGoal));
+                const amount = goal && prompt('Qancha mablag‘ qo‘shildi? (so‘m)', '');
+                if (amount && Number(amount) > 0) runAction(() => api(`/api/goals/${goal.id}`, { method: 'PATCH', body: JSON.stringify({ current_amount: Number(goal.current_amount) + Number(amount) }) }), 'Jamg‘arma yangilandi');
+            }
+        });
+        document.getElementById('exportButton').addEventListener('click', async () => {
+            try {
+                const period = document.getElementById('exportPeriod').value;
+                const query = new URLSearchParams({ period });
+                if (period === 'custom') {
+                    const startDate = document.getElementById('exportStartDate').value;
+                    const endDate = document.getElementById('exportEndDate').value;
+                    if (!startDate || !endDate) throw new Error('Hisobot sanalarini tanlang');
+                    if (startDate > endDate) throw new Error('Boshlanish sanasi tugash sanasidan keyin bo‘lishi mumkin emas');
+                    query.set('start_date', startDate);
+                    query.set('end_date', endDate);
+                }
+                const headers = telegramInitData ? { 'X-Telegram-Init-Data': telegramInitData } : {};
+                const response = await fetch(`/api/export.xlsx?${query}`, { headers });
+                if (!response.ok) {
+                    const detail = await response.json().catch(() => ({}));
+                    throw new Error(detail.detail || 'Excel hisobotini yaratib bo‘lmadi');
+                }
+                const file = await response.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(file);
+                link.download = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || `turkiston-daily-${period}-${localDateString()}.xlsx`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showToast('Excel hisoboti yuklandi');
+            } catch (error) { showToast(error.message); }
+        });
+        document.getElementById('exportPeriod').addEventListener('change', event => {
+            const customDates = document.getElementById('customExportDates');
+            customDates.hidden = event.target.value !== 'custom';
+            if (event.target.value === 'custom') {
+                const today = localDateString();
+                document.getElementById('exportStartDate').value = `${today.slice(0, 7)}-01`;
+                document.getElementById('exportEndDate').value = today;
+            }
+        });
+        document.getElementById('transactionCategory').addEventListener('input', event => {
+            const value = event.target.value.trim();
+            if (value && !categoryDefaults.includes(value)) categoryDefaults.push(value);
+        });
+
+        // ================= GEMINI AI CHAT LOGIC =================
+        const aiChatBox = document.getElementById('aiChatBox');
+        const aiChatForm = document.getElementById('aiChatForm');
+        const aiUserInput = document.getElementById('aiUserInput');
+        const aiSendBtn = document.getElementById('aiSendBtn');
+        const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+        const saveGeminiKeyBtn = document.getElementById('saveGeminiKeyBtn');
+
+        if (geminiApiKeyInput) {
+            geminiApiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
+        }
+
+        saveGeminiKeyBtn?.addEventListener('click', () => {
+            const val = geminiApiKeyInput.value.trim();
+            localStorage.setItem('gemini_api_key', val);
+            showToast("Gemini API kaliti saqlandi!");
+        });
+
+        function appendChatMessage(sender, text, isSpecial = false) {
+            const msgDiv = document.createElement('div');
+            const isUser = sender === 'user';
+            msgDiv.style.alignSelf = isUser ? 'flex-end' : 'flex-start';
+            msgDiv.style.maxWidth = '88%';
+            msgDiv.style.padding = '10px 14px';
+            msgDiv.style.borderRadius = isUser ? '14px 14px 2px 14px' : '14px 14px 14px 2px';
+            msgDiv.style.fontSize = '13px';
+            msgDiv.style.lineHeight = '1.5';
+            msgDiv.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
+            
+            if (isUser) {
+                msgDiv.style.background = 'var(--green)';
+                msgDiv.style.color = '#fff';
+            } else {
+                msgDiv.style.background = '#fff';
+                msgDiv.style.border = '1px solid var(--line)';
+                msgDiv.style.color = 'var(--ink)';
+            }
+
+            if (isSpecial) {
+                msgDiv.innerHTML = text;
+            } else {
+                msgDiv.textContent = text;
+            }
+
+            aiChatBox.appendChild(msgDiv);
+            aiChatBox.scrollTop = aiChatBox.scrollHeight;
+        }
+
+        async function submitAiChat(text) {
+            if (!text.trim()) return;
+            appendChatMessage('user', text);
+            aiUserInput.value = '';
+            aiUserInput.disabled = true;
+            aiSendBtn.disabled = true;
+
+            const loadingId = 'aiLoadingIndicator';
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = loadingId;
+            loadingDiv.style.alignSelf = 'flex-start';
+            loadingDiv.style.padding = '8px 12px';
+            loadingDiv.style.fontSize = '12px';
+            loadingDiv.style.color = 'var(--muted)';
+            loadingDiv.textContent = 'Gemini AI o‘ylamoqda... ✨';
+            aiChatBox.appendChild(loadingDiv);
+            aiChatBox.scrollTop = aiChatBox.scrollHeight;
+
+            const apiKey = localStorage.getItem('gemini_api_key') || '';
+
+            try {
+                const res = await api('/api/ai/chat', {
+                    method: 'POST',
+                    body: JSON.stringify({ message: text, api_key: apiKey })
+                });
+
+                document.getElementById(loadingId)?.remove();
+
+                if (res.status === 'need_key') {
+                    appendChatMessage('ai', `⚠️ ${res.reply}`);
+                } else if (res.status === 'error') {
+                    appendChatMessage('ai', `❌ ${res.reply}`);
+                } else {
+                    let formatted = res.reply;
+                    if (res.action_result) {
+                        formatted += `<br><span style="display:inline-block; margin-top:6px; color:var(--green); font-weight:600;">${res.action_result}</span>`;
+                        refresh();
+                    }
+                    appendChatMessage('ai', formatted, true);
+                }
+            } catch (err) {
+                document.getElementById(loadingId)?.remove();
+                appendChatMessage('ai', `Tarmoq yoki server xatosi: ${err.message}`);
+            } finally {
+                aiUserInput.disabled = false;
+                aiSendBtn.disabled = false;
+                aiUserInput.focus();
+            }
+        }
+
+        aiChatForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitAiChat(aiUserInput.value);
+        });
+
+        window.sendQuickAiPrompt = function(promptText) {
+            submitAiChat(promptText);
+        };
+
+        refresh();
+        loadHistory();
+    </script>
+</body>
+</html>
