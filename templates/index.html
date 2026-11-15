@@ -344,8 +344,9 @@
                                 <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span data-i18n="ai_desc">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨</span>
                             </div>
                         </div>
-                        <form id="aiChatForm" style="display:flex; gap:8px;">
-                            <input class="field" id="aiUserInput" type="text" placeholder="Xabar yozing..." required style="flex:1; height:44px; font-size:14px;" data-i18n-placeholder="ph_msg">
+                        <form id="aiChatForm" style="display:flex; gap:8px; align-items:center;">
+                            <input class="field" id="aiUserInput" type="text" placeholder="Xabar yozing yoki ovozli buyruq bering..." required style="flex:1; height:44px; font-size:14px;" data-i18n-placeholder="ph_msg">
+                            <button class="secondary-button" type="button" onclick="toggleVoiceInput()" title="Ovozli gapirish" style="height:44px; padding:0 12px; font-size:18px;" id="micBtn">🎤</button>
                             <button class="primary-button" type="submit" style="min-width:75px; height:44px;" data-i18n="btn_send">Yuborish</button>
                         </form>
                     </section>
@@ -1242,15 +1243,77 @@
         }
         document.getElementById('shareExcelBtn').addEventListener('click', sendReportToTelegram);
 
-        // AI CHAT
+        // AI CHAT & VOICE
         const aiChatBox = document.getElementById('aiChatBox');
-        function appendChat(sender, text) {
+        function appendChat(sender, text, speakable = true) {
             const div = document.createElement('div');
-            div.style.cssText = `align-self:${sender==='user'?'flex-end':'flex-start'}; max-width:88%; padding:10px 14px; border-radius:14px; font-size:13px; line-height:1.5; background:${sender==='user'?'var(--green); color:#fff':'var(--white); border:1px solid var(--line)'}`;
-            div.textContent = text;
+            div.style.cssText = `align-self:${sender==='user'?'flex-end':'flex-start'}; max-width:88%; padding:10px 14px; border-radius:14px; font-size:13px; line-height:1.5; background:${sender==='user'?'var(--green); color:#fff':'var(--white); border:1px solid var(--line)'}; display:flex; align-items:flex-start; justify-content:space-between; gap:10px;`;
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            div.appendChild(textSpan);
+
+            if (sender === 'ai' && speakable && !text.includes("o'ylamoqda")) {
+                const speakBtn = document.createElement('button');
+                speakBtn.textContent = '🔊';
+                speakBtn.style.cssText = 'background:none; border:0; cursor:pointer; font-size:14px; padding:0; margin-left:6px; flex-shrink:0;';
+                speakBtn.title = "Ovozli eshitish";
+                speakBtn.onclick = () => speakText(text);
+                div.appendChild(speakBtn);
+            }
+
             aiChatBox.appendChild(div);
             aiChatBox.scrollTop = aiChatBox.scrollHeight;
             return div;
+        }
+
+        let recognition = null;
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showToast("Sizning brauzeringiz ovozli buyruqni qo'llab-quvvatlamaydi");
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = currentLang === 'ru' ? 'ru-RU' : currentLang === 'en' ? 'en-US' : 'uz-UZ';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            const micBtn = document.getElementById('micBtn');
+            micBtn.style.background = 'var(--orange)';
+            micBtn.style.color = '#fff';
+            showToast("🎤 Eshitilyapti... Gapiring!");
+
+            recognition.start();
+
+            recognition.onresult = event => {
+                const speechText = event.results[0][0].transcript;
+                document.getElementById('aiUserInput').value = speechText;
+                micBtn.style.background = '';
+                micBtn.style.color = '';
+                showToast("Eshitildi: " + speechText);
+                document.getElementById('aiChatForm').requestSubmit();
+            };
+
+            recognition.onerror = () => {
+                micBtn.style.background = '';
+                micBtn.style.color = '';
+                showToast("Ovozli eshitishda xatolik yuz berdi");
+            };
+
+            recognition.onend = () => {
+                micBtn.style.background = '';
+                micBtn.style.color = '';
+            };
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLang === 'ru' ? 'ru-RU' : currentLang === 'en' ? 'en-US' : 'uz-UZ';
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
         document.getElementById('aiChatForm').addEventListener('submit', async e => {
@@ -1258,10 +1321,10 @@
             const input = document.getElementById('aiUserInput');
             const message = input.value.trim();
             if (!message) return;
-            appendChat('user', message);
+            appendChat('user', message, false);
             input.value = '';
 
-            const thinkingDiv = appendChat('ai', "⏳ AI eng yaxshi javobni o'ylamoqda...");
+            const thinkingDiv = appendChat('ai', "⏳ AI eng yaxshi javobni o'ylamoqda...", false);
 
             try {
                 const res = await fetch('/api/ai/chat', {
@@ -1270,14 +1333,18 @@
                     body: JSON.stringify({ message })
                 });
                 const data = await res.json();
-                thinkingDiv.textContent = data.reply || "Tushunarli!";
+                aiChatBox.removeChild(thinkingDiv);
+                const replyText = data.reply || "Tushunarli!";
+                appendChat('ai', replyText, true);
+                speakText(replyText);
                 if (data.action_result) {
                     showToast(data.action_result);
                 }
                 aiChatBox.scrollTop = aiChatBox.scrollHeight;
                 loadDashboardData();
             } catch (e) {
-                thinkingDiv.textContent = "Xatolik yuz berdi.";
+                aiChatBox.removeChild(thinkingDiv);
+                appendChat('ai', "Xatolik yuz berdi.", false);
             }
         });
 

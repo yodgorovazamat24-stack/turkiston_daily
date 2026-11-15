@@ -1462,17 +1462,23 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
         f"Bugungi moliyasi: [{trans_info}]. "
         "Vazifangiz:\n"
         "1. Foydalanuvchi savollariga istalgan tilda (o'zbek, rus, ingliz) muloyim va aniq javob berish.\n"
-        "2. Reja qo'shishni so'rasa ('create_task'), moliyaviy yozuv yozsa ('create_transaction'), budjet limiti qo'yishni so'rasa ('create_budget') yoki maqsad qo'yishni so'rasa ('create_goal') buyruqlarini shakllantiring.\n"
+        "2. Reja qo'shish ('create_task'), tahrirlash ('update_task' - keyword yoki title orqali topib, title, priority, date, scheduled_time o'zgartirish), o'chirish ('delete_task');\n"
+        "   Moliyaviy yozuv qo'shish ('create_transaction'), tahrirlash ('update_transaction' - keyword orqali topib amount, category, note o'zgartirish), o'chirish ('delete_transaction');\n"
+        "   Budjet qo'yish ('create_budget') va Maqsad qo'yish ('create_goal') buyruqlarini shakllantiring.\n"
         "Javobingizni FAQAT quyidagi JSON formatida qaytaring, boshqa hech qanday izoh qo'shmang:\n"
         "{\n"
         '  "reply": "Chiroyli javobingiz",\n'
         '  "action": null | {\n'
-        '     "type": "create_task" | "create_transaction" | "create_budget" | "create_goal",\n'
+        '     "type": "create_task" | "update_task" | "delete_task" | "create_transaction" | "update_transaction" | "delete_transaction" | "create_budget" | "create_goal",\n'
         '     "data": { ... }\n'
         '  }\n'
         "}\n"
-        "create_task: {\"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\"}\n"
+        "create_task: {\"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\", \"priority\": \"normal\" | \"high\"}\n"
+        "update_task: {\"keyword\": \"...\", \"title\": \"...\", \"priority\": \"normal\" | \"high\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\"}\n"
+        "delete_task: {\"keyword\": \"...\"}\n"
         "create_transaction: {\"type\": \"income\" | \"expense\", \"category\": \"...\", \"amount\": 45000, \"note\": \"...\"}\n"
+        "update_transaction: {\"keyword\": \"...\", \"amount\": 50000, \"category\": \"...\", \"note\": \"...\"}\n"
+        "delete_transaction: {\"keyword\": \"...\"}\n"
         "create_budget: {\"category\": \"...\", \"monthly_limit\": 500000}\n"
         "create_goal: {\"title\": \"...\", \"target_amount\": 8000000, \"current_amount\": 0}"
     )
@@ -1487,7 +1493,7 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
             "action": None
         }
 
-    # Agar AI action bergan bo'lsa, to'g'ridan-to'g'ri bazaga saqlash
+    # Agar AI action bergan bo'lsa, to'g'ridan-to'g'ri bazaga bajarish
     action = parsed.get("action")
     action_result = None
     if action and isinstance(action, dict):
@@ -1498,12 +1504,44 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
                 t_date = act_data.get("date") or today
                 t_time = act_data.get("scheduled_time")
                 remind = f"{t_date}T{t_time}" if t_time else None
+                priority = act_data.get("priority", "normal")
                 connection.execute(
                     "INSERT INTO tasks (user_id, title, date, priority, scheduled_time, remind_at, recurrence, reminder_interval, created_at) "
-                    "VALUES (?, ?, ?, 'normal', ?, ?, 'none', 'once', CURRENT_TIMESTAMP)",
-                    (user_id, act_data["title"], t_date, t_time, remind)
+                    "VALUES (?, ?, ?, ?, ?, ?, 'none', 'once', CURRENT_TIMESTAMP)",
+                    (user_id, act_data["title"], t_date, priority, t_time, remind)
                 )
                 action_result = "Reja avtomatik saqlandi ✅"
+            elif act_type == "update_task" and act_data.get("keyword"):
+                kw = f"%{act_data['keyword']}%"
+                task_row = connection.execute("SELECT id FROM tasks WHERE user_id = ? AND title LIKE ? LIMIT 1", (user_id, kw)).fetchone()
+                if task_row:
+                    tid = task_row["id"]
+                    fields = []
+                    params = []
+                    if act_data.get("title"):
+                        fields.append("title = ?")
+                        params.append(act_data["title"])
+                    if act_data.get("priority"):
+                        fields.append("priority = ?")
+                        params.append(act_data["priority"])
+                    if act_data.get("date"):
+                        fields.append("date = ?")
+                        params.append(act_data["date"])
+                    if act_data.get("scheduled_time"):
+                        fields.append("scheduled_time = ?")
+                        params.append(act_data["scheduled_time"])
+                        fields.append("remind_at = ?")
+                        params.append(f"{act_data.get('date', today)}T{act_data['scheduled_time']}")
+                    if fields:
+                        params.extend([tid, user_id])
+                        connection.execute(f"UPDATE tasks SET {', '.join(fields)} WHERE id = ? AND user_id = ?", params)
+                        action_result = "Reja muvaffaqiyatli tahrirlandi ✍️"
+                else:
+                    action_result = "Tahrirlash uchun reja topilmadi"
+            elif act_type == "delete_task" and act_data.get("keyword"):
+                kw = f"%{act_data['keyword']}%"
+                connection.execute("DELETE FROM tasks WHERE user_id = ? AND title LIKE ?", (user_id, kw))
+                action_result = "Reja o'chirildi 🗑"
             elif act_type == "create_transaction" and act_data.get("amount"):
                 t_type = "income" if act_data.get("type") == "income" else "expense"
                 t_cat = act_data.get("category") or "Boshqa"
@@ -1515,6 +1553,32 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
                     (user_id, t_type, t_cat, t_amt, today, t_note)
                 )
                 action_result = f"{'Kirim' if t_type == 'income' else 'Chiqim'} avtomatik saqlandi ✅"
+            elif act_type == "update_transaction" and act_data.get("keyword"):
+                kw = f"%{act_data['keyword']}%"
+                tx_row = connection.execute("SELECT id FROM transactions WHERE user_id = ? AND (category LIKE ? OR note LIKE ?) LIMIT 1", (user_id, kw, kw)).fetchone()
+                if tx_row:
+                    txid = tx_row["id"]
+                    fields = []
+                    params = []
+                    if act_data.get("amount"):
+                        fields.append("amount = ?")
+                        params.append(float(act_data["amount"]))
+                    if act_data.get("category"):
+                        fields.append("category = ?")
+                        params.append(act_data["category"])
+                    if act_data.get("note"):
+                        fields.append("note = ?")
+                        params.append(act_data["note"])
+                    if fields:
+                        params.extend([txid, user_id])
+                        connection.execute(f"UPDATE transactions SET {', '.join(fields)} WHERE id = ? AND user_id = ?", params)
+                        action_result = "Moliya yozuvi tahrirlandi ✍️"
+                else:
+                    action_result = "Tahrirlash uchun moliya yozuvi topilmadi"
+            elif act_type == "delete_transaction" and act_data.get("keyword"):
+                kw = f"%{act_data['keyword']}%"
+                connection.execute("DELETE FROM transactions WHERE user_id = ? AND (category LIKE ? OR note LIKE ?)", (user_id, kw, kw))
+                action_result = "Moliya yozuvi o'chirildi 🗑"
             elif act_type == "create_budget" and act_data.get("category") and act_data.get("monthly_limit"):
                 b_cat = act_data["category"].strip()
                 b_lim = float(act_data["monthly_limit"])
