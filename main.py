@@ -362,12 +362,13 @@ async def register_account(data: RegisterRequest):
 async def login_account(data: LoginRequest):
     login_val = data.login.strip().lstrip("@")
     phone_val = normalize_phone(data.login)
+    raw_phone = data.login.strip()
     pwd_hash = hash_password(data.password)
 
     with database() as connection:
         user = connection.execute(
-            "SELECT * FROM users WHERE (phone = ? OR username = ? OR CAST(user_id AS TEXT) = ?) AND password_hash = ?",
-            (phone_val, login_val, login_val, pwd_hash)
+            "SELECT * FROM users WHERE (phone = ? OR phone = ? OR username = ? OR CAST(user_id AS TEXT) = ?) AND password_hash = ?",
+            (phone_val, raw_phone, login_val, login_val, pwd_hash)
         ).fetchone()
 
         if not user:
