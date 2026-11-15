@@ -994,7 +994,8 @@
 
                 const aiHelloEl = document.getElementById('aiHelloText');
                 if (aiHelloEl && currentUser.full_name) {
-                    aiHelloEl.textContent = `Men ${currentUser.full_name}ning Turkiston Daily mini ilovasidagi sun'iy yordamchingizman. Sizga qanday yordam bera olaman? ✨`;
+                    const firstName = currentUser.full_name.split(' ')[0];
+                    aiHelloEl.textContent = `Assalomu alaykum, ${firstName}! Men sizning shaxsiy sun'iy intellekt yordamchingizman. Bugun nimalarni rejalashtiramiz? ✨`;
                 }
             }
 
