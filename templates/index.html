@@ -306,10 +306,11 @@
 
                 <section class="panel" style="margin-bottom:18px; background:var(--green-soft); border-color:#c2d8cb;">
                     <div class="panel-header" style="margin-bottom:6px;">
-                        <div><h3 class="panel-title" style="color:var(--green); display:flex; align-items:center; gap:6px;"><span>✨</span> <span data-i18n="ai_title">AI Aqlli Takliflar & Maslahat</span></h3></div>
+                        <div><h3 class="panel-title" style="color:var(--green); display:flex; align-items:center; gap:6px;"><span>✨</span> <span data-i18n="ai_title">AI Aqlli Maslahat va Tahlil</span></h3></div>
                     </div>
                     <div id="aiProactiveSuggestion" style="margin:0 0 10px; font-size:12px; line-height:1.6; color:var(--ink);">Sun'iy intellekt tahlil qilmoqda...</div>
                     <button class="primary-button" id="acceptAiSuggestionBtn" type="button" style="display:none; padding:4px 10px; font-size:10px;" data-i18n="btn_accept">✅ Taklifni qabul qilish</button>
+                    <button class="secondary-button" type="button" onclick="refreshAiInsights()" style="margin-top:6px; padding:3px 8px; font-size:10px;">🔄 Tahlilni Yangilash</button>
                 </section>
 
                 <div class="stats-grid">
@@ -520,7 +521,7 @@
         </div>
     </div>
 
-    <!-- FULL EDIT MODAL (YANGI QO'SHISH BILAN BIR XIL TO'LIQ FORMA) -->
+    <!-- FULL EDIT MODAL -->
     <div class="modal-overlay" id="fullEditModal">
         <div class="modal-card">
             <div class="panel-header">
@@ -560,7 +561,7 @@
                 lbl_login: "Telefon raqam yoki Username", lbl_password: "Parol", lbl_name: "Ism va Familiya", lbl_username: "Unikal Username (@username)", lbl_phone: "Telefon raqam", lbl_bio: "Bio / Shior",
                 btn_login: "Kirish", btn_register: "Ro'yxatdan o'tish", lnk_to_reg: "Hali ro'yxatdan o'tmaganmisiz? Ro'yxatdan o'tish →", lnk_to_login: "Akkauntingiz bormi? Kirish →",
                 sidebar_sub: "Ma'lumotlar serverda saqlanadi", top_eyebrow: "TICKTICK + MONEY MANAGER",
-                ov_sub: "Bugungi rejalaringiz va pul oqimingiz.", ai_title: "AI Aqlli Takliflar & Maslahat", btn_accept: "✅ Taklifni qabul qilish",
+                ov_sub: "Bugungi rejalaringiz va pul oqimingiz.", ai_title: "AI Aqlli Maslahat va Tahlil", btn_accept: "✅ Taklifni qabul qilish",
                 stat_inc: "Bugungi kirim", stat_exp: "Bugungi chiqim", stat_bal: "Kun balansi",
                 sec_tasks: "Barcha rejalar", sec_expenses: "Xarajatlar tarkibi", sec_tx: "Barcha amaliyotlar", sec_budgets: "Oylik budjetlar",
                 btn_all: "Barchasi →", btn_finance: "Moliya →", btn_view: "Ko'rish →", btn_manage: "Boshqarish →",
@@ -587,7 +588,7 @@
                 lbl_login: "Номер телефона или Username", lbl_password: "Пароль", lbl_name: "Имя и Фамилия", lbl_username: "Уникальный Username (@username)", lbl_phone: "Номер телефона", lbl_bio: "Био / О себе",
                 btn_login: "Войти", btn_register: "Зарегистрироваться", lnk_to_reg: "Нет аккаунта? Регистрация →", lnk_to_login: "Есть аккаунт? Войти →",
                 sidebar_sub: "Данные хранятся на сервере", top_eyebrow: "TICKTICK + MONEY MANAGER",
-                ov_sub: "Ваши задачи и финансы на сегодня.", ai_title: "ИИ Умные Подсказки", btn_accept: "✅ Принять предложение",
+                ov_sub: "Ваши задачи и финансы на сегодня.", ai_title: "ИИ Умные Подсказки и Анализ", btn_accept: "✅ Принять предложение",
                 stat_inc: "Доходы сегодня", stat_exp: "Расходы сегодня", stat_bal: "Баланс дня",
                 sec_tasks: "Все задачи", sec_expenses: "Структура расходов", sec_tx: "Все операции", sec_budgets: "Месячные бюджеты",
                 btn_all: "Все →", btn_finance: "Финансы →", btn_view: "Смотреть →", btn_manage: "Управлять →",
@@ -614,7 +615,7 @@
                 lbl_login: "Phone number or Username", lbl_password: "Password", lbl_name: "Full Name", lbl_username: "Unique Username (@username)", lbl_phone: "Phone Number", lbl_bio: "Bio / Motto",
                 btn_login: "Login", btn_register: "Register", lnk_to_reg: "Don't have an account? Register →", lnk_to_login: "Already have an account? Login →",
                 sidebar_sub: "Data is saved securely", top_eyebrow: "TICKTICK + MONEY MANAGER",
-                ov_sub: "Your daily tasks and cashflow.", ai_title: "AI Smart Suggestions", btn_accept: "✅ Accept Suggestion",
+                ov_sub: "Your daily tasks and cashflow.", ai_title: "AI Smart Advice & Analysis", btn_accept: "✅ Accept Suggestion",
                 stat_inc: "Income today", stat_exp: "Expense today", stat_bal: "Day balance",
                 sec_tasks: "All Tasks", sec_expenses: "Expense Structure", sec_tx: "All Transactions", sec_budgets: "Monthly Budgets",
                 btn_all: "All →", btn_finance: "Finance →", btn_view: "View →", btn_manage: "Manage →",
@@ -816,6 +817,13 @@
         }
         function closeAdminPanelModal() { document.getElementById('adminModal').classList.remove('open'); }
 
+        // AI INSIGHTS REFRESH
+        async function refreshAiInsights() {
+            showToast("AI tahlil yangilanmoqda... ⏳");
+            await loadDashboardData();
+            showToast("AI tahlil yangilandi! ✨");
+        }
+
         // FULL EDIT MODAL WITH EXACT "ADD NEW" FIELDS FOR TASKS, TRANSACTIONS, GOALS, BUDGETS
         function openFullEditModal(type, id, itemData) {
             document.getElementById('feType').value = type;
@@ -975,6 +983,26 @@
             document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
             document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
 
+            // Dynamic AI Insights text based on real stats
+            let insight = "Sizda barcha ko'rsatkichlar ajoyib holatda. Bugungi vazifalaringizni oxiriga yetkazing! 🚀";
+            let suggestionAction = null;
+            if (summary.tasks_total === 0) {
+                insight = "💡 AI Maslahati: Bugun uchun reja kiritmabsiz. Kuningiz unumli o'tishi uchun kamida 3 ta muhim vazifa qo'shing.";
+                suggestionAction = { type: 'task', title: "Ertangi muhim vazifalarni rejalashtirish" };
+            } else if (summary.expense > summary.income && summary.expense > 0) {
+                insight = "⚠️ AI Moliya Ogohlantirishi: Bugungi xarajatlaringiz kirimingizdan oshib ketdi. Ertadan xarajatlarni qisqartirishni o'ylab ko'ring.";
+            } else if (summary.tasks_completed === summary.tasks_total && summary.tasks_total > 0) {
+                insight = "🏆 Qoyil! Bugungi barcha rejalaringizni to'liq bajardingiz. Ertangi kun uchun yangi maqsad qo'ying.";
+            }
+            document.getElementById('aiProactiveSuggestion').textContent = insight;
+            const acceptBtn = document.getElementById('acceptAiSuggestionBtn');
+            if (suggestionAction) {
+                acceptBtn.style.display = 'inline-block';
+                window.currentAiSuggestion = suggestionAction;
+            } else {
+                acceptBtn.style.display = 'none';
+            }
+
             const taskHtml = tasks.length ? tasks.map(t => `
                 <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <button class="task-check ${t.is_completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.is_completed ? '✓' : ''}</button>
@@ -1058,6 +1086,22 @@
                 `;
             }).join('') : '<div class="empty-state">Maqsadlar yo‘q</div>';
         }
+
+        document.getElementById('acceptAiSuggestionBtn').addEventListener('click', async () => {
+            if (!window.currentAiSuggestion) return;
+            const item = window.currentAiSuggestion;
+            if (item.type === 'task') {
+                const res = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ title: item.title, priority: 'high', date: localDateString() })
+                });
+                if (res.ok) {
+                    loadDashboardData();
+                    showToast("AI taklifi qabul qilindi va reja qo'shildi! ✅");
+                }
+            }
+        });
 
         async function toggleTask(id) {
             const res = await fetch(`/api/tasks/${id}/toggle`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
