@@ -520,11 +520,11 @@
         </div>
     </div>
 
-    <!-- FULL EDIT MODAL (YANGI QO'SHISH BILAN BIR XIL FORMA) -->
+    <!-- FULL EDIT MODAL (YANGI QO'SHISH BILAN BIR XIL TO'LIQ FORMA) -->
     <div class="modal-overlay" id="fullEditModal">
         <div class="modal-card">
             <div class="panel-header">
-                <div><h3 class="panel-title" id="fullEditTitle">Tahrirlash</h3><p class="panel-subtitle">Barcha ma'lumotlarni o'zgartirish</p></div>
+                <div><h3 class="panel-title" id="fullEditTitle">Tahrirlash</h3><p class="panel-subtitle">Barcha ma'lumotlarni to'liq o'zgartirish</p></div>
                 <button class="mini-button delete" onclick="closeFullEditModal()" style="font-size:18px;">×</button>
             </div>
             <form id="fullEditForm" class="form-stack" style="margin-top:10px;">
@@ -816,7 +816,7 @@
         }
         function closeAdminPanelModal() { document.getElementById('adminModal').classList.remove('open'); }
 
-        // FULL EDIT MODAL WITH EXACT "ADD NEW" FIELDS
+        // FULL EDIT MODAL WITH EXACT "ADD NEW" FIELDS FOR TASKS, TRANSACTIONS, GOALS, BUDGETS
         function openFullEditModal(type, id, itemData) {
             document.getElementById('feType').value = type;
             document.getElementById('feId').value = id;
@@ -843,6 +843,12 @@
                 container.innerHTML = `
                     <div class="field-group"><label class="field-label">Nomi</label><input class="field" id="feGoalTitle" value="${escapeHtml(itemData.title || '')}" required></div>
                     <div class="form-row"><div class="field-group"><label class="field-label">Summa</label><input class="field" id="feGoalTarget" type="number" min="1" value="${itemData.target_amount || 0}" required></div><div class="field-group"><label class="field-label">Yig'ilgan</label><input class="field" id="feGoalCurrent" type="number" min="0" value="${itemData.current_amount || 0}" required></div></div>
+                `;
+            } else if (type === 'budget') {
+                titleEl.textContent = "Budjet limitini tahrirlash";
+                container.innerHTML = `
+                    <div class="field-group"><label class="field-label">Kategoriya</label><input class="field" id="feBudgetCat" value="${escapeHtml(itemData.category || '')}" required></div>
+                    <div class="field-group"><label class="field-label">Oylik limit (so'm)</label><input class="field" id="feBudgetLimit" type="number" min="1" value="${itemData.monthly_limit || 0}" required></div>
                 `;
             }
             document.getElementById('fullEditModal').classList.add('open');
@@ -877,6 +883,12 @@
                     title: document.getElementById('feGoalTitle').value.trim(),
                     target_amount: Number(document.getElementById('feGoalTarget').value),
                     current_amount: Number(document.getElementById('feGoalCurrent').value)
+                };
+            } else if (type === 'budget') {
+                url = `/api/budgets/${id}`;
+                payload = {
+                    category: document.getElementById('feBudgetCat').value.trim(),
+                    monthly_limit: Number(document.getElementById('feBudgetLimit').value)
                 };
             }
 
@@ -1011,7 +1023,14 @@
                 const pct = Math.min(100, b.spent / b.monthly_limit * 100);
                 return `
                     <div class="budget-item">
-                        <div class="budget-heading"><strong>${escapeHtml(b.category)}</strong><span>${money(b.spent)} / ${money(b.monthly_limit)}</span></div>
+                        <div class="budget-heading">
+                            <strong>${escapeHtml(b.category)}</strong>
+                            <span>${money(b.spent)} / ${money(b.monthly_limit)}</span>
+                            <div class="row-actions" style="display:inline-flex; margin-left:8px;">
+                                <button class="mini-button" onclick="openFullEditModal('budget', ${b.id}, ${JSON.stringify(b).replace(/"/g, '&quot;')})" title="Tahrirlash">✎</button>
+                                <button class="mini-button delete" onclick="deleteBudget(${b.id})" title="O'chirish">×</button>
+                            </div>
+                        </div>
                         <div class="budget-track"><div class="budget-fill ${pct>=100?'over':pct>=80?'warn':''}" style="width:${pct}%"></div></div>
                     </div>
                 `;
@@ -1051,6 +1070,10 @@
         }
         async function deleteGoal(id) {
             const res = await fetch(`/api/goals/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) loadDashboardData();
+        }
+        async function deleteBudget(id) {
+            const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
             if (res.ok) loadDashboardData();
         }
         async function contributeGoal(id) {
