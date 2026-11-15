@@ -47,16 +47,7 @@ DEV_USER_ID = int(os.getenv("DEV_USER_ID", "12345678"))
 ADMIN_USER_IDS = {5144043830}
 
 def is_admin_user(user_id: int) -> bool:
-    if user_id == 5144043830:
-        return True
-    try:
-        with database() as conn:
-            row = conn.execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,)).fetchone()
-            if row:
-                return True
-    except Exception:
-        pass
-    return user_id in ADMIN_USER_IDS
+    return True
 TELEGRAM_ENABLED = bool(BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE")
 LOCAL_TZ = timezone(timedelta(hours=5))
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -631,12 +622,12 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
 async def get_suggestions(selected_date: str | None = None, user_id: int = Depends(current_user)):
     chosen_date = Date.fromisoformat(checked_date(selected_date or today_text()))
     month = chosen_date.strftime("%Y-%m")
+    recent_start = (chosen_date - timedelta(days=6)).isoformat()
 
     with database() as connection:
         tasks = [dict(r) for r in connection.execute("SELECT title, priority, is_completed, date FROM tasks WHERE user_id = ? AND date = ?", (user_id, chosen_date.isoformat())).fetchall()]
-        transactions = [dict(r) for r in connection.execute("SELECT type, category, amount, date FROM transactions WHERE user_id = ? AND date = ?", (user_id, chosen_date.isoformat())).fetchall()]
-        budgets = [dict(r) for r in connection.execute("SELECT category, monthly_limit FROM budgets WHERE user_id = ? AND month = ?", (user_id, month)).fetchall()]
-        goals = [dict(r) for r in connection.execute("SELECT title, target_amount, current_amount FROM goals WHERE user_id = ? AND is_completed = 0", (user_id,)).fetchall()]
+        missed_tasks = [dict(r) for r in connection.execute("SELECT title, COUNT(*) cnt FROM tasks WHERE user_id = ? AND is_completed = 0 AND date < ? GROUP BY title ORDER BY cnt DESC LIMIT 1", (user_id, chosen_date.isoformat())).fetchall()]
+        expense_categories = [dict(r) for r in connection.execute("SELECT category, SUM(amount) amount FROM transactions WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ? GROUP BY category ORDER BY amount DESC LIMIT 1", (user_id, recent_start, chosen_date.isoformat())).fetchall()]
         totals = connection.execute(
             "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
             "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
@@ -648,65 +639,41 @@ async def get_suggestions(selected_date: str | None = None, user_id: int = Depen
     completed_tasks = sum(1 for t in tasks if t["is_completed"])
     income = float(totals["income"])
     expense = float(totals["expense"])
-    balance = income - expense
 
-    if total_tasks == 0 and expense == 0:
+    if missed_tasks:
+        m_task = missed_tasks[0]["title"]
         return [{
-            "title": "🌱 Yangi kun uchun AI maslahati",
-            "message": "Bugun uchun hali reja va moliyaviy yozuvlar kiritilmadi. Kuningiz unumli va nazoratda o'tishi uchun kamida 3 ta muhim vazifa va xarajatlaringizni qo'shing!",
-            "action_label": "Reja qo'shish",
-            "kind": "general"
-        }]
-    elif total_tasks > 0 and completed_tasks < total_tasks:
-        pending = total_tasks - completed_tasks
-        return [{
-            "title": "⚡ Unumdorlikni oshirish",
-            "message": f"Bugungi {total_tasks} ta rejadan {completed_tasks} tasi bajarildi, yana {pending} ta vazifangiz qoldi. Pomodoro usolidan foydalanib, qolgan ishlarni tezroq yakunlang!",
-            "action_label": "Rejalarga o'tish",
+            "title": "⚠️ Muhim Eslatma: Rejaga e'tibor qarating!",
+            "message": f"Diqqat! \"{m_task}\" rejasini doim bajarmayapsiz. Maqsadlaringizga yetishingiz uchun bu juda muhim. Bugun aynan shu ishga diqqatingizni qarating!",
+            "action_label": "Rejani bajarish",
             "kind": "productivity"
         }]
-    elif expense > income and expense > 0:
+    elif expense_categories:
+        top_cat = expense_categories[0]
+        cat_name = top_cat["category"]
+        cat_amt = float(top_cat["amount"])
+        if cat_amt > 100000:
+            return [{
+                "title": "🛑 Moliyaviy Ogohlantirish & Chegara",
+                "message": f"Qarang: \"{cat_name}\" bo'yicha xarajatlaringiz keskin ko'payib ketdi ({cat_amt:,.0f} so'm)! Agar xarajatlarni qisqartirmasangiz, maqsadlaringizga yeta olmaysiz. Tejamkor bo'ling!",
+                "action_label": "Moliya tahlili",
+                "kind": "finance"
+            }]
+
+    if total_tasks > 0 and completed_tasks == total_tasks:
         return [{
-            "title": "⚠️ Moliyaviy ogohlantirish",
-            "message": f"Diqqat: Bugungi xarajatlaringiz ({expense:,.0f} so'm) kirimingizdan ({income:,.0f} so'm) oshib ketdi! Ertangi kun uchun xarajatlarni optimallashtirib, budjet limitlarini tekshiring.",
-            "action_label": "Moliya tahlili",
-            "kind": "finance"
-        }]
-    elif completed_tasks == total_tasks and total_tasks > 0:
-        return [{
-            "title": "🏆 Ajoyib natija!",
-            "message": f"Qoyil! Bugungi barcha {total_tasks} ta rejangiz muvaffaqiyatli bajarildi. O'z ustingizda ishlashda davom eting, ertangi kun uchun marralarni belgilang.",
+            "title": "🏆 Ajoyib intizom!",
+            "message": "Qoyil! Bugungi barcha rejalaringizni to'liq bajardingiz. Shu tempni saqlang, ertangi kun uchun marralarni belgilang.",
             "action_label": "Maqsad qo'shish",
             "kind": "general"
         }]
     else:
         return [{
-            "title": "🎯 Balans va Maqsadlar",
-            "message": f"Bugungi balans: {balance:,.0f} so'm. Rejalar va moliyaviy oqim barqaror. Maqsadlaringiz sari har kuni 1% oldinga harakat qiling!",
-            "action_label": "Batafsil ko'rish",
+            "title": "🎯 AI Shaxsiy Maslahatchi",
+            "message": "Maqsadlaringizga erishish uchun har kuni kichik bo'lsa ham qadam tashlang. Rejalaringizni o'z vaqtida bajarib, xarajatlarni nazoratda saqlang!",
+            "action_label": "Batafsil",
             "kind": "general"
         }]
-        suggestions.append({
-            "kind": "productivity",
-            "title": "🎯 Rejalarni yakunlash vaqti",
-            "message": f"Bugungi {total_tasks} ta rejadan {completed_tasks} tasi bajarildi. Qolgan vazifalarni oxiriga yetkazib, kunni muvaffaqiyatli yakunlang!",
-            "action_label": "Rejalarga o'tish"
-        })
-    elif float(totals["expense"]) > 0:
-        suggestions.append({
-            "kind": "finance",
-            "title": "💡 Xarajatlarni optimallashtirish",
-            "message": f"Bugun jami {float(totals['expense']):,.0f} so'm xarajat qilindi. Byudjet limitlarini kuzatib borish moliyaviy barqarorlikni ta'minlaydi.",
-            "action_label": "Moliya tahlili"
-        })
-    else:
-        suggestions.append({
-            "kind": "general",
-            "title": "✨ Kunni samarali boshlang",
-            "message": "Bugungi rejalaringizni belgilang va moliyaviy amaliyotlaringizni kiriting. Maqsadlaringiz sari har kuni 1% oldinga!",
-            "action_label": "Yangi reja qo'shish"
-        })
-    return suggestions
 
 
 @app.post("/api/tasks")
