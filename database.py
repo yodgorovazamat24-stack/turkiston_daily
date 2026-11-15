@@ -104,12 +104,19 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS admins (
+                user_id INTEGER PRIMARY KEY,
+                added_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_tasks_user_date ON tasks(user_id, date);
             CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date);
             CREATE INDEX IF NOT EXISTS idx_budgets_user_month ON budgets(user_id, month);
             CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
             """
         )
+
+        connection.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (5144043830)")
 
         _add_missing_columns(
             connection,
@@ -120,7 +127,6 @@ def init_db():
                 "username": "TEXT DEFAULT ''",
                 "bio": "TEXT DEFAULT ''",
                 "avatar_url": "TEXT NOT NULL DEFAULT ''",
-                "bio": "TEXT NOT NULL DEFAULT ''",
                 "password_hash": "TEXT NOT NULL DEFAULT ''",
                 "telegram_user_id": "INTEGER",
                 "last_finance_reminder_date": "TEXT DEFAULT ''",

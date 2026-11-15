@@ -44,11 +44,19 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip() or os.getenv("RENDER_EXTERNAL_URL", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "12345678"))
-ADMIN_USER_IDS = {
-    5144043830,
-    DEV_USER_ID,
-    *([int(value.strip()) for value in os.getenv("ADMIN_USER_IDS", "").split(",") if value.strip().isdigit()])
-}
+ADMIN_USER_IDS = {5144043830}
+
+def is_admin_user(user_id: int) -> bool:
+    if user_id == 5144043830:
+        return True
+    try:
+        with database() as conn:
+            row = conn.execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,)).fetchone()
+            if row:
+                return True
+    except Exception:
+        pass
+    return user_id in ADMIN_USER_IDS
 TELEGRAM_ENABLED = bool(BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE")
 LOCAL_TZ = timezone(timedelta(hours=5))
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -462,20 +470,18 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
 
 @app.get("/api/admin/users")
 async def admin_get_users(user_id: int = Depends(current_user)):
+    if not is_admin_user(user_id):
+        raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
     with database() as conn:
-        u = conn.execute("SELECT username FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        if not u or (u["username"] != "admin" and user_id not in ADMIN_USER_IDS and user_id != DEV_USER_ID):
-            raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
         rows = conn.execute("SELECT user_id, full_name, username, phone, last_seen_at FROM users ORDER BY last_seen_at DESC").fetchall()
     return [dict(r) for r in rows]
 
 
 @app.get("/api/admin/export-master", response_class=HTMLResponse)
 async def admin_export_master(user_id: int = Depends(current_user)):
+    if not is_admin_user(user_id):
+        raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
     with database() as conn:
-        u = conn.execute("SELECT username FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        if not u or (u["username"] != "admin" and user_id not in ADMIN_USER_IDS and user_id != DEV_USER_ID):
-            raise HTTPException(status_code=403, detail="Admin huquqi talab qilinadi")
         users = conn.execute("SELECT * FROM users").fetchall()
         tasks = conn.execute("SELECT * FROM tasks").fetchall()
         transactions = conn.execute("SELECT * FROM transactions").fetchall()
@@ -1859,7 +1865,7 @@ async def report_callback(callback):
 
 async def admin_cmd(message):
     record_user_activity(message.from_user.id)
-    if message.from_user.id not in ADMIN_USER_IDS:
+    if not is_admin_user(message.from_user.id):
         await message.answer("Bu bo'lim faqat administratorlar uchun.")
         return
     await message.answer(
@@ -1878,14 +1884,17 @@ def admin_main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stats"),
-            InlineKeyboardButton(text="👥 Foydalanuvchilar ro'yxati", callback_data="admin:users:0"),
+            InlineKeyboardButton(text="👥 Foydalanuvchilar", callback_data="admin:users:0"),
         ],
         [
             InlineKeyboardButton(text="🔎 ID bo'yicha qidirish", callback_data="admin:lookup"),
-            InlineKeyboardButton(text="📢 E'lon yuborish", callback_data="admin:broadcast"),
+            InlineKeyboardButton(text="➕ Yangi admin belgilash", callback_data="admin:add_admin"),
         ],
         [
+            InlineKeyboardButton(text="📢 E'lon yuborish", callback_data="admin:broadcast"),
             InlineKeyboardButton(text="🩺 Tizim holati", callback_data="admin:health"),
+        ],
+        [
             InlineKeyboardButton(text="ℹ️ Qo'llanma", callback_data="admin:guide"),
         ],
     ])
@@ -2212,6 +2221,15 @@ async def admin_callback(callback):
         await callback.message.answer(
             f"📢 E'lon yuborish yakunlandi.\n✅ Yetkazildi: {sent}\n⚠️ Yuborilmadi: {failed}"
         )
+    elif data == "admin:add_admin":
+        if callback.from_user.id != 5144043830:
+            await callback.answer("Faqat bosh admin (5144043830) yangi admin tayinlay oladi.", show_alert=True)
+            return
+        ADMIN_PENDING_ACTIONS[callback.from_user.id] = "add_admin"
+        await callback.answer()
+        await callback.message.answer(
+            "➕ Yangi admin qilib tayinlash uchun foydalanuvchining Telegram ID raqamini yoki username (@ bilan) yuboring.\n\nBekor qilish uchun /cancel yozing."
+        )
     elif data.startswith("admin:user:tasks:"):
         uid = int(data.split(":")[3])
         with database() as connection:
@@ -2294,6 +2312,31 @@ async def menu_action(message):
 async def capture_text_input(message):
     user_id = message.from_user.id
     admin_pending = ADMIN_PENDING_ACTIONS.get(user_id)
+    if admin_pending == "add_admin":
+        if user_id != 5144043830:
+            ADMIN_PENDING_ACTIONS.pop(user_id, None)
+            await message.answer("Faqat bosh admin yangi admin tayinlay oladi.")
+            return
+        text = (message.text or "").strip().lstrip("@")
+        ADMIN_PENDING_ACTIONS.pop(user_id, None)
+
+        target_uid = None
+        if text.isdigit():
+            target_uid = int(text)
+        else:
+            with database() as conn:
+                u_row = conn.execute("SELECT user_id FROM users WHERE username = ?", (text,)).fetchone()
+                if u_row:
+                    target_uid = int(u_row["user_id"])
+
+        if not target_uid:
+            await message.answer("Bunday foydalanuvchi topilmadi. To'g'ri ID yoki username kiriting.")
+            return
+
+        with database() as conn:
+            conn.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (target_uid,))
+        await message.answer(f"✅ Foydalanuvchi ({target_uid}) muvaffaqiyatli yangi admin etib tayinlandi!")
+        return
     if admin_pending == "user_lookup":
         if user_id not in ADMIN_USER_IDS:
             ADMIN_PENDING_ACTIONS.pop(user_id, None)
