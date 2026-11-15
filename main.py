@@ -625,98 +625,75 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
 async def get_suggestions(selected_date: str | None = None, user_id: int = Depends(current_user)):
     chosen_date = Date.fromisoformat(checked_date(selected_date or today_text()))
     month = chosen_date.strftime("%Y-%m")
-    recent_start = (chosen_date - timedelta(days=29)).isoformat()
-    goal_history_start = (chosen_date - timedelta(days=59)).isoformat()
-    suggestions = []
 
     with database() as connection:
-        overdue_task = connection.execute(
-            "SELECT id, title, date, scheduled_time FROM tasks "
-            "WHERE user_id = ? AND is_completed = 0 AND date < ? "
-            "ORDER BY date, CASE WHEN scheduled_time IS NULL THEN 1 ELSE 0 END, scheduled_time LIMIT 1",
-            (user_id, chosen_date.isoformat()),
-        ).fetchone()
-        if overdue_task:
-            suggestions.append({
-                "kind": "reschedule_task",
-                "task_id": overdue_task["id"],
-                "title": "Bajarilmagan rejani qayta belgilang",
-                "message": f"“{overdue_task['title']}” {overdue_task['date']} kunidan beri bajarilmagan. Uni bugunga ko‘chirish yoki reja ichida muddatini o‘zgartirish mumkin.",
-                "action_label": "Bugunga ko‘chirish",
-            })
-
-        expense_categories = connection.execute(
-            "SELECT category, SUM(amount) amount FROM transactions "
-            "WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ? "
-            "GROUP BY category ORDER BY amount DESC",
-            (user_id, recent_start, chosen_date.isoformat()),
-        ).fetchall()
-        expense_category = None
-        for candidate in expense_categories:
-            existing_budget = connection.execute(
-                "SELECT 1 FROM budgets WHERE user_id = ? AND category = ? AND month = ?",
-                (user_id, candidate["category"], month),
-            ).fetchone()
-            if not existing_budget:
-                expense_category = candidate
-                break
-
-        if expense_category:
-            review_title = f"{expense_category['category']} xarajatlarini ko‘rib chiqish"
-            existing_review = connection.execute(
-                "SELECT 1 FROM tasks WHERE user_id = ? AND title = ? AND date BETWEEN ? AND ? LIMIT 1",
-                (user_id, review_title, recent_start, chosen_date.isoformat()),
-            ).fetchone()
-            if not existing_review:
-                suggestions.append({
-                    "kind": "create_task",
-                    "task_title": review_title,
-                    "title": f"Yangi reja: {expense_category['category']} xarajatlarini ko‘rib chiqing",
-                    "message": f"Oxirgi 30 kunda {expense_category['category']} bo‘yicha eng ko‘p sarf bo‘lgan. 15 daqiqalik tahlil keyingi xarajatlaringizni ongliroq rejalashga yordam beradi.",
-                    "action_label": "Rejani qo‘shish",
-                })
-            recent_spend = float(expense_category["amount"])
-            if recent_spend > 0:
-                monthly_limit = math.ceil((recent_spend * 1.1) / 10000) * 10000
-                suggestions.append({
-                    "kind": "create_budget",
-                    "category": expense_category["category"],
-                    "monthly_limit": monthly_limit,
-                    "month": month,
-                    "title": f"{expense_category['category']} uchun yumshoq limit",
-                    "message": f"Oxirgi 30 kunda bu toifaga {recent_spend:,.0f} so‘m sarflangan. Sarfni kuzatish uchun {monthly_limit:,.0f} so‘mlik oylik limitni ko‘rib chiqing.",
-                    "action_label": "Limitni qo‘shish",
-                })
-
-        active_goal = connection.execute(
-            "SELECT 1 FROM goals WHERE user_id = ? AND is_completed = 0 LIMIT 1",
-            (user_id,),
-        ).fetchone()
-        recent_totals = connection.execute(
+        tasks = [dict(r) for r in connection.execute("SELECT title, priority, is_completed, date FROM tasks WHERE user_id = ? AND date = ?", (user_id, chosen_date.isoformat())).fetchall()]
+        transactions = [dict(r) for r in connection.execute("SELECT type, category, amount, date FROM transactions WHERE user_id = ? AND date = ?", (user_id, chosen_date.isoformat())).fetchall()]
+        budgets = [dict(r) for r in connection.execute("SELECT category, monthly_limit FROM budgets WHERE user_id = ? AND month = ?", (user_id, month)).fetchall()]
+        goals = [dict(r) for r in connection.execute("SELECT title, target_amount, current_amount FROM goals WHERE user_id = ? AND is_completed = 0", (user_id,)).fetchall()]
+        totals = connection.execute(
             "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
             "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
-            "FROM transactions WHERE user_id = ? AND date BETWEEN ? AND ?",
-            (user_id, goal_history_start, chosen_date.isoformat()),
+            "FROM transactions WHERE user_id = ? AND date = ?",
+            (user_id, chosen_date.isoformat()),
         ).fetchone()
 
-    if not active_goal:
-        average_monthly_expense = float(recent_totals["expense"]) / 2
-        average_monthly_surplus = (float(recent_totals["income"]) - float(recent_totals["expense"])) / 2
-        if average_monthly_expense > 0 and average_monthly_surplus > 0:
-            target_amount = min(
-                1_000_000_000_000,
-                math.ceil((average_monthly_expense * 3) / 10000) * 10000,
-            )
-            suggestions.append({
-                "kind": "create_goal",
-                "title": "3 oylik zaxira jamg‘armasi",
-                "target_amount": target_amount,
-                "deadline": (chosen_date + timedelta(days=90)).isoformat(),
-                "message": f"Oxirgi 60 kunlik yozuvlarda daromad xarajatdan yuqori. Uch oylik o‘rtacha xarajatga teng {target_amount:,.0f} so‘mlik zaxira maqsadini ko‘rib chiqing.",
-                "action_label": "Maqsadni ko‘rib chiqish",
-            })
+    context_data = {
+        "date": chosen_date.isoformat(),
+        "tasks": tasks,
+        "transactions": transactions,
+        "budgets": budgets,
+        "goals": goals,
+        "daily_income": float(totals["income"]),
+        "daily_expense": float(totals["expense"])
+    }
 
-    return suggestions[:4]
+    system_prompt = (
+        "Siz Turkiston Daily shaxsiy AI maslahatchisisiz. Foydalanuvchining bugungi rejalari, xarajatlari, "
+        "oylik budjetlari va maqsadlarini chuqur tahlil qilib, unga rejalarni bajarish, xarajatlarni optimallashtirib "
+        "maqsadlarga yetish bo'yicha eng o'rinli, motivatsion va amaliy 1 ta maslahat bering. "
+        "Javobni qat'iy JSON formatda qaytaring: {\"title\": \"...\", \"message\": \"...\", \"action_label\": \"...\", \"kind\": \"general\"}"
+    )
+    user_msg = f"Foydalanuvchi ma'lumotlari: {json.dumps(context_data, ensure_ascii=False)}"
+
+    try:
+        ai_res = await query_gemini_api(GEMINI_API_KEY, user_msg, system_prompt)
+        if isinstance(ai_res, dict) and ai_res.get("message"):
+            return [{
+                "title": ai_res.get("title", "AI Aqlli Maslahat"),
+                "message": ai_res.get("message"),
+                "action_label": ai_res.get("action_label", "Tushunarli"),
+                "kind": ai_res.get("kind", "general")
+            }]
+    except Exception:
+        pass
+
+    # Fallback smart rule-based insights if AI offline
+    suggestions = []
+    total_tasks = len(tasks)
+    completed_tasks = sum(1 for t in tasks if t["is_completed"])
+    if total_tasks > 0 and completed_tasks < total_tasks:
+        suggestions.append({
+            "kind": "productivity",
+            "title": "🎯 Rejalarni yakunlash vaqti",
+            "message": f"Bugungi {total_tasks} ta rejadan {completed_tasks} tasi bajarildi. Qolgan vazifalarni oxiriga yetkazib, kunni muvaffaqiyatli yakunlang!",
+            "action_label": "Rejalarga o'tish"
+        })
+    elif float(totals["expense"]) > 0:
+        suggestions.append({
+            "kind": "finance",
+            "title": "💡 Xarajatlarni optimallashtirish",
+            "message": f"Bugun jami {float(totals['expense']):,.0f} so'm xarajat qilindi. Byudjet limitlarini kuzatib borish moliyaviy barqarorlikni ta'minlaydi.",
+            "action_label": "Moliya tahlili"
+        })
+    else:
+        suggestions.append({
+            "kind": "general",
+            "title": "✨ Kunni samarali boshlang",
+            "message": "Bugungi rejalaringizni belgilang va moliyaviy amaliyotlaringizni kiriting. Maqsadlaringiz sari har kuni 1% oldinga!",
+            "action_label": "Yangi reja qo'shish"
+        })
+    return suggestions
 
 
 @app.post("/api/tasks")
