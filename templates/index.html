@@ -406,7 +406,7 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR (EXCEL & TELEGRAM SHARE BUTTONS + CHARTS & DIAGRAMS) -->
+            <!-- HISOBOTLAR -->
             <section class="view" id="view-reports">
                 <p class="page-intro" data-i18n="rep_intro">Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.</p>
                 <div class="view-grid">
@@ -437,7 +437,7 @@
         </main>
     </div>
 
-    <!-- SHAXSIY KABINET MODALI (USERNAME EDITABLE) -->
+    <!-- SHAXSIY KABINET MODALI -->
     <div class="modal-overlay" id="profileModal">
         <div class="modal-card">
             <div class="panel-header">
@@ -465,7 +465,7 @@
         </div>
     </div>
 
-    <!-- SOZLAMALAR MODALI (SAVE BUTTON & LANGUAGE SELECTOR) -->
+    <!-- SOZLAMALAR MODALI (ALARM VOICE SELECTION) -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <div class="panel-header">
@@ -486,6 +486,14 @@
                         <option value="uz">O'zbekcha</option>
                         <option value="ru">Русский</option>
                         <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="alarmSoundSelect" data-i18n="set_alarm_sound">🔊 Budilnik / Eslatma ovozi</label>
+                    <select class="field" id="alarmSoundSelect">
+                        <option value="beep" data-i18n="opt_beep">🔔 Standart Signal (Beep)</option>
+                        <option value="bell" data-i18n="opt_bell">🎵 Qo'ng'iroq (Bell Chime)</option>
+                        <option value="chime" data-i18n="opt_chime">🎶 Melodik Ohang (Chime)</option>
                     </select>
                 </div>
                 <button class="primary-button" type="button" onclick="saveSettingsModalChanges()" data-i18n="btn_save_settings">Sozlamalarni saqlash</button>
@@ -524,12 +532,12 @@
 
     <!-- MOBIL MENYU -->
     <nav class="mobile-nav" aria-label="Menyu">
-        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
-        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
-        <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
-        <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
-        <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
-        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
+        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span><span data-i18n="menu_overview">Umumiy</span></button>
+        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span><span data-i18n="menu_ai">AI</span></button>
+        <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span><span data-i18n="menu_tasks">Rejalar</span></button>
+        <button class="nav-button" data-view="money"><span class="nav-icon">↗</span><span data-i18n="menu_money">Moliya</span></button>
+        <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span><span data-i18n="menu_goals">Maqsad</span></button>
+        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span><span data-i18n="menu_reports">Hisobot</span></button>
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -563,7 +571,8 @@
                 goal_intro: "Notion kabi erkin jamg'arma va loyihalar konstruktori.", goal_list_title: "Maqsadlar", goal_new_title: "Yangi maqsad", goal_lbl_title: "Nomi", goal_lbl_target: "Summa", goal_lbl_current: "Yig'ilgan", btn_create_goal: "Maqsad yaratish",
                 rep_intro: "Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.", rep_day_title: "Kun yakuni", rep_lbl_score: "Kunga baho", rep_lbl_note: "Qayd va eslatmalar",
                 rep_excel_title: "📊 Jadvalli va Diagrammali Excel Hisobot", rep_lbl_period: "Hisobot davri", opt_day: "Kunlik (Bugungi)", opt_week: "Haftalik", opt_month: "Oylik", opt_all: "Barcha davr", btn_download_rep: "📥 Excel / HTML Hisobotni Yuklab Olish", btn_share_rep: "📤 Telegram orqali ulashish", rep_history: "Oylik tahlil va tarix",
-                set_theme: "Interfeys rejimi", opt_light: "☀️ Kunduzgi rejim", opt_dark: "🌙 Tungi rejim", set_lang: "Ilova tili", set_notif: "🔔 Push Bildirishnomalar", btn_enable_push: "🔔 Push bildirishnomalarni yoqish", btn_test_push: "🧪 Sinov bildirishnomasini yuborish", btn_backup: "📥 Ma'lumotlarni zaxiralash (JSON)", btn_restore: "📤 Zaxiradan tiklash", btn_save_settings: "Sozlamalarni saqlash"
+                set_theme: "Interfeys rejimi", opt_light: "☀️ Kunduzgi rejim", opt_dark: "🌙 Tungi rejim", set_lang: "Ilova tili", set_alarm_sound: "🔊 Budilnik / Eslatma ovozi", opt_beep: "🔔 Standart Signal (Beep)", opt_bell: "🎵 Qo'ng'iroq (Bell Chime)", opt_chime: "🎶 Melodik Ohang (Chime)",
+                set_notif: "🔔 Push Bildirishnomalar", btn_enable_push: "🔔 Push bildirishnomalarni yoqish", btn_test_push: "🧪 Sinov bildirishnomasini yuborish", btn_backup: "📥 Ma'lumotlarni zaxiralash (JSON)", btn_restore: "📤 Zaxiradan tiklash", btn_save_settings: "Sozlamalarni saqlash"
             },
             ru: {
                 nav_label: "РАЗДЕЛЫ", menu_overview: "Главная", menu_ai: "ИИ Помощник", menu_tasks: "Задачи", menu_money: "Финансы", menu_goals: "Цели", menu_reports: "Отчеты",
@@ -589,7 +598,8 @@
                 goal_intro: "Конструктор целей и накоплений в стиле Notion.", goal_list_title: "Цели", goal_new_title: "Новая цель", goal_lbl_title: "Название", goal_lbl_target: "Сумма", goal_lbl_current: "Собрано", btn_create_goal: "Создать цель",
                 rep_intro: "Итоги дня, графики и визуальные Excel-отчеты.", rep_day_title: "Итог дня", rep_lbl_score: "Оценка дня", rep_lbl_note: "Заметки и выводы",
                 rep_excel_title: "📊 Табличный и Диаграммный Excel Отчет", rep_lbl_period: "Период отчета", opt_day: "За день", opt_week: "За неделю", opt_month: "За месяц", opt_all: "За все время", btn_download_rep: "📥 Скачать Excel / HTML Отчет", btn_share_rep: "📤 Поделиться через Telegram", rep_history: "История и анализ",
-                set_theme: "Режим интерфейса", opt_light: "☀️ Дневной режим", opt_dark: "🌙 Ночной режим", set_lang: "Язык приложения", set_notif: "🔔 Push Уведомления", btn_enable_push: "🔔 Включить уведомления", btn_test_push: "🧪 Тест уведомления", btn_backup: "📥 Бэкап (JSON)", btn_restore: "📤 Восстановить", btn_save_settings: "Сохранить настройки"
+                set_theme: "Режим интерфейса", opt_light: "☀️ Дневной режим", opt_dark: "🌙 Ночной режим", set_lang: "Язык приложения", set_alarm_sound: "🔊 Звук будильника / напоминания", opt_beep: "🔔 Стандартный сигнал (Beep)", opt_bell: "🎵 Колокольчик (Bell Chime)", opt_chime: "🎶 Мелодичный звон (Chime)",
+                set_notif: "🔔 Push Уведомления", btn_enable_push: "🔔 Включить уведомления", btn_test_push: "🧪 Тест уведомления", btn_backup: "📥 Бэкап (JSON)", btn_restore: "📤 Восстановить", btn_save_settings: "Сохранить настройки"
             },
             en: {
                 nav_label: "SECTIONS", menu_overview: "Overview", menu_ai: "AI Assistant", menu_tasks: "Tasks", menu_money: "Finance", menu_goals: "Goals", menu_reports: "Reports",
@@ -615,7 +625,8 @@
                 goal_intro: "Notion-style goals and savings builder.", goal_list_title: "Goals", goal_new_title: "New Goal", goal_lbl_title: "Title", goal_lbl_target: "Amount", goal_lbl_current: "Collected", btn_create_goal: "Create Goal",
                 rep_intro: "Daily review, charts and visual Excel reports.", rep_day_title: "Daily Review", rep_lbl_score: "Day Rating", rep_lbl_note: "Notes and takeaways",
                 rep_excel_title: "📊 Visual Excel Report with Charts", rep_lbl_period: "Report Period", opt_day: "Daily", opt_week: "Weekly", opt_month: "Monthly", opt_all: "All Time", btn_download_rep: "📥 Download Excel / HTML Report", btn_share_rep: "📤 Share via Telegram", rep_history: "History & Analysis",
-                set_theme: "Theme Mode", opt_light: "☀️ Light Mode", opt_dark: "🌙 Dark Mode", set_lang: "App Language", set_notif: "🔔 Push Notifications", btn_enable_push: "🔔 Enable Notifications", btn_test_push: "🧪 Test Notification", btn_backup: "📥 Backup (JSON)", btn_restore: "📤 Restore", btn_save_settings: "Save Settings"
+                set_theme: "Theme Mode", opt_light: "☀️ Light Mode", opt_dark: "🌙 Dark Mode", set_lang: "App Language", set_alarm_sound: "🔊 Alarm / Reminder Sound", opt_beep: "🔔 Standard Beep", opt_bell: "🎵 Bell Chime", opt_chime: "🎶 Melodic Chime",
+                set_notif: "🔔 Push Notifications", btn_enable_push: "🔔 Enable Notifications", btn_test_push: "🧪 Test Notification", btn_backup: "📥 Backup (JSON)", btn_restore: "📤 Restore", btn_save_settings: "Save Settings"
             }
         };
 
@@ -651,10 +662,12 @@
         function saveSettingsModalChanges() {
             const theme = document.getElementById('themeSelect').value;
             const lang = document.getElementById('langSelect').value;
+            const sound = document.getElementById('alarmSoundSelect').value;
+            localStorage.setItem('turkiston_alarm_sound', sound);
             changeTheme(theme);
             changeLanguage(lang);
             closeSettingsModal();
-            showToast("Sozlamalar saqlandi! ✅");
+            showToast(lang === 'uz' ? 'Sozlamalar saqlandi! ✅' : lang === 'ru' ? 'Настройки сохранены! ✅' : 'Settings saved! ✅');
         }
 
         function toggleHeaderDropdown(e) {
@@ -734,7 +747,6 @@
 
         async function checkAuthAndLoad() {
             if (!currentLang) {
-                // First launch ever
                 document.getElementById('langSelectModal').classList.add('open');
                 return;
             } else {
