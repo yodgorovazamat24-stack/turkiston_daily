@@ -465,7 +465,7 @@
         </div>
     </div>
 
-    <!-- SOZLAMALAR MODALI (CLEANED UP & ALARM VOICE) -->
+    <!-- SOZLAMALAR MODALI -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <div class="panel-header">
@@ -520,20 +520,18 @@
         </div>
     </div>
 
-    <!-- UNIVERSAL EDIT MODAL FOR TASKS, TRANSACTIONS, GOALS -->
-    <div class="modal-overlay" id="universalEditModal">
+    <!-- FULL EDIT MODAL (YANGI QO'SHISH BILAN BIR XIL FORMA) -->
+    <div class="modal-overlay" id="fullEditModal">
         <div class="modal-card">
             <div class="panel-header">
-                <div><h3 class="panel-title" id="editModalTitle">Tahrirlash</h3><p class="panel-subtitle">Ma'lumotlarni o'zgartirish</p></div>
-                <button class="mini-button delete" onclick="closeUniversalEditModal()" style="font-size:18px;">×</button>
+                <div><h3 class="panel-title" id="fullEditTitle">Tahrirlash</h3><p class="panel-subtitle">Barcha ma'lumotlarni o'zgartirish</p></div>
+                <button class="mini-button delete" onclick="closeFullEditModal()" style="font-size:18px;">×</button>
             </div>
-            <form id="universalEditForm" class="form-stack" style="margin-top:10px;">
-                <input type="hidden" id="editType">
-                <input type="hidden" id="editId">
-                <div class="field-group" id="editField1Wrap"><label class="field-label" id="editLabel1">Nomi</label><input class="field" id="editInput1" required></div>
-                <div class="field-group" id="editField2Wrap"><label class="field-label" id="editLabel2">Summa / Qiymat</label><input class="field" id="editInput2"></div>
-                <div class="field-group" id="editField3Wrap"><label class="field-label" id="editLabel3">Qo'shimcha</label><input class="field" id="editInput3"></div>
-                <button class="primary-button" type="submit" data-i18n="btn_save">Saqlash</button>
+            <form id="fullEditForm" class="form-stack" style="margin-top:10px;">
+                <input type="hidden" id="feType">
+                <input type="hidden" id="feId">
+                <div id="feFieldsContainer" class="form-stack"></div>
+                <button class="primary-button" type="submit" data-i18n="btn_save" style="margin-top:10px;">O'zgarishlarni saqlash</button>
             </form>
         </div>
     </div>
@@ -818,64 +816,68 @@
         }
         function closeAdminPanelModal() { document.getElementById('adminModal').classList.remove('open'); }
 
-        // UNIVERSAL EDIT MODAL FOR TASKS, TRANSACTIONS, GOALS
-        function openUniversalEditModal(type, id, val1, val2, val3) {
-            document.getElementById('editType').value = type;
-            document.getElementById('editId').value = id;
-            const modal = document.getElementById('universalEditModal');
-            const titleEl = document.getElementById('editModalTitle');
-            const l1 = document.getElementById('editLabel1');
-            const l2 = document.getElementById('editLabel2');
-            const l3 = document.getElementById('editField3Wrap');
+        // FULL EDIT MODAL WITH EXACT "ADD NEW" FIELDS
+        function openFullEditModal(type, id, itemData) {
+            document.getElementById('feType').value = type;
+            document.getElementById('feId').value = id;
+            const container = document.getElementById('feFieldsContainer');
+            const titleEl = document.getElementById('fullEditTitle');
+            container.innerHTML = '';
 
             if (type === 'task') {
-                titleEl.textContent = "Rejani tahrirlash";
-                l1.textContent = "Reja nomi";
-                l2.textContent = "Muhimligi (normal/high)";
-                l3.style.display = 'none';
-                document.getElementById('editInput1').value = val1;
-                document.getElementById('editInput2').value = val2;
+                titleEl.textContent = "Rejani to'liq tahrirlash";
+                container.innerHTML = `
+                    <div class="field-group"><label class="field-label">Reja nomi</label><input class="field" id="feTaskTitle" value="${escapeHtml(itemData.title || '')}" required></div>
+                    <div class="form-row"><div class="field-group"><label class="field-label">Muhimligi</label><select class="field" id="feTaskPrio"><option value="normal" ${itemData.priority==='normal'?'selected':''}>Oddiy</option><option value="high" ${itemData.priority==='high'?'selected':''}>Muhim</option></select></div><div class="field-group"><label class="field-label">Takrorlanishi</label><select class="field" id="feTaskRec"><option value="none" ${itemData.recurrence==='none'?'selected':''}>Takrorlanmaydi</option><option value="daily" ${itemData.recurrence==='daily'?'selected':''}>Har kuni</option><option value="weekly" ${itemData.recurrence==='weekly'?'selected':''}>Har hafta</option><option value="hourly" ${itemData.recurrence==='hourly'?'selected':''}>Har soatda</option></select></div></div>
+                    <div class="field-group"><label class="field-label">Eslatma vaqti (Budilnik)</label><input class="field" id="feTaskRem" type="datetime-local" value="${itemData.remind_at ? itemData.remind_at.slice(0,16) : ''}"></div>
+                `;
             } else if (type === 'transaction') {
-                titleEl.textContent = "Amaliyotni tahrirlash";
-                l1.textContent = "Kategoriya";
-                l2.textContent = "Summa (so'm)";
-                l3.style.display = 'block';
-                document.getElementById('editLabel3').textContent = "Izoh";
-                document.getElementById('editInput1').value = val1;
-                document.getElementById('editInput2').value = val2;
-                document.getElementById('editInput3').value = val3 || '';
+                titleEl.textContent = "Amaliyotni to'liq tahrirlash";
+                container.innerHTML = `
+                    <div class="form-row"><div class="field-group"><label class="field-label">Turi</label><select class="field" id="feTxType"><option value="expense" ${itemData.type==='expense'?'selected':''}>Chiqim</option><option value="income" ${itemData.type==='income'?'selected':''}>Kirim</option></select></div><div class="field-group"><label class="field-label">Kategoriya</label><input class="field" id="feTxCat" value="${escapeHtml(itemData.category || '')}" required></div></div>
+                    <div class="field-group"><label class="field-label">Summa (so'm)</label><input class="field" id="feTxAmt" type="number" min="1" value="${itemData.amount || 0}" required></div>
+                    <div class="field-group"><label class="field-label">Izoh</label><input class="field" id="feTxNote" value="${escapeHtml(itemData.note || '')}"></div>
+                `;
             } else if (type === 'goal') {
-                titleEl.textContent = "Maqsadni tahrirlash";
-                l1.textContent = "Maqsad nomi";
-                l2.textContent = "Maqsad summasi";
-                l3.style.display = 'block';
-                document.getElementById('editLabel3').textContent = "Yig'ilgan summa";
-                document.getElementById('editInput1').value = val1;
-                document.getElementById('editInput2').value = val2;
-                document.getElementById('editInput3').value = val3;
+                titleEl.textContent = "Maqsadni to'liq tahrirlash";
+                container.innerHTML = `
+                    <div class="field-group"><label class="field-label">Nomi</label><input class="field" id="feGoalTitle" value="${escapeHtml(itemData.title || '')}" required></div>
+                    <div class="form-row"><div class="field-group"><label class="field-label">Summa</label><input class="field" id="feGoalTarget" type="number" min="1" value="${itemData.target_amount || 0}" required></div><div class="field-group"><label class="field-label">Yig'ilgan</label><input class="field" id="feGoalCurrent" type="number" min="0" value="${itemData.current_amount || 0}" required></div></div>
+                `;
             }
-            modal.classList.add('open');
+            document.getElementById('fullEditModal').classList.add('open');
         }
-        function closeUniversalEditModal() { document.getElementById('universalEditModal').classList.remove('open'); }
+        function closeFullEditModal() { document.getElementById('fullEditModal').classList.remove('open'); }
 
-        document.getElementById('universalEditForm').addEventListener('submit', async e => {
+        document.getElementById('fullEditForm').addEventListener('submit', async e => {
             e.preventDefault();
-            const type = document.getElementById('editType').value;
-            const id = document.getElementById('editId').value;
-            const v1 = document.getElementById('editInput1').value.trim();
-            const v2 = document.getElementById('editInput2').value;
-            const v3 = document.getElementById('editInput3').value;
-
+            const type = document.getElementById('feType').value;
+            const id = document.getElementById('feId').value;
             let url = '', payload = {};
+
             if (type === 'task') {
                 url = `/api/tasks/${id}`;
-                payload = { title: v1, priority: v2 };
+                payload = {
+                    title: document.getElementById('feTaskTitle').value.trim(),
+                    priority: document.getElementById('feTaskPrio').value,
+                    recurrence: document.getElementById('feTaskRec').value,
+                    remind_at: document.getElementById('feTaskRem').value || null
+                };
             } else if (type === 'transaction') {
                 url = `/api/transactions/${id}`;
-                payload = { category: v1, amount: Number(v2), note: v3 };
+                payload = {
+                    type: document.getElementById('feTxType').value,
+                    category: document.getElementById('feTxCat').value.trim(),
+                    amount: Number(document.getElementById('feTxAmt').value),
+                    note: document.getElementById('feTxNote').value.trim()
+                };
             } else if (type === 'goal') {
                 url = `/api/goals/${id}`;
-                payload = { title: v1, target_amount: Number(v2), current_amount: Number(v3) };
+                payload = {
+                    title: document.getElementById('feGoalTitle').value.trim(),
+                    target_amount: Number(document.getElementById('feGoalTarget').value),
+                    current_amount: Number(document.getElementById('feGoalCurrent').value)
+                };
             }
 
             const res = await fetch(url, {
@@ -884,7 +886,7 @@
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                closeUniversalEditModal();
+                closeFullEditModal();
                 loadDashboardData();
                 showToast("O'zgarishlar saqlandi! ✅");
             } else {
@@ -969,7 +971,7 @@
                         </div>
                     </div>
                     <div class="row-actions">
-                        <button class="mini-button" onclick="openUniversalEditModal('task', ${t.id}, '${escapeHtml(t.title).replace(/'/g, "\\'")}', '${t.priority}')" title="Tahrirlash">✎</button>
+                        <button class="mini-button" onclick="openFullEditModal('task', ${t.id}, ${JSON.stringify(t).replace(/"/g, '&quot;')})" title="Tahrirlash">✎</button>
                         <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
                     </div>
                 </div>
@@ -986,7 +988,7 @@
                     </div>
                     <span class="transaction-amount ${tx.type}">${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}</span>
                     <div class="row-actions">
-                        <button class="mini-button" onclick="openUniversalEditModal('transaction', ${tx.id}, '${escapeHtml(tx.category).replace(/'/g, "\\'")}', ${tx.amount}, '${escapeHtml(tx.note || '').replace(/'/g, "\\'")}')" title="Tahrirlash">✎</button>
+                        <button class="mini-button" onclick="openFullEditModal('transaction', ${tx.id}, ${JSON.stringify(tx).replace(/"/g, '&quot;')})" title="Tahrirlash">✎</button>
                         <button class="mini-button delete" onclick="deleteTx(${tx.id})" title="O'chirish">×</button>
                     </div>
                 </div>
@@ -1023,7 +1025,7 @@
                         <div class="goal-top">
                             <div><div class="goal-name">${escapeHtml(g.title)}</div></div>
                             <div class="row-actions">
-                                <button class="mini-button" onclick="openUniversalEditModal('goal', ${g.id}, '${escapeHtml(g.title).replace(/'/g, "\\'")}', ${g.target_amount}, ${g.current_amount})" title="Tahrirlash">✎</button>
+                                <button class="mini-button" onclick="openFullEditModal('goal', ${g.id}, ${JSON.stringify(g).replace(/"/g, '&quot;')})" title="Tahrirlash">✎</button>
                                 <button class="mini-button" onclick="contributeGoal(${g.id})">+</button>
                                 <button class="mini-button delete" onclick="deleteGoal(${g.id})">×</button>
                             </div>
@@ -1159,7 +1161,7 @@
         }
         document.getElementById('shareExcelBtn').addEventListener('click', sendReportToTelegram);
 
-        // AI CHAT WITH THINKING STATUS & ANY LANGUAGE
+        // AI CHAT
         const aiChatBox = document.getElementById('aiChatBox');
         function appendChat(sender, text) {
             const div = document.createElement('div');
@@ -1231,7 +1233,7 @@
             }
         });
 
-        // AVATAR UPLOAD (CIRCULAR PREVIEW)
+        // AVATAR UPLOAD
         document.getElementById('avatarFileInput').addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
