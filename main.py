@@ -1937,10 +1937,10 @@ async def admin_user_cmd(message):
     await admin_show_user(message, user_id)
 
 
-async def admin_show_user(target, user_id):
+async def admin_show_user(target, user_id, edit=False):
     with database() as connection:
         user = connection.execute(
-            "SELECT first_seen_at, last_seen_at FROM users WHERE user_id = ?", (user_id,)
+            "SELECT full_name, username, phone, first_seen_at, last_seen_at FROM users WHERE user_id = ?", (user_id,)
         ).fetchone()
         counts = {
             table: connection.execute(
@@ -1949,18 +1949,37 @@ async def admin_show_user(target, user_id):
             for table in ("tasks", "transactions", "budgets", "goals", "reports")
         }
     if not user:
-        await target.answer("Bu ID bilan foydalanuvchi topilmadi.", reply_markup=admin_panel_keyboard())
+        msg = "Bu ID bilan foydalanuvchi topilmadi."
+        if edit:
+            await target.edit_text(msg, reply_markup=admin_panel_keyboard())
+        else:
+            await target.answer(msg, reply_markup=admin_panel_keyboard())
         return
-    await target.answer(
-        f"👤 Foydalanuvchi: {user_id}\n"
+
+    text = (
+        f"👤 Foydalanuvchi: {escapeHtml(user['full_name'] or 'Noma’lum')} (@{escapeHtml(user['username'] or 'n/a')})\n"
+        f"🆔 ID: <code>{user_id}</code> | Tel: {escapeHtml(user['phone'] or 'n/a')}\n"
         f"🗓 Birinchi faollik: {user['first_seen_at'] or 'noma’lum'}\n"
         f"🕒 Oxirgi faollik: {user['last_seen_at'] or 'noma’lum'}\n\n"
         f"📋 Rejalar: {counts['tasks']}\n"
         f"💳 Moliya yozuvlari: {counts['transactions']}\n"
         f"🎯 Budjetlar: {counts['budgets']} · Maqsadlar: {counts['goals']}\n"
-        f"📝 Hisobotlar: {counts['reports']}",
-        reply_markup=admin_panel_keyboard(),
+        f"📝 Hisobotlar: {counts['reports']}"
     )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📋 Rejalarini ko'rish", callback_data=f"admin:user:tasks:{user_id}"),
+            InlineKeyboardButton(text="💳 Moliyasini ko'rish", callback_data=f"admin:user:tx:{user_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="👥 Foydalanuvchilar ro'yxati", callback_data="admin:users:0"),
+            InlineKeyboardButton(text="⬅️ Admin panelga qaytish", callback_data="admin:home"),
+        ]
+    ])
+    if edit:
+        await target.edit_text(text, parse_mode="HTML", reply_markup=markup)
+    else:
+        await target.answer(text, parse_mode="HTML", reply_markup=markup)
 
 
 async def admin_health(message):
@@ -2122,6 +2141,36 @@ async def admin_callback(callback):
         await callback.message.answer(
             f"📢 E'lon yuborish yakunlandi.\n✅ Yetkazildi: {sent}\n⚠️ Yuborilmadi: {failed}"
         )
+    elif data.startswith("admin:user:tasks:"):
+        uid = int(data.split(":")[3])
+        with database() as connection:
+            tasks = connection.execute("SELECT title, date, is_completed FROM tasks WHERE user_id = ? ORDER BY date DESC LIMIT 10", (uid,)).fetchall()
+        t_lines = [f"📋 Foydalanuvchi ({uid}) rejalari (oxirgi 10 ta):"]
+        if tasks:
+            for t in tasks:
+                t_lines.append(f"• {'✅' if t['is_completed'] else '⏳'} {t['date']}: {escapeHtml(t['title'])}")
+        else:
+            t_lines.append("Rejalar topilmadi.")
+        markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅️ Orqaga", callback_data=f"admin:user:back:{uid}")]])
+        await callback.answer()
+        await callback.message.edit_text("\n".join(t_lines), reply_markup=markup)
+    elif data.startswith("admin:user:tx:"):
+        uid = int(data.split(":")[3])
+        with database() as connection:
+            txs = connection.execute("SELECT type, category, amount, date FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 10", (uid,)).fetchall()
+        tx_lines = [f"💳 Foydalanuvchi ({uid}) moliya amaliyotlari (oxirgi 10 ta):"]
+        if txs:
+            for tx in txs:
+                tx_lines.append(f"• {'↗' if tx['type']=='income' else '↘'} {tx['date']}: {escapeHtml(tx['category'])} — {tx['amount']:,.0f} so'm")
+        else:
+            tx_lines.append("Moliya yozuvlari topilmadi.")
+        markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅️ Orqaga", callback_data=f"admin:user:back:{uid}")]])
+        await callback.answer()
+        await callback.message.edit_text("\n".join(tx_lines), reply_markup=markup)
+    elif data.startswith("admin:user:back:"):
+        uid = int(data.split(":")[3])
+        await callback.answer()
+        await admin_show_user(callback.message, uid, edit=True)
     else:
         await callback.answer("Amal topilmadi.", show_alert=True)
 
