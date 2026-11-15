@@ -351,23 +351,23 @@
                 </div>
             </section>
 
-            <!-- REJALAR (TickTick) -->
+            <!-- REJALAR (TickTick + Custom Date) -->
             <section class="view" id="view-tasks">
                 <p class="page-intro" data-i18n="task_intro">TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va vaqti qo'lda belgilanadigan budilnik eslatmalari.</p>
                 <div class="view-grid">
                     <section class="panel"><div class="panel-header"><div><h3 class="panel-title" data-i18n="task_list_title">Rejalar ro'yxati (TickTick)</h3><p class="panel-subtitle" id="taskSummaryFull"></p></div></div><div id="taskList" class="list"></div></section>
-                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title" data-i18n="task_new_title">Yangi reja</h3><p class="panel-subtitle">Vazifa va qo'lda vaqt</p></div></div>
+                    <section class="panel"><div class="panel-header"><div><h3 class="panel-title" data-i18n="task_new_title">Yangi reja</h3><p class="panel-subtitle">Vazifa, sana va qo'lda vaqt</p></div></div>
                         <form id="taskForm" class="form-stack">
                             <div class="field-group"><label class="field-label" for="taskTitle" data-i18n="task_lbl_name">Reja nomi</label><input class="field" id="taskTitle" maxlength="160" placeholder="Masalan, kitob o'qish" required data-i18n-placeholder="ph_task"></div>
                             <div class="form-row"><div class="field-group"><label class="field-label" for="taskPriority" data-i18n="task_lbl_prio">Muhimligi</label><select class="field" id="taskPriority"><option value="normal" data-i18n="opt_normal">Oddiy</option><option value="high" data-i18n="opt_high">Muhim</option></select></div><div class="field-group"><label class="field-label" for="taskRecurrence" data-i18n="task_lbl_rec">Takrorlanishi</label><select class="field" id="taskRecurrence"><option value="none" data-i18n="opt_none">Takrorlanmaydi</option><option value="daily" data-i18n="opt_daily">Har kuni</option><option value="weekly" data-i18n="opt_weekly">Har hafta</option><option value="hourly" data-i18n="opt_hourly">Har soatda</option></select></div></div>
-                            <div class="field-group"><label class="field-label" for="taskReminder" data-i18n="task_lbl_rem">Eslatma vaqti (Budilnik)</label><input class="field" id="taskReminder" type="datetime-local"></div>
+                            <div class="field-row"><div class="field-group"><label class="field-label">Sana</label><input class="field" id="taskDate" type="date" required></div><div class="field-group"><label class="field-label" for="taskReminder" data-i18n="task_lbl_rem">Eslatma vaqti (Budilnik)</label><input class="field" id="taskReminder" type="datetime-local"></div></div>
                             <button class="primary-button" type="submit" data-i18n="btn_add_task">+ Reja qo'shish</button>
                         </form>
                     </section>
                 </div>
             </section>
 
-            <!-- MOLIYA (Money Manager) -->
+            <!-- MOLIYA (Money Manager + Custom Date) -->
             <section class="view" id="view-money">
                 <p class="page-intro" data-i18n="money_intro">Money Manager kabi klassik, aniq va batafsil kirim-chiqim hisobotlari.</p>
                 <div class="stats-grid">
@@ -384,7 +384,7 @@
                         <section class="panel"><div class="panel-header"><div><h3 class="panel-title" data-i18n="money_new_tx">Yangi amaliyot</h3><p class="panel-subtitle">Kirim / Chiqim</p></div></div>
                             <form id="transactionForm" class="form-stack">
                                 <div class="form-row"><div class="field-group"><label class="field-label" for="transactionType" data-i18n="money_lbl_type">Turi</label><select class="field" id="transactionType"><option value="expense" data-i18n="opt_expense">Chiqim</option><option value="income" data-i18n="opt_income">Kirim</option></select></div><div class="field-group"><label class="field-label" for="transactionCategory" data-i18n="money_lbl_cat">Kategoriya</label><input class="field" id="transactionCategory" placeholder="Oziq-ovqat" required data-i18n-placeholder="ph_cat"></div></div>
-                                <div class="field-group"><label class="field-label" for="transactionAmount" data-i18n="money_lbl_amt">Summa (so'm)</label><input class="field" id="transactionAmount" type="number" min="1" placeholder="25000" required></div>
+                                <div class="form-row"><div class="field-group"><label class="field-label" for="transactionAmount" data-i18n="money_lbl_amt">Summa (so'm)</label><input class="field" id="transactionAmount" type="number" min="1" placeholder="25000" required></div><div class="field-group"><label class="field-label">Sana</label><input class="field" id="transactionDate" type="date" required></div></div>
                                 <div class="field-group"><label class="field-label" for="transactionNote" data-i18n="money_lbl_note">Izoh</label><input class="field" id="transactionNote" placeholder="Izoh" data-i18n-placeholder="ph_note"></div>
                                 <button class="primary-button accent-button" type="submit" data-i18n="btn_save">Saqlash</button>
                             </form>
@@ -829,13 +829,14 @@
                 container.innerHTML = `
                     <div class="field-group"><label class="field-label">Reja nomi</label><input class="field" id="feTaskTitle" value="${escapeHtml(itemData.title || '')}" required></div>
                     <div class="form-row"><div class="field-group"><label class="field-label">Muhimligi</label><select class="field" id="feTaskPrio"><option value="normal" ${itemData.priority==='normal'?'selected':''}>Oddiy</option><option value="high" ${itemData.priority==='high'?'selected':''}>Muhim</option></select></div><div class="field-group"><label class="field-label">Takrorlanishi</label><select class="field" id="feTaskRec"><option value="none" ${itemData.recurrence==='none'?'selected':''}>Takrorlanmaydi</option><option value="daily" ${itemData.recurrence==='daily'?'selected':''}>Har kuni</option><option value="weekly" ${itemData.recurrence==='weekly'?'selected':''}>Har hafta</option><option value="hourly" ${itemData.recurrence==='hourly'?'selected':''}>Har soatda</option></select></div></div>
+                    <div class="field-group"><label class="field-label">Sana</label><input class="field" id="feTaskDate" type="date" value="${itemData.date || localDateString()}" required></div>
                     <div class="field-group"><label class="field-label">Eslatma vaqti (Budilnik)</label><input class="field" id="feTaskRem" type="datetime-local" value="${itemData.remind_at ? itemData.remind_at.slice(0,16) : ''}"></div>
                 `;
             } else if (type === 'transaction') {
                 titleEl.textContent = "Amaliyotni to'liq tahrirlash";
                 container.innerHTML = `
                     <div class="form-row"><div class="field-group"><label class="field-label">Turi</label><select class="field" id="feTxType"><option value="expense" ${itemData.type==='expense'?'selected':''}>Chiqim</option><option value="income" ${itemData.type==='income'?'selected':''}>Kirim</option></select></div><div class="field-group"><label class="field-label">Kategoriya</label><input class="field" id="feTxCat" value="${escapeHtml(itemData.category || '')}" required></div></div>
-                    <div class="field-group"><label class="field-label">Summa (so'm)</label><input class="field" id="feTxAmt" type="number" min="1" value="${itemData.amount || 0}" required></div>
+                    <div class="form-row"><div class="field-group"><label class="field-label">Summa (so'm)</label><input class="field" id="feTxAmt" type="number" min="1" value="${itemData.amount || 0}" required></div><div class="field-group"><label class="field-label">Sana</label><input class="field" id="feTxDate" type="date" value="${itemData.date || localDateString()}" required></div></div>
                     <div class="field-group"><label class="field-label">Izoh</label><input class="field" id="feTxNote" value="${escapeHtml(itemData.note || '')}"></div>
                 `;
             } else if (type === 'goal') {
@@ -867,6 +868,7 @@
                     title: document.getElementById('feTaskTitle').value.trim(),
                     priority: document.getElementById('feTaskPrio').value,
                     recurrence: document.getElementById('feTaskRec').value,
+                    date: document.getElementById('feTaskDate').value,
                     remind_at: document.getElementById('feTaskRem').value || null
                 };
             } else if (type === 'transaction') {
@@ -875,6 +877,7 @@
                     type: document.getElementById('feTxType').value,
                     category: document.getElementById('feTxCat').value.trim(),
                     amount: Number(document.getElementById('feTxAmt').value),
+                    date: document.getElementById('feTxDate').value,
                     note: document.getElementById('feTxNote').value.trim()
                 };
             } else if (type === 'goal') {
@@ -1094,7 +1097,7 @@
             const priority = document.getElementById('taskPriority').value;
             const recurrence = document.getElementById('taskRecurrence').value;
             const remind_at = document.getElementById('taskReminder').value || null;
-            const date = document.getElementById('selectedDate').value || localDateString();
+            const date = document.getElementById('taskDate').value || document.getElementById('selectedDate').value || localDateString();
 
             const res = await fetch('/api/tasks', {
                 method: 'POST',
@@ -1103,6 +1106,7 @@
             });
             if (res.ok) {
                 e.target.reset();
+                document.getElementById('taskDate').value = localDateString();
                 loadDashboardData();
                 showToast('Reja qo‘shildi');
             }
@@ -1114,7 +1118,7 @@
             const category = document.getElementById('transactionCategory').value.trim();
             const amount = Number(document.getElementById('transactionAmount').value);
             const note = document.getElementById('transactionNote').value.trim();
-            const date = document.getElementById('selectedDate').value || localDateString();
+            const date = document.getElementById('transactionDate').value || document.getElementById('selectedDate').value || localDateString();
 
             const res = await fetch('/api/transactions', {
                 method: 'POST',
@@ -1123,6 +1127,7 @@
             });
             if (res.ok) {
                 e.target.reset();
+                document.getElementById('transactionDate').value = localDateString();
                 loadDashboardData();
                 showToast('Amaliyot saqlandi');
             }
@@ -1163,6 +1168,10 @@
                 showToast('Maqsad qo‘shildi');
             }
         });
+
+        // Set default dates on inputs
+        document.getElementById('taskDate').value = localDateString();
+        document.getElementById('transactionDate').value = localDateString();
 
         // TELEGRAM SHARE REPORT BUTTON
         async function sendReportToTelegram() {
