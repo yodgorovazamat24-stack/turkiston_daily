@@ -1987,7 +1987,7 @@ async def admin_user_cmd(message):
 async def admin_show_user(target, user_id, edit=False):
     with database() as connection:
         user = connection.execute(
-            "SELECT full_name, username, phone, first_seen_at, last_seen_at FROM users WHERE user_id = ?", (user_id,)
+            "SELECT full_name, username, phone, bio, first_seen_at, last_seen_at FROM users WHERE user_id = ?", (user_id,)
         ).fetchone()
         counts = {
             table: connection.execute(
@@ -2004,23 +2004,31 @@ async def admin_show_user(target, user_id, edit=False):
         return
 
     text = (
-        f"👤 Foydalanuvchi: {escapeHtml(user['full_name'] or 'Noma’lum')} (@{escapeHtml(user['username'] or 'n/a')})\n"
-        f"🆔 ID: <code>{user_id}</code> | Tel: {escapeHtml(user['phone'] or 'n/a')}\n"
+        f"👤 <b>Foydalanuvchi Profili</b>\n\n"
+        f"• Ism: <b>{escapeHtml(user['full_name'] or 'Noma’lum')}</b>\n"
+        f"• Username: @{escapeHtml(user['username'] or 'n/a')}\n"
+        f"• Tel: {escapeHtml(user['phone'] or 'n/a')}\n"
+        f"• Bio: {escapeHtml(user['bio'] or 'Kiritilmagan')}\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
         f"🗓 Birinchi faollik: {user['first_seen_at'] or 'noma’lum'}\n"
         f"🕒 Oxirgi faollik: {user['last_seen_at'] or 'noma’lum'}\n\n"
-        f"📋 Rejalar: {counts['tasks']}\n"
-        f"💳 Moliya yozuvlari: {counts['transactions']}\n"
+        f"📋 Rejalar: {counts['tasks']} ta\n"
+        f"💳 Moliya yozuvlari: {counts['transactions']} ta\n"
         f"🎯 Budjetlar: {counts['budgets']} · Maqsadlar: {counts['goals']}\n"
         f"📝 Hisobotlar: {counts['reports']}"
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📋 Rejalarini ko'rish", callback_data=f"admin:user:tasks:{user_id}"),
-            InlineKeyboardButton(text="💳 Moliyasini ko'rish", callback_data=f"admin:user:tx:{user_id}"),
+            InlineKeyboardButton(text="📋 Rejalari", callback_data=f"admin:user:tasks:{user_id}"),
+            InlineKeyboardButton(text="💳 Moliya", callback_data=f"admin:user:tx:{user_id}"),
         ],
         [
-            InlineKeyboardButton(text="👥 Foydalanuvchilar ro'yxati", callback_data="admin:users:0"),
-            InlineKeyboardButton(text="⬅️ Admin panelga qaytish", callback_data="admin:home"),
+            InlineKeyboardButton(text="📊 Excel (Oylik)", callback_data=f"admin:user:excel:{user_id}:month"),
+            InlineKeyboardButton(text="📥 Excel (Barcha)", callback_data=f"admin:user:excel:{user_id}:all"),
+        ],
+        [
+            InlineKeyboardButton(text="👥 Foydalanuvchilar", callback_data="admin:users:0"),
+            InlineKeyboardButton(text="⬅️ Orqaga", callback_data="admin:home"),
         ]
     ])
     if edit:
@@ -2223,6 +2231,23 @@ async def admin_callback(callback):
         markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅️ Orqaga", callback_data=f"admin:user:back:{uid}")]])
         await callback.answer()
         await callback.message.edit_text("\n".join(tx_lines), reply_markup=markup)
+    elif data.startswith("admin:user:excel:"):
+        parts = data.split(":")
+        uid = int(parts[3])
+        period = parts[4] if len(parts) > 4 else "month"
+        await callback.answer("Excel hisoboti tayyorlanmoqda...")
+        try:
+            workbook, filename, label = create_excel_report(uid, period)
+            document = BufferedInputFile(workbook, filename=f"user_{uid}_{filename}")
+            with database() as connection:
+                u_row = connection.execute("SELECT full_name, username FROM users WHERE user_id = ?", (uid,)).fetchone()
+            u_name = (u_row["full_name"] if u_row else None) or (u_row["username"] if u_row else None) or f"ID {uid}"
+            await callback.message.answer_document(
+                document=document,
+                caption=f"👤 Foydalanuvchi: {u_name} (ID: {uid})\n📊 {label}"
+            )
+        except Exception as e:
+            await callback.message.answer(f"Excel hisobotini yaratishda xato: {str(e)}")
     elif data.startswith("admin:user:back:"):
         uid = int(data.split(":")[3])
         await callback.answer()

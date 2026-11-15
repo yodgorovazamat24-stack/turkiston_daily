@@ -217,6 +217,28 @@
     </style>
 </head>
 <body>
+    <!-- GEMINI LIVE VOICE MODAL -->
+    <div class="modal-overlay" id="geminiVoiceModal" style="background: rgba(10,20,15,0.92); z-index:400; backdrop-filter: blur(10px);">
+        <div class="modal-card" style="max-width:380px; text-align:center; background:var(--white); border:1px solid var(--line);">
+            <div style="width:72px; height:72px; border-radius:50%; background:var(--green-soft); color:var(--green); display:grid; place-items:center; font-size:32px; margin:0 auto 16px; animation: ringPulse 1.8s infinite ease-in-out;">
+                🎙️
+            </div>
+            <h3 style="font-family:Fraunces,Georgia,serif; margin:0 0 8px; color:var(--ink);">Gemini Live Rejim</h3>
+            <p style="font-size:13px; color:var(--muted); margin-bottom:20px;" id="voiceStatusText">Eshitilyapti... Gapiring!</p>
+            <div style="background:var(--paper); padding:12px; border-radius:8px; font-size:13px; color:var(--ink); min-height:44px; margin-bottom:20px;" id="voiceTranscriptBox">
+                Ovozli buyruq kutilmoqda...
+            </div>
+            <button class="primary-button" type="button" onclick="closeGeminiVoiceModal()" style="background:var(--orange); width:100%; height:42px;">Tugatish / Yopish</button>
+        </div>
+    </div>
+    <style>
+        @keyframes ringPulse {
+            0% { box-shadow: 0 0 0 0 rgba(65, 158, 117, 0.4); }
+            70% { box-shadow: 0 0 0 24px rgba(65, 158, 117, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(65, 158, 117, 0); }
+        }
+    </style>
+
     <!-- 1. LANGUAGE SELECTION MODAL (ONLY ON FIRST LAUNCH) -->
     <div class="modal-overlay" id="langSelectModal" style="background: rgba(20,30,25,0.9); z-index:300;">
         <div class="modal-card" style="max-width:380px; text-align:center;">
@@ -345,7 +367,7 @@
                         </div>
                         <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--paper); border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
                             <div style="align-self:flex-start; max-width:88%; background:var(--white); border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5;">
-                                <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span data-i18n="ai_desc">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨</span>
+                                <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span id="aiHelloText">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨</span>
                             </div>
                         </div>
                         <form id="aiChatForm" style="display:flex; gap:8px; align-items:center;">
@@ -969,6 +991,11 @@
                 document.getElementById('profileUsernameInput').value = currentUser.username || '';
                 document.getElementById('profilePhoneInput').value = currentUser.phone || '';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
+
+                const aiHelloEl = document.getElementById('aiHelloText');
+                if (aiHelloEl && currentUser.full_name) {
+                    aiHelloEl.textContent = `Men ${currentUser.full_name}ning Turkiston Daily mini ilovasidagi sun'iy yordamchingizman. Sizga qanday yordam bera olaman? ✨`;
+                }
             }
 
             document.getElementById('dayIncome').textContent = money(summary.income);
@@ -1280,35 +1307,42 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = currentLang === 'ru' ? 'ru-RU' : currentLang === 'en' ? 'en-US' : 'uz-UZ';
-            recognition.interimResults = false;
+            recognition.interimResults = true;
             recognition.maxAlternatives = 1;
 
-            const micBtn = document.getElementById('micBtn');
-            micBtn.style.background = 'var(--orange)';
-            micBtn.style.color = '#fff';
-            showToast("🎤 Eshitilyapti... Gapiring!");
+            const modal = document.getElementById('geminiVoiceModal');
+            if (modal) modal.classList.add('open');
+            const statusEl = document.getElementById('voiceStatusText');
+            if (statusEl) statusEl.textContent = "🎤 Tinglanmoqda... Gapiring!";
+            const transEl = document.getElementById('voiceTranscriptBox');
+            if (transEl) transEl.textContent = "Ovozli buyruq kutilmoqda...";
 
             recognition.start();
 
             recognition.onresult = event => {
                 const speechText = event.results[0][0].transcript;
+                if (transEl) transEl.textContent = speechText;
                 document.getElementById('aiUserInput').value = speechText;
-                micBtn.style.background = '';
-                micBtn.style.color = '';
-                showToast("Eshitildi: " + speechText);
-                document.getElementById('aiChatForm').requestSubmit();
+                if (event.results[0].isFinal) {
+                    setTimeout(() => {
+                        closeGeminiVoiceModal();
+                        document.getElementById('aiChatForm').requestSubmit();
+                    }, 600);
+                }
             };
 
             recognition.onerror = () => {
-                micBtn.style.background = '';
-                micBtn.style.color = '';
-                showToast("Ovozli eshitishda xatolik yuz berdi");
+                if (statusEl) statusEl.textContent = "Eshitishda xatolik. Qaytadan urinib ko'ring.";
+                setTimeout(closeGeminiVoiceModal, 1500);
             };
+        }
 
-            recognition.onend = () => {
-                micBtn.style.background = '';
-                micBtn.style.color = '';
-            };
+        function closeGeminiVoiceModal() {
+            if (recognition) {
+                try { recognition.stop(); } catch(e){}
+            }
+            const modal = document.getElementById('geminiVoiceModal');
+            if (modal) modal.classList.remove('open');
         }
 
         let autoVoiceEnabled = true;
