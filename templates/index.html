@@ -1011,6 +1011,7 @@
                         <div class="task-meta">
                             <span class="tag ${t.priority === 'high' ? 'high' : ''}">${t.priority === 'high' ? 'Muhim' : 'Oddiy'}</span>
                             ${t.remind_at ? `<span class="tag">◷ ${t.remind_at.slice(11, 16)}</span>` : ''}
+                            ${t.missed_reason ? `<span class="tag high" style="background:#fff0e9; color:#b54430;">Sabab: ${escapeHtml(t.missed_reason)}</span>` : ''}
                         </div>
                     </div>
                     <div class="row-actions">
@@ -1329,6 +1330,10 @@
 
         document.querySelectorAll('.nav-button[data-view]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
         document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.go)));
+
+        // Auto-sync with Telegram bot and server data every 7s and on window focus
+        setInterval(loadDashboardData, 7000);
+        window.addEventListener('focus', loadDashboardData);
 
         checkAuthAndLoad();
     </script>
