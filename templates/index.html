@@ -1302,40 +1302,46 @@
         let recognition = null;
         function toggleVoiceInput() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                showToast("Sizning brauzeringiz ovozli buyruqni qo'llab-quvvatlamaydi");
+                showToast("Telegram ilovasida ovozli kirish cheklangan. Matn yozing.");
                 return;
             }
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = currentLang === 'ru' ? 'ru-RU' : currentLang === 'en' ? 'en-US' : 'uz-UZ';
-            recognition.interimResults = true;
-            recognition.maxAlternatives = 1;
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = currentLang === 'ru' ? 'ru-RU' : currentLang === 'en' ? 'en-US' : 'uz-UZ';
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
 
-            const modal = document.getElementById('geminiVoiceModal');
-            if (modal) modal.classList.add('open');
-            const statusEl = document.getElementById('voiceStatusText');
-            if (statusEl) statusEl.textContent = "🎤 Tinglanmoqda... Gapiring!";
-            const transEl = document.getElementById('voiceTranscriptBox');
-            if (transEl) transEl.textContent = "Ovozli buyruq kutilmoqda...";
+                const modal = document.getElementById('geminiVoiceModal');
+                if (modal) modal.classList.add('open');
+                const statusEl = document.getElementById('voiceStatusText');
+                if (statusEl) statusEl.textContent = "🎤 Tinglanmoqda... Gapiring!";
+                const transEl = document.getElementById('voiceTranscriptBox');
+                if (transEl) transEl.textContent = "Ovozli buyruq kutilmoqda...";
 
-            recognition.start();
+                recognition.start();
 
-            recognition.onresult = event => {
-                const speechText = event.results[0][0].transcript;
-                if (transEl) transEl.textContent = speechText;
-                document.getElementById('aiUserInput').value = speechText;
-                if (event.results[0].isFinal) {
-                    setTimeout(() => {
-                        closeGeminiVoiceModal();
-                        document.getElementById('aiChatForm').requestSubmit();
-                    }, 600);
-                }
-            };
+                recognition.onresult = event => {
+                    const speechText = event.results[0][0].transcript;
+                    if (transEl) transEl.textContent = speechText;
+                    document.getElementById('aiUserInput').value = speechText;
+                    if (event.results[0].isFinal) {
+                        setTimeout(() => {
+                            closeGeminiVoiceModal();
+                            document.getElementById('aiChatForm').requestSubmit();
+                        }, 600);
+                    }
+                };
 
-            recognition.onerror = () => {
-                if (statusEl) statusEl.textContent = "Eshitishda xatolik. Qaytadan urinib ko'ring.";
-                setTimeout(closeGeminiVoiceModal, 1500);
-            };
+                recognition.onerror = event => {
+                    const statusEl = document.getElementById('voiceStatusText');
+                    if (statusEl) statusEl.textContent = "Telegram ichida mikrofon ruxsati cheklangan. Marhamat, matn yozing.";
+                    setTimeout(closeGeminiVoiceModal, 2000);
+                };
+            } catch (err) {
+                showToast("Telegram brauzerida mikrofon ishlamaydi. Matn yozing.");
+                closeGeminiVoiceModal();
+            }
         }
 
         function closeGeminiVoiceModal() {
