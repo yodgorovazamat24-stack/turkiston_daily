@@ -1476,19 +1476,20 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
         f"Foydalanuvchining bugungi rejalari: [{tasks_info}]. "
         f"Bugungi moliyasi: [{trans_info}]. "
         "Vazifangiz:\n"
-        "1. Foydalanuvchi savollariga o'zbek tilida muloyim, motivatsion va aniq javob berish.\n"
-        "2. Agar foydalanuvchi biror reja tuzishni aytsa (masalan: 'Ertaga 15:00 da kitob o'qishim kerak' yoki 'soat 18 da yugurish'), uni tushunib 'create_task' buyrug'ini shakllantiring.\n"
-        "3. Agar xarajat yoki daromad haqida yozsa (masalan: 'Tushlikka 45 ming sarfladim' yoki '100 ming maosh oldim'), 'create_transaction' buyrug'ini shakllantiring.\n"
+        "1. Foydalanuvchi savollariga istalgan tilda (o'zbek, rus, ingliz) muloyim va aniq javob berish.\n"
+        "2. Reja qo'shishni so'rasa ('create_task'), moliyaviy yozuv yozsa ('create_transaction'), budjet limiti qo'yishni so'rasa ('create_budget') yoki maqsad qo'yishni so'rasa ('create_goal') buyruqlarini shakllantiring.\n"
         "Javobingizni FAQAT quyidagi JSON formatida qaytaring, boshqa hech qanday izoh qo'shmang:\n"
         "{\n"
-        '  "reply": "Foydalanuvchiga ko\'rsatiladigan chiroyli o\'zbekcha javobingiz",\n'
+        '  "reply": "Chiroyli javobingiz",\n'
         '  "action": null | {\n'
-        '     "type": "create_task" | "create_transaction",\n'
+        '     "type": "create_task" | "create_transaction" | "create_budget" | "create_goal",\n'
         '     "data": { ... }\n'
         '  }\n'
         "}\n"
-        "create_task data formati: {\"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\"}\n"
-        "create_transaction data formati: {\"type\": \"income\" | \"expense\", \"category\": \"Oziq-ovqat\" | \"Transport\" | \"Boshqa\", \"amount\": 45000, \"note\": \"...\"}"
+        "create_task: {\"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\"}\n"
+        "create_transaction: {\"type\": \"income\" | \"expense\", \"category\": \"...\", \"amount\": 45000, \"note\": \"...\"}\n"
+        "create_budget: {\"category\": \"...\", \"monthly_limit\": 500000}\n"
+        "create_goal: {\"title\": \"...\", \"target_amount\": 8000000, \"current_amount\": 0}"
     )
 
     try:
@@ -1529,6 +1530,26 @@ async def ai_assistant_chat(req: AIChatRequest, user_id: int = Depends(current_u
                     (user_id, t_type, t_cat, t_amt, today, t_note)
                 )
                 action_result = f"{'Kirim' if t_type == 'income' else 'Chiqim'} avtomatik saqlandi ✅"
+            elif act_type == "create_budget" and act_data.get("category") and act_data.get("monthly_limit"):
+                b_cat = act_data["category"].strip()
+                b_lim = float(act_data["monthly_limit"])
+                b_month = today[:7]
+                connection.execute(
+                    "INSERT INTO budgets (user_id, category, monthly_limit, month) VALUES (?, ?, ?, ?) "
+                    "ON CONFLICT(user_id, category, month) DO UPDATE SET monthly_limit = excluded.monthly_limit",
+                    (user_id, b_cat, b_lim, b_month)
+                )
+                action_result = f"Budjet limiti saqlandi: {b_cat} - {b_lim:,.0f} so'm ✅"
+            elif act_type == "create_goal" and act_data.get("title") and act_data.get("target_amount"):
+                g_title = act_data["title"].strip()
+                g_target = float(act_data["target_amount"])
+                g_current = float(act_data.get("current_amount", 0))
+                connection.execute(
+                    "INSERT INTO goals (user_id, title, target_amount, current_amount, is_completed, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                    (user_id, g_title, g_target, g_current, int(g_current >= g_target))
+                )
+                action_result = f"Maqsad yaratildi: {g_title} ({g_target:,.0f} so'm) ✅"
 
     return {
         "status": "ok",

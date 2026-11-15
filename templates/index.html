@@ -89,7 +89,8 @@
         .header-avatar-wrap { position: relative; z-index: 60; }
         .header-avatar-btn { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 24px; background: var(--white); cursor: pointer; transition: border-color .15s; }
         .header-avatar-btn:hover { border-color: var(--green); }
-        .header-avatar-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; overflow: hidden; }
+        .header-avatar-img { width: 34px; height: 34px; border-radius: 50% !important; object-fit: cover !important; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; overflow: hidden; }
+        .header-avatar-img img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
         .header-dropdown { position: absolute; right: 0; top: 48px; width: 240px; background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 8px; display: none; z-index: 100; }
         .header-dropdown.open { display: block; animation: appear .15s ease both; }
@@ -328,7 +329,7 @@
                 </div>
             </section>
 
-            <!-- AI YORDAMCHI (Thinking state + Any Language) -->
+            <!-- AI YORDAMCHI -->
             <section class="view" id="view-ai">
                 <p class="page-intro" data-i18n="ai_intro">Sun'iy intellekt bilan istalgan tilda erkin suhbatlashing, maslahat oling va reja/xarajat qo'shishni buyuring.</p>
                 <div class="view-grid">
@@ -406,7 +407,7 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR (FAQAT TELEGRAMDA ULASHISH TUGMASI BILAN) -->
+            <!-- HISOBOTLAR -->
             <section class="view" id="view-reports">
                 <p class="page-intro" data-i18n="rep_intro">Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.</p>
                 <div class="view-grid">
@@ -464,7 +465,7 @@
         </div>
     </div>
 
-    <!-- SOZLAMALAR MODALI (ALARM VOICE SELECTION) -->
+    <!-- SOZLAMALAR MODALI (CLEANED UP & ALARM VOICE) -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <div class="panel-header">
@@ -496,16 +497,6 @@
                     </select>
                 </div>
                 <button class="primary-button" type="button" onclick="saveSettingsModalChanges()" data-i18n="btn_save_settings">Sozlamalarni saqlash</button>
-
-                <hr style="border:0; border-top:1px solid var(--line); margin:4px 0;">
-                <h4 style="margin:0; font-size:13px; font-weight:700;" data-i18n="set_notif">🔔 Push Bildirishnomalar</h4>
-                <button class="primary-button" type="button" id="enablePushBtn" style="background:var(--green); color:#fff;" data-i18n="btn_enable_push">
-                    🔔 Push bildirishnomalarni yoqish
-                </button>
-                <button class="secondary-button" type="button" id="testPushBtn" data-i18n="btn_test_push">🧪 Sinov bildirishnomasini yuborish</button>
-                <button class="secondary-button" type="button" id="exportDataBtn" data-i18n="btn_backup">📥 Ma'lumotlarni zaxiralash (JSON)</button>
-                <button class="secondary-button" type="button" id="importDataBtn" data-i18n="btn_restore">📤 Zaxiradan tiklash</button>
-                <input type="file" id="importFile" accept=".json" hidden>
             </div>
         </div>
     </div>
@@ -526,6 +517,24 @@
                     Yuklanmoqda...
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- UNIVERSAL EDIT MODAL FOR TASKS, TRANSACTIONS, GOALS -->
+    <div class="modal-overlay" id="universalEditModal">
+        <div class="modal-card">
+            <div class="panel-header">
+                <div><h3 class="panel-title" id="editModalTitle">Tahrirlash</h3><p class="panel-subtitle">Ma'lumotlarni o'zgartirish</p></div>
+                <button class="mini-button delete" onclick="closeUniversalEditModal()" style="font-size:18px;">×</button>
+            </div>
+            <form id="universalEditForm" class="form-stack" style="margin-top:10px;">
+                <input type="hidden" id="editType">
+                <input type="hidden" id="editId">
+                <div class="field-group" id="editField1Wrap"><label class="field-label" id="editLabel1">Nomi</label><input class="field" id="editInput1" required></div>
+                <div class="field-group" id="editField2Wrap"><label class="field-label" id="editLabel2">Summa / Qiymat</label><input class="field" id="editInput2"></div>
+                <div class="field-group" id="editField3Wrap"><label class="field-label" id="editLabel3">Qo'shimcha</label><input class="field" id="editInput3"></div>
+                <button class="primary-button" type="submit" data-i18n="btn_save">Saqlash</button>
+            </form>
         </div>
     </div>
 
@@ -571,7 +580,7 @@
                 rep_intro: "Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.", rep_day_title: "Kun yakuni", rep_lbl_score: "Kunga baho", rep_lbl_note: "Qayd va eslatmalar",
                 rep_excel_title: "📊 Jadvalli va Diagrammali Excel Hisobot", rep_lbl_period: "Hisobot davri", opt_day: "Kunlik (Bugungi)", opt_week: "Haftalik", opt_month: "Oylik", opt_all: "Barcha davr", btn_share_rep: "📤 Telegram orqali ulashish", rep_history: "Oylik tahlil va tarix",
                 set_theme: "Interfeys rejimi", opt_light: "☀️ Kunduzgi rejim", opt_dark: "🌙 Tungi rejim", set_lang: "Ilova tili", set_alarm_sound: "🔊 Budilnik / Eslatma ovozi", opt_beep: "🔔 Standart Signal (Beep)", opt_bell: "🎵 Qo'ng'iroq (Bell Chime)", opt_chime: "🎶 Melodik Ohang (Chime)",
-                set_notif: "🔔 Push Bildirishnomalar", btn_enable_push: "🔔 Push bildirishnomalarni yoqish", btn_test_push: "🧪 Sinov bildirishnomasini yuborish", btn_backup: "📥 Ma'lumotlarni zaxiralash (JSON)", btn_restore: "📤 Zaxiradan tiklash", btn_save_settings: "Sozlamalarni saqlash"
+                btn_save_settings: "Sozlamalarni saqlash"
             },
             ru: {
                 nav_label: "РАЗДЕЛЫ", menu_overview: "Главная", menu_ai: "ИИ Помощник", menu_tasks: "Задачи", menu_money: "Финансы", menu_goals: "Цели", menu_reports: "Отчеты",
@@ -598,7 +607,7 @@
                 rep_intro: "Итоги дня, графики и визуальные Excel-отчеты.", rep_day_title: "Итог дня", rep_lbl_score: "Оценка дня", rep_lbl_note: "Заметки и выводы",
                 rep_excel_title: "📊 Табличный и Диаграммный Excel Отчет", rep_lbl_period: "Период отчета", opt_day: "За день", opt_week: "За неделю", opt_month: "За месяц", opt_all: "За все время", btn_share_rep: "📤 Поделиться через Telegram", rep_history: "История и анализ",
                 set_theme: "Режим интерфейса", opt_light: "☀️ Дневной режим", opt_dark: "🌙 Ночной режим", set_lang: "Язык приложения", set_alarm_sound: "🔊 Звук будильника / напоминания", opt_beep: "🔔 Стандартный сигнал (Beep)", opt_bell: "🎵 Колокольчик (Bell Chime)", opt_chime: "🎶 Мелодичный звон (Chime)",
-                set_notif: "🔔 Push Уведомления", btn_enable_push: "🔔 Включить уведомления", btn_test_push: "🧪 Тест уведомления", btn_backup: "📥 Бэкап (JSON)", btn_restore: "📤 Восстановить", btn_save_settings: "Сохранить настройки"
+                btn_save_settings: "Сохранить настройки"
             },
             en: {
                 nav_label: "SECTIONS", menu_overview: "Overview", menu_ai: "AI Assistant", menu_tasks: "Tasks", menu_money: "Finance", menu_goals: "Goals", menu_reports: "Reports",
@@ -625,7 +634,7 @@
                 rep_intro: "Daily review, charts and visual Excel reports.", rep_day_title: "Daily Review", rep_lbl_score: "Day Rating", rep_lbl_note: "Notes and takeaways",
                 rep_excel_title: "📊 Visual Excel Report with Charts", rep_lbl_period: "Report Period", opt_day: "Daily", opt_week: "Weekly", opt_month: "Monthly", opt_all: "All Time", btn_share_rep: "📤 Share via Telegram", rep_history: "History & Analysis",
                 set_theme: "Theme Mode", opt_light: "☀️ Light Mode", opt_dark: "🌙 Dark Mode", set_lang: "App Language", set_alarm_sound: "🔊 Alarm / Reminder Sound", opt_beep: "🔔 Standard Beep", opt_bell: "🎵 Bell Chime", opt_chime: "🎶 Melodic Chime",
-                set_notif: "🔔 Push Notifications", btn_enable_push: "🔔 Enable Notifications", btn_test_push: "🧪 Test Notification", btn_backup: "📥 Backup (JSON)", btn_restore: "📤 Restore", btn_save_settings: "Save Settings"
+                btn_save_settings: "Save Settings"
             }
         };
 
@@ -809,65 +818,79 @@
         }
         function closeAdminPanelModal() { document.getElementById('adminModal').classList.remove('open'); }
 
-        // EDIT UNLOCKED FUNCTIONS
-        async function editTask(id, title, priority, recurrence) {
-            const newTitle = prompt("Reja nomini tahrirlash:", title);
-            if (newTitle === null) return;
-            const newPrio = prompt("Muhimligi (normal, high):", priority) || priority;
-            const newRec = prompt("Takrorlanishi (none, daily, weekly, hourly):", recurrence) || recurrence;
+        // UNIVERSAL EDIT MODAL FOR TASKS, TRANSACTIONS, GOALS
+        function openUniversalEditModal(type, id, val1, val2, val3) {
+            document.getElementById('editType').value = type;
+            document.getElementById('editId').value = id;
+            const modal = document.getElementById('universalEditModal');
+            const titleEl = document.getElementById('editModalTitle');
+            const l1 = document.getElementById('editLabel1');
+            const l2 = document.getElementById('editLabel2');
+            const l3 = document.getElementById('editField3Wrap');
 
-            const res = await fetch(`/api/tasks/${id}`, {
+            if (type === 'task') {
+                titleEl.textContent = "Rejani tahrirlash";
+                l1.textContent = "Reja nomi";
+                l2.textContent = "Muhimligi (normal/high)";
+                l3.style.display = 'none';
+                document.getElementById('editInput1').value = val1;
+                document.getElementById('editInput2').value = val2;
+            } else if (type === 'transaction') {
+                titleEl.textContent = "Amaliyotni tahrirlash";
+                l1.textContent = "Kategoriya";
+                l2.textContent = "Summa (so'm)";
+                l3.style.display = 'block';
+                document.getElementById('editLabel3').textContent = "Izoh";
+                document.getElementById('editInput1').value = val1;
+                document.getElementById('editInput2').value = val2;
+                document.getElementById('editInput3').value = val3 || '';
+            } else if (type === 'goal') {
+                titleEl.textContent = "Maqsadni tahrirlash";
+                l1.textContent = "Maqsad nomi";
+                l2.textContent = "Maqsad summasi";
+                l3.style.display = 'block';
+                document.getElementById('editLabel3').textContent = "Yig'ilgan summa";
+                document.getElementById('editInput1').value = val1;
+                document.getElementById('editInput2').value = val2;
+                document.getElementById('editInput3').value = val3;
+            }
+            modal.classList.add('open');
+        }
+        function closeUniversalEditModal() { document.getElementById('universalEditModal').classList.remove('open'); }
+
+        document.getElementById('universalEditForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const type = document.getElementById('editType').value;
+            const id = document.getElementById('editId').value;
+            const v1 = document.getElementById('editInput1').value.trim();
+            const v2 = document.getElementById('editInput2').value;
+            const v3 = document.getElementById('editInput3').value;
+
+            let url = '', payload = {};
+            if (type === 'task') {
+                url = `/api/tasks/${id}`;
+                payload = { title: v1, priority: v2 };
+            } else if (type === 'transaction') {
+                url = `/api/transactions/${id}`;
+                payload = { category: v1, amount: Number(v2), note: v3 };
+            } else if (type === 'goal') {
+                url = `/api/goals/${id}`;
+                payload = { title: v1, target_amount: Number(v2), current_amount: Number(v3) };
+            }
+
+            const res = await fetch(url, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ title: newTitle.trim(), priority: newPrio, recurrence: newRec })
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
+                closeUniversalEditModal();
                 loadDashboardData();
-                showToast("Reja tahrirlandi ✎");
+                showToast("O'zgarishlar saqlandi! ✅");
             } else {
                 showToast("Xatolik yuz berdi");
             }
-        }
-
-        async function editTransaction(id, cat, amount, note) {
-            const newCat = prompt("Kategoriyani tahrirlash:", cat);
-            if (newCat === null) return;
-            const newAmt = prompt("Summani tahrirlash (so'm):", amount);
-            if (newAmt === null) return;
-            const newNote = prompt("Izohni tahrirlash:", note || "");
-
-            const res = await fetch(`/api/transactions/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ category: newCat.trim(), amount: Number(newAmt), note: newNote.trim() })
-            });
-            if (res.ok) {
-                loadDashboardData();
-                showToast("Amaliyot tahrirlandi ✎");
-            } else {
-                showToast("Xatolik yuz berdi");
-            }
-        }
-
-        async function editGoal(id, title, target, current) {
-            const newTitle = prompt("Maqsad nomini tahrirlash:", title);
-            if (newTitle === null) return;
-            const newTarget = prompt("Maqsad summasini tahrirlash:", target);
-            if (newTarget === null) return;
-            const newCurrent = prompt("Yig'ilgan summani tahrirlash:", current);
-
-            const res = await fetch(`/api/goals/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ title: newTitle.trim(), target_amount: Number(newTarget), current_amount: Number(newCurrent) })
-            });
-            if (res.ok) {
-                loadDashboardData();
-                showToast("Maqsad tahrirlandi ✎");
-            } else {
-                showToast("Xatolik yuz berdi");
-            }
-        }
+        });
 
         function localDateString(date = new Date()) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -915,6 +938,7 @@
                 document.getElementById('profileNameInput').value = currentUser.full_name || '';
                 document.getElementById('profileUsernameInput').value = currentUser.username || '';
                 document.getElementById('profilePhoneInput').value = currentUser.phone || '';
+                document.getElementById('profileBioInput').value = currentUser.bio || '';
             }
 
             document.getElementById('dayIncome').textContent = money(summary.income);
@@ -945,7 +969,7 @@
                         </div>
                     </div>
                     <div class="row-actions">
-                        <button class="mini-button" onclick="editTask(${t.id}, '${escapeHtml(t.title).replace(/'/g, "\\'")}', '${t.priority}', '${t.recurrence}')" title="Tahrirlash">✎</button>
+                        <button class="mini-button" onclick="openUniversalEditModal('task', ${t.id}, '${escapeHtml(t.title).replace(/'/g, "\\'")}', '${t.priority}')" title="Tahrirlash">✎</button>
                         <button class="mini-button delete" onclick="deleteTask(${t.id})" title="O'chirish">×</button>
                     </div>
                 </div>
@@ -962,7 +986,7 @@
                     </div>
                     <span class="transaction-amount ${tx.type}">${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}</span>
                     <div class="row-actions">
-                        <button class="mini-button" onclick="editTransaction(${tx.id}, '${escapeHtml(tx.category).replace(/'/g, "\\'")}', ${tx.amount}, '${escapeHtml(tx.note || '').replace(/'/g, "\\'")}')" title="Tahrirlash">✎</button>
+                        <button class="mini-button" onclick="openUniversalEditModal('transaction', ${tx.id}, '${escapeHtml(tx.category).replace(/'/g, "\\'")}', ${tx.amount}, '${escapeHtml(tx.note || '').replace(/'/g, "\\'")}')" title="Tahrirlash">✎</button>
                         <button class="mini-button delete" onclick="deleteTx(${tx.id})" title="O'chirish">×</button>
                     </div>
                 </div>
@@ -999,7 +1023,7 @@
                         <div class="goal-top">
                             <div><div class="goal-name">${escapeHtml(g.title)}</div></div>
                             <div class="row-actions">
-                                <button class="mini-button" onclick="editGoal(${g.id}, '${escapeHtml(g.title).replace(/'/g, "\\'")}', ${g.target_amount}, ${g.current_amount})" title="Tahrirlash">✎</button>
+                                <button class="mini-button" onclick="openUniversalEditModal('goal', ${g.id}, '${escapeHtml(g.title).replace(/'/g, "\\'")}', ${g.target_amount}, ${g.current_amount})" title="Tahrirlash">✎</button>
                                 <button class="mini-button" onclick="contributeGoal(${g.id})">+</button>
                                 <button class="mini-button delete" onclick="deleteGoal(${g.id})">×</button>
                             </div>
@@ -1135,7 +1159,7 @@
         }
         document.getElementById('shareExcelBtn').addEventListener('click', sendReportToTelegram);
 
-        // AI CHAT WITH THINKING STATUS & MULTILINGUAL SUPPORT
+        // AI CHAT WITH THINKING STATUS & ANY LANGUAGE
         const aiChatBox = document.getElementById('aiChatBox');
         function appendChat(sender, text) {
             const div = document.createElement('div');
@@ -1164,6 +1188,9 @@
                 });
                 const data = await res.json();
                 thinkingDiv.textContent = data.reply || "Tushunarli!";
+                if (data.action_result) {
+                    showToast(data.action_result);
+                }
                 aiChatBox.scrollTop = aiChatBox.scrollHeight;
                 loadDashboardData();
             } catch (e) {
@@ -1184,7 +1211,6 @@
             const phone = document.getElementById('profilePhoneInput').value.trim();
             const bio = document.getElementById('profileBioInput').value.trim();
 
-            // Get avatar image if uploaded
             let avatar_url = currentUser?.avatar_url || '';
             const avatarBox = document.getElementById('modalAvatarBox');
             const imgEl = avatarBox.querySelector('img');
@@ -1193,7 +1219,7 @@
             const res = await fetch('/api/profile', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ full_name, username, avatar_url, bio })
+                body: JSON.stringify({ full_name, username, phone, bio, avatar_url })
             });
             if (res.ok) {
                 closeProfileModal();
@@ -1205,7 +1231,7 @@
             }
         });
 
-        // AVATAR UPLOAD
+        // AVATAR UPLOAD (CIRCULAR PREVIEW)
         document.getElementById('avatarFileInput').addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
