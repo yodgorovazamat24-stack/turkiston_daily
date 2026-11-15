@@ -213,6 +213,7 @@ class ProfileUpdate(BaseModel):
     full_name: str | None = None
     username: str | None = None
     avatar_url: str | None = None
+    bio: str | None = None
     password: str | None = None
     finance_reminder_enabled: bool | None = None
     evening_review_enabled: bool | None = None
@@ -401,6 +402,7 @@ async def get_profile(user_id: int = Depends(current_user)):
         "full_name": u_dict.get("full_name") or "Turkiston Daily Foydalanuvchisi",
         "username": u_dict.get("username") or "",
         "phone": u_dict.get("phone") or "",
+        "bio": u_dict.get("bio") or "",
         "avatar_url": u_dict.get("avatar_url") or "/static/icon-192.png",
         "has_password": bool(u_dict.get("password_hash")),
         "stats": {
@@ -434,6 +436,9 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
         if data.avatar_url is not None:
             updates.append("avatar_url = ?")
             params.append(data.avatar_url.strip())
+        if data.bio is not None:
+            updates.append("bio = ?")
+            params.append(data.bio.strip())
         if data.password:
             updates.append("password_hash = ?")
             params.append(hash_password(data.password))

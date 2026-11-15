@@ -328,9 +328,9 @@
                 </div>
             </section>
 
-            <!-- AI YORDAMCHI -->
+            <!-- AI YORDAMCHI (Thinking state + Any Language) -->
             <section class="view" id="view-ai">
-                <p class="page-intro" data-i18n="ai_intro">Sun'iy intellekt bilan erkin suhbatlashing, maslahat oling va reja/xarajat qo'shishni buyuring.</p>
+                <p class="page-intro" data-i18n="ai_intro">Sun'iy intellekt bilan istalgan tilda erkin suhbatlashing, maslahat oling va reja/xarajat qo'shishni buyuring.</p>
                 <div class="view-grid">
                     <section class="panel" style="display:flex; flex-direction:column; min-height:480px;">
                         <div class="panel-header">
@@ -339,7 +339,7 @@
                         </div>
                         <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:360px; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--paper); border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
                             <div style="align-self:flex-start; max-width:88%; background:var(--white); border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5;">
-                                <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span data-i18n="ai_desc">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan narsangizni yozishingiz mumkin! ✨</span>
+                                <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span data-i18n="ai_desc">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨</span>
                             </div>
                         </div>
                         <form id="aiChatForm" style="display:flex; gap:8px;">
@@ -406,7 +406,7 @@
                 </div>
             </section>
 
-            <!-- HISOBOTLAR -->
+            <!-- HISOBOTLAR (FAQAT TELEGRAMDA ULASHISH TUGMASI BILAN) -->
             <section class="view" id="view-reports">
                 <p class="page-intro" data-i18n="rep_intro">Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.</p>
                 <div class="view-grid">
@@ -415,7 +415,7 @@
                             <form id="reportForm" class="form-stack"><div class="field-group"><label class="field-label" data-i18n="rep_lbl_score">Kunga baho</label><div class="report-score" id="scoreButtons"></div></div><div class="field-group"><label class="field-label" for="reportNote" data-i18n="rep_lbl_note">Qayd va eslatmalar</label><textarea class="field" id="reportNote" rows="3" placeholder="Bugun nima yaxshi o'tdi?"></textarea></div><button class="primary-button" type="submit" data-i18n="btn_save">Saqlash</button></form>
                         </section>
                         <section class="panel">
-                            <div class="panel-header"><div><h3 class="panel-title" data-i18n="rep_excel_title">📊 Jadvalli va Diagrammali Excel Hisobot</h3><p class="panel-subtitle">Ajoyib dizaynli vizual hisobotni yuklang yoki Telegramda ulashing</p></div></div>
+                            <div class="panel-header"><div><h3 class="panel-title" data-i18n="rep_excel_title">📊 Jadvalli va Diagrammali Excel Hisobot</h3><p class="panel-subtitle">Ajoyib dizaynli vizual hisobotni Telegram orqali ulashing</p></div></div>
                             <div class="form-stack">
                                 <div class="field-group">
                                     <label class="field-label" for="reportExportPeriod" data-i18n="rep_lbl_period">Hisobot davri</label>
@@ -426,8 +426,7 @@
                                         <option value="all" data-i18n="opt_all">Barcha davr</option>
                                     </select>
                                 </div>
-                                <button class="primary-button" type="button" id="exportExcelBtn" style="background:var(--green);" data-i18n="btn_download_rep">📥 Excel / HTML Hisobotni Yuklab Olish</button>
-                                <button class="secondary-button" type="button" id="shareExcelBtn" data-i18n="btn_share_rep">📤 Telegram orqali ulashish</button>
+                                <button class="primary-button" type="button" id="shareExcelBtn" style="background:var(--green); height:44px; font-size:13px;" data-i18n="btn_share_rep">📤 Telegram orqali ulashish</button>
                             </div>
                         </section>
                     </div>
@@ -532,12 +531,12 @@
 
     <!-- MOBIL MENYU -->
     <nav class="mobile-nav" aria-label="Menyu">
-        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span><span data-i18n="menu_overview">Umumiy</span></button>
-        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span><span data-i18n="menu_ai">AI</span></button>
-        <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span><span data-i18n="menu_tasks">Rejalar</span></button>
-        <button class="nav-button" data-view="money"><span class="nav-icon">↗</span><span data-i18n="menu_money">Moliya</span></button>
-        <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span><span data-i18n="menu_goals">Maqsad</span></button>
-        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span><span data-i18n="menu_reports">Hisobot</span></button>
+        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Umumiy</button>
+        <button class="nav-button" data-view="ai"><span class="nav-icon">✨</span>AI</button>
+        <button class="nav-button" data-view="tasks"><span class="nav-icon">✓</span>Rejalar</button>
+        <button class="nav-button" data-view="money"><span class="nav-icon">↗</span>Moliya</button>
+        <button class="nav-button" data-view="goals"><span class="nav-icon">◎</span>Maqsad</button>
+        <button class="nav-button" data-view="reports"><span class="nav-icon">▤</span>Hisobot</button>
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -558,8 +557,8 @@
                 stat_inc: "Bugungi kirim", stat_exp: "Bugungi chiqim", stat_bal: "Kun balansi",
                 sec_tasks: "Barcha rejalar", sec_expenses: "Xarajatlar tarkibi", sec_tx: "Barcha amaliyotlar", sec_budgets: "Oylik budjetlar",
                 btn_all: "Barchasi →", btn_finance: "Moliya →", btn_view: "Ko'rish →", btn_manage: "Boshqarish →",
-                ai_intro: "Sun'iy intellekt bilan erkin suhbatlashing, maslahat oling va reja/xarajat qo'shishni buyuring.",
-                ai_chat_title: "AI Shaxsiy Suhbatdosh", ai_hello: "Assalomu alaykum!", ai_desc: "Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan narsangizni yozishingiz mumkin! ✨",
+                ai_intro: "Sun'iy intellekt bilan istalgan tilda erkin suhbatlashing, maslahat oling va reja/xarajat qo'shishni buyuring.",
+                ai_chat_title: "AI Shaxsiy Suhbatdosh", ai_hello: "Assalomu alaykum!", ai_desc: "Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨",
                 ph_msg: "Xabar yozing...", btn_send: "Yuborish",
                 task_intro: "TickTick kabi aniq, tahrirlanadigan reja boshqaruvi va vaqti qo'lda belgilanadigan budilnik eslatmalari.",
                 task_list_title: "Rejalar ro'yxati (TickTick)", task_new_title: "Yangi reja", task_lbl_name: "Reja nomi", task_lbl_prio: "Muhimligi", task_lbl_rec: "Takrorlanishi", task_lbl_rem: "Eslatma vaqti (Budilnik)",
@@ -570,7 +569,7 @@
                 opt_expense: "Chiqim", opt_income: "Kirim", ph_cat: "Oziq-ovqat", ph_note: "Izoh", btn_save: "Saqlash", btn_save_limit: "Limitni saqlash",
                 goal_intro: "Notion kabi erkin jamg'arma va loyihalar konstruktori.", goal_list_title: "Maqsadlar", goal_new_title: "Yangi maqsad", goal_lbl_title: "Nomi", goal_lbl_target: "Summa", goal_lbl_current: "Yig'ilgan", btn_create_goal: "Maqsad yaratish",
                 rep_intro: "Kun yakuni, diagrammalar va ajoyib dizaynli vizual Excel hisobotlari.", rep_day_title: "Kun yakuni", rep_lbl_score: "Kunga baho", rep_lbl_note: "Qayd va eslatmalar",
-                rep_excel_title: "📊 Jadvalli va Diagrammali Excel Hisobot", rep_lbl_period: "Hisobot davri", opt_day: "Kunlik (Bugungi)", opt_week: "Haftalik", opt_month: "Oylik", opt_all: "Barcha davr", btn_download_rep: "📥 Excel / HTML Hisobotni Yuklab Olish", btn_share_rep: "📤 Telegram orqali ulashish", rep_history: "Oylik tahlil va tarix",
+                rep_excel_title: "📊 Jadvalli va Diagrammali Excel Hisobot", rep_lbl_period: "Hisobot davri", opt_day: "Kunlik (Bugungi)", opt_week: "Haftalik", opt_month: "Oylik", opt_all: "Barcha davr", btn_share_rep: "📤 Telegram orqali ulashish", rep_history: "Oylik tahlil va tarix",
                 set_theme: "Interfeys rejimi", opt_light: "☀️ Kunduzgi rejim", opt_dark: "🌙 Tungi rejim", set_lang: "Ilova tili", set_alarm_sound: "🔊 Budilnik / Eslatma ovozi", opt_beep: "🔔 Standart Signal (Beep)", opt_bell: "🎵 Qo'ng'iroq (Bell Chime)", opt_chime: "🎶 Melodik Ohang (Chime)",
                 set_notif: "🔔 Push Bildirishnomalar", btn_enable_push: "🔔 Push bildirishnomalarni yoqish", btn_test_push: "🧪 Sinov bildirishnomasini yuborish", btn_backup: "📥 Ma'lumotlarni zaxiralash (JSON)", btn_restore: "📤 Zaxiradan tiklash", btn_save_settings: "Sozlamalarni saqlash"
             },
@@ -585,8 +584,8 @@
                 stat_inc: "Доходы сегодня", stat_exp: "Расходы сегодня", stat_bal: "Баланс дня",
                 sec_tasks: "Все задачи", sec_expenses: "Структура расходов", sec_tx: "Все операции", sec_budgets: "Месячные бюджеты",
                 btn_all: "Все →", btn_finance: "Финансы →", btn_view: "Смотреть →", btn_manage: "Управлять →",
-                ai_intro: "Общайтесь с ИИ, получайте советы и управляйте задачами.",
-                ai_chat_title: "ИИ Собеседник", ai_hello: "Здравствуйте!", ai_desc: "Я ваш личный ИИ-помощник. Чем могу помочь? ✨",
+                ai_intro: "Общайтесь с ИИ на любом языке, получайте советы и управляйте задачами.",
+                ai_chat_title: "ИИ Собеседник", ai_hello: "Здравствуйте!", ai_desc: "Я ваш личный ИИ-помощник. Вы можете писать на любом языке! ✨",
                 ph_msg: "Введите сообщение...", btn_send: "Отправить",
                 task_intro: "Управление задачами в стиле TickTick с будильниками и повторами.",
                 task_list_title: "Список задач", task_new_title: "Новая задача", task_lbl_name: "Название", task_lbl_prio: "Важность", task_lbl_rec: "Повторение", task_lbl_rem: "Время напоминания",
@@ -597,7 +596,7 @@
                 opt_expense: "Расход", opt_income: "Доход", ph_cat: "Продукты", ph_note: "Заметка", btn_save: "Сохранить", btn_save_limit: "Сохранить лимит",
                 goal_intro: "Конструктор целей и накоплений в стиле Notion.", goal_list_title: "Цели", goal_new_title: "Новая цель", goal_lbl_title: "Название", goal_lbl_target: "Сумма", goal_lbl_current: "Собрано", btn_create_goal: "Создать цель",
                 rep_intro: "Итоги дня, графики и визуальные Excel-отчеты.", rep_day_title: "Итог дня", rep_lbl_score: "Оценка дня", rep_lbl_note: "Заметки и выводы",
-                rep_excel_title: "📊 Табличный и Диаграммный Excel Отчет", rep_lbl_period: "Период отчета", opt_day: "За день", opt_week: "За неделю", opt_month: "За месяц", opt_all: "За все время", btn_download_rep: "📥 Скачать Excel / HTML Отчет", btn_share_rep: "📤 Поделиться через Telegram", rep_history: "История и анализ",
+                rep_excel_title: "📊 Табличный и Диаграммный Excel Отчет", rep_lbl_period: "Период отчета", opt_day: "За день", opt_week: "За неделю", opt_month: "За месяц", opt_all: "За все время", btn_share_rep: "📤 Поделиться через Telegram", rep_history: "История и анализ",
                 set_theme: "Режим интерфейса", opt_light: "☀️ Дневной режим", opt_dark: "🌙 Ночной режим", set_lang: "Язык приложения", set_alarm_sound: "🔊 Звук будильника / напоминания", opt_beep: "🔔 Стандартный сигнал (Beep)", opt_bell: "🎵 Колокольчик (Bell Chime)", opt_chime: "🎶 Мелодичный звон (Chime)",
                 set_notif: "🔔 Push Уведомления", btn_enable_push: "🔔 Включить уведомления", btn_test_push: "🧪 Тест уведомления", btn_backup: "📥 Бэкап (JSON)", btn_restore: "📤 Восстановить", btn_save_settings: "Сохранить настройки"
             },
@@ -612,8 +611,8 @@
                 stat_inc: "Income today", stat_exp: "Expense today", stat_bal: "Day balance",
                 sec_tasks: "All Tasks", sec_expenses: "Expense Structure", sec_tx: "All Transactions", sec_budgets: "Monthly Budgets",
                 btn_all: "All →", btn_finance: "Finance →", btn_view: "View →", btn_manage: "Manage →",
-                ai_intro: "Chat freely with AI, get advice and add tasks or expenses.",
-                ai_chat_title: "AI Companion", ai_hello: "Hello!", ai_desc: "I am your personal AI assistant. How can I help you today? ✨",
+                ai_intro: "Chat freely with AI in any language, get advice and add tasks or expenses.",
+                ai_chat_title: "AI Companion", ai_hello: "Hello!", ai_desc: "I am your personal AI assistant. You can write in any language! ✨",
                 ph_msg: "Type a message...", btn_send: "Send",
                 task_intro: "TickTick-style task manager with alarms and recurrence.",
                 task_list_title: "Tasks List", task_new_title: "New Task", task_lbl_name: "Title", task_lbl_prio: "Priority", task_lbl_rec: "Recurrence", task_lbl_rem: "Reminder Time",
@@ -624,7 +623,7 @@
                 opt_expense: "Expense", opt_income: "Income", ph_cat: "Food", ph_note: "Note", btn_save: "Save", btn_save_limit: "Save Limit",
                 goal_intro: "Notion-style goals and savings builder.", goal_list_title: "Goals", goal_new_title: "New Goal", goal_lbl_title: "Title", goal_lbl_target: "Amount", goal_lbl_current: "Collected", btn_create_goal: "Create Goal",
                 rep_intro: "Daily review, charts and visual Excel reports.", rep_day_title: "Daily Review", rep_lbl_score: "Day Rating", rep_lbl_note: "Notes and takeaways",
-                rep_excel_title: "📊 Visual Excel Report with Charts", rep_lbl_period: "Report Period", opt_day: "Daily", opt_week: "Weekly", opt_month: "Monthly", opt_all: "All Time", btn_download_rep: "📥 Download Excel / HTML Report", btn_share_rep: "📤 Share via Telegram", rep_history: "History & Analysis",
+                rep_excel_title: "📊 Visual Excel Report with Charts", rep_lbl_period: "Report Period", opt_day: "Daily", opt_week: "Weekly", opt_month: "Monthly", opt_all: "All Time", btn_share_rep: "📤 Share via Telegram", rep_history: "History & Analysis",
                 set_theme: "Theme Mode", opt_light: "☀️ Light Mode", opt_dark: "🌙 Dark Mode", set_lang: "App Language", set_alarm_sound: "🔊 Alarm / Reminder Sound", opt_beep: "🔔 Standard Beep", opt_bell: "🎵 Bell Chime", opt_chime: "🎶 Melodic Chime",
                 set_notif: "🔔 Push Notifications", btn_enable_push: "🔔 Enable Notifications", btn_test_push: "🧪 Test Notification", btn_backup: "📥 Backup (JSON)", btn_restore: "📤 Restore", btn_save_settings: "Save Settings"
             }
@@ -1116,11 +1115,7 @@
             }
         });
 
-        // VISUAL EXCEL EXPORT & TELEGRAM SHARE
-        function exportVisualReport() {
-            const period = document.getElementById('reportExportPeriod').value;
-            window.open(`/api/export.xlsx?period=${period}`, '_blank');
-        }
+        // TELEGRAM SHARE REPORT BUTTON
         async function sendReportToTelegram() {
             const period = document.getElementById('reportExportPeriod').value;
             try {
@@ -1138,10 +1133,9 @@
                 showToast("Telegramga yuborib bo'lmadi");
             }
         }
-        document.getElementById('exportExcelBtn').addEventListener('click', exportVisualReport);
         document.getElementById('shareExcelBtn').addEventListener('click', sendReportToTelegram);
 
-        // AI CHAT
+        // AI CHAT WITH THINKING STATUS & MULTILINGUAL SUPPORT
         const aiChatBox = document.getElementById('aiChatBox');
         function appendChat(sender, text) {
             const div = document.createElement('div');
@@ -1149,6 +1143,7 @@
             div.textContent = text;
             aiChatBox.appendChild(div);
             aiChatBox.scrollTop = aiChatBox.scrollHeight;
+            return div;
         }
 
         document.getElementById('aiChatForm').addEventListener('submit', async e => {
@@ -1159,6 +1154,8 @@
             appendChat('user', message);
             input.value = '';
 
+            const thinkingDiv = appendChat('ai', "⏳ AI eng yaxshi javobni o'ylamoqda...");
+
             try {
                 const res = await fetch('/api/ai/chat', {
                     method: 'POST',
@@ -1166,10 +1163,11 @@
                     body: JSON.stringify({ message })
                 });
                 const data = await res.json();
-                appendChat('ai', data.reply || "Tushunarli!");
+                thinkingDiv.textContent = data.reply || "Tushunarli!";
+                aiChatBox.scrollTop = aiChatBox.scrollHeight;
                 loadDashboardData();
             } catch (e) {
-                appendChat('ai', "Xatolik yuz berdi.");
+                thinkingDiv.textContent = "Xatolik yuz berdi.";
             }
         });
 
@@ -1184,19 +1182,42 @@
             const full_name = document.getElementById('profileNameInput').value.trim();
             const username = document.getElementById('profileUsernameInput').value.trim();
             const phone = document.getElementById('profilePhoneInput').value.trim();
+            const bio = document.getElementById('profileBioInput').value.trim();
+
+            // Get avatar image if uploaded
+            let avatar_url = currentUser?.avatar_url || '';
+            const avatarBox = document.getElementById('modalAvatarBox');
+            const imgEl = avatarBox.querySelector('img');
+            if (imgEl) avatar_url = imgEl.src;
+
             const res = await fetch('/api/profile', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ full_name, username })
+                body: JSON.stringify({ full_name, username, avatar_url, bio })
             });
             if (res.ok) {
                 closeProfileModal();
-                showToast("Profil saqlandi! ✅");
+                showToast("Profil va rasm muvaffaqiyatli saqlandi! ✅");
                 checkAuthAndLoad();
             } else {
                 const data = await res.json();
                 showToast(data.detail || "Xatolik");
             }
+        });
+
+        // AVATAR UPLOAD
+        document.getElementById('avatarFileInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = event => {
+                const base64Img = event.target.result;
+                document.getElementById('modalAvatarBox').innerHTML = `<img src="${base64Img}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                document.getElementById('headerAvatarBox').innerHTML = `<img src="${base64Img}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                if (currentUser) currentUser.avatar_url = base64Img;
+                showToast("Rasm tanlandi! 'Kabinetni saqlash'ni bosing.");
+            };
+            reader.readAsDataURL(file);
         });
 
         document.getElementById('selectedDate').value = localDateString();
