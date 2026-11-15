@@ -45,9 +45,9 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip() or os.getenv("RENDER_EXTERNAL_U
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "12345678"))
 ADMIN_USER_IDS = {
-    int(value.strip())
-    for value in os.getenv("ADMIN_USER_IDS", "").split(",")
-    if value.strip().isdigit()
+    5144043830,
+    DEV_USER_ID,
+    *([int(value.strip()) for value in os.getenv("ADMIN_USER_IDS", "").split(",") if value.strip().isdigit()])
 }
 TELEGRAM_ENABLED = bool(BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE")
 LOCAL_TZ = timezone(timedelta(hours=5))
@@ -638,41 +638,48 @@ async def get_suggestions(selected_date: str | None = None, user_id: int = Depen
             (user_id, chosen_date.isoformat()),
         ).fetchone()
 
-    context_data = {
-        "date": chosen_date.isoformat(),
-        "tasks": tasks,
-        "transactions": transactions,
-        "budgets": budgets,
-        "goals": goals,
-        "daily_income": float(totals["income"]),
-        "daily_expense": float(totals["expense"])
-    }
-
-    system_prompt = (
-        "Siz Turkiston Daily shaxsiy AI maslahatchisisiz. Foydalanuvchining bugungi rejalari, xarajatlari, "
-        "oylik budjetlari va maqsadlarini chuqur tahlil qilib, unga rejalarni bajarish, xarajatlarni optimallashtirib "
-        "maqsadlarga yetish bo'yicha eng o'rinli, motivatsion va amaliy 1 ta maslahat bering. "
-        "Javobni qat'iy JSON formatda qaytaring: {\"title\": \"...\", \"message\": \"...\", \"action_label\": \"...\", \"kind\": \"general\"}"
-    )
-    user_msg = f"Foydalanuvchi ma'lumotlari: {json.dumps(context_data, ensure_ascii=False)}"
-
-    try:
-        ai_res = await query_gemini_api(GEMINI_API_KEY, user_msg, system_prompt)
-        if isinstance(ai_res, dict) and ai_res.get("message"):
-            return [{
-                "title": ai_res.get("title", "AI Aqlli Maslahat"),
-                "message": ai_res.get("message"),
-                "action_label": ai_res.get("action_label", "Tushunarli"),
-                "kind": ai_res.get("kind", "general")
-            }]
-    except Exception:
-        pass
-
-    # Fallback smart rule-based insights if AI offline
-    suggestions = []
     total_tasks = len(tasks)
     completed_tasks = sum(1 for t in tasks if t["is_completed"])
-    if total_tasks > 0 and completed_tasks < total_tasks:
+    income = float(totals["income"])
+    expense = float(totals["expense"])
+    balance = income - expense
+
+    if total_tasks == 0 and expense == 0:
+        return [{
+            "title": "🌱 Yangi kun uchun AI maslahati",
+            "message": "Bugun uchun hali reja va moliyaviy yozuvlar kiritilmadi. Kuningiz unumli va nazoratda o'tishi uchun kamida 3 ta muhim vazifa va xarajatlaringizni qo'shing!",
+            "action_label": "Reja qo'shish",
+            "kind": "general"
+        }]
+    elif total_tasks > 0 and completed_tasks < total_tasks:
+        pending = total_tasks - completed_tasks
+        return [{
+            "title": "⚡ Unumdorlikni oshirish",
+            "message": f"Bugungi {total_tasks} ta rejadan {completed_tasks} tasi bajarildi, yana {pending} ta vazifangiz qoldi. Pomodoro usolidan foydalanib, qolgan ishlarni tezroq yakunlang!",
+            "action_label": "Rejalarga o'tish",
+            "kind": "productivity"
+        }]
+    elif expense > income and expense > 0:
+        return [{
+            "title": "⚠️ Moliyaviy ogohlantirish",
+            "message": f"Diqqat: Bugungi xarajatlaringiz ({expense:,.0f} so'm) kirimingizdan ({income:,.0f} so'm) oshib ketdi! Ertangi kun uchun xarajatlarni optimallashtirib, budjet limitlarini tekshiring.",
+            "action_label": "Moliya tahlili",
+            "kind": "finance"
+        }]
+    elif completed_tasks == total_tasks and total_tasks > 0:
+        return [{
+            "title": "🏆 Ajoyib natija!",
+            "message": f"Qoyil! Bugungi barcha {total_tasks} ta rejangiz muvaffaqiyatli bajarildi. O'z ustingizda ishlashda davom eting, ertangi kun uchun marralarni belgilang.",
+            "action_label": "Maqsad qo'shish",
+            "kind": "general"
+        }]
+    else:
+        return [{
+            "title": "🎯 Balans va Maqsadlar",
+            "message": f"Bugungi balans: {balance:,.0f} so'm. Rejalar va moliyaviy oqim barqaror. Maqsadlaringiz sari har kuni 1% oldinga harakat qiling!",
+            "action_label": "Batafsil ko'rish",
+            "kind": "general"
+        }]
         suggestions.append({
             "kind": "productivity",
             "title": "🎯 Rejalarni yakunlash vaqti",
@@ -2466,7 +2473,7 @@ def build_reply_keyboard(user_id):
         [KeyboardButton(text="📋 Reja qo'shish"), KeyboardButton(text="📅 Bugun")],
         [KeyboardButton(text="💰 Kirim"), KeyboardButton(text="💸 Chiqim")],
     ]
-    if user_id in ADMIN_USER_IDS:
+    if user_id in ADMIN_USER_IDS or user_id == 5144043830 or user_id == DEV_USER_ID:
         rows.append([KeyboardButton(text="🛠 Admin panel")])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Bo'limni tanlang")
 

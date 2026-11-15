@@ -983,24 +983,28 @@
             document.getElementById('taskSummaryFull').textContent = `${prettyDate(dateStr)} · ${summary.tasks_completed} / ${summary.tasks_total} bajarildi`;
             document.getElementById('reportDateLabel').textContent = prettyDate(dateStr);
 
-            // Dynamic AI Insights text based on real stats
-            let insight = "Sizda barcha ko'rsatkichlar ajoyib holatda. Bugungi vazifalaringizni oxiriga yetkazing! 🚀";
-            let suggestionAction = null;
-            if (summary.tasks_total === 0) {
-                insight = "💡 AI Maslahati: Bugun uchun reja kiritmabsiz. Kuningiz unumli o'tishi uchun kamida 3 ta muhim vazifa qo'shing.";
-                suggestionAction = { type: 'task', title: "Ertangi muhim vazifalarni rejalashtirish" };
-            } else if (summary.expense > summary.income && summary.expense > 0) {
-                insight = "⚠️ AI Moliya Ogohlantirishi: Bugungi xarajatlaringiz kirimingizdan oshib ketdi. Ertadan xarajatlarni qisqartirishni o'ylab ko'ring.";
-            } else if (summary.tasks_completed === summary.tasks_total && summary.tasks_total > 0) {
-                insight = "🏆 Qoyil! Bugungi barcha rejalaringizni to'liq bajardingiz. Ertangi kun uchun yangi maqsad qo'ying.";
-            }
-            document.getElementById('aiProactiveSuggestion').textContent = insight;
-            const acceptBtn = document.getElementById('acceptAiSuggestionBtn');
-            if (suggestionAction) {
-                acceptBtn.style.display = 'inline-block';
-                window.currentAiSuggestion = suggestionAction;
-            } else {
-                acceptBtn.style.display = 'none';
+            // Fetch AI suggestions from backend
+            try {
+                const sugRes = await fetch(`/api/suggestions?selected_date=${dateStr}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (sugRes.ok) {
+                    const suggestions = await sugRes.json();
+                    if (suggestions && suggestions.length > 0) {
+                        const sug = suggestions[0];
+                        document.getElementById('aiProactiveSuggestion').innerHTML = `<strong>${escapeHtml(sug.title)}</strong><br>${escapeHtml(sug.message)}`;
+                        const acceptBtn = document.getElementById('acceptAiSuggestionBtn');
+                        if (sug.action_label) {
+                            acceptBtn.textContent = sug.action_label;
+                            acceptBtn.style.display = 'inline-block';
+                            window.currentAiSuggestion = sug;
+                        } else {
+                            acceptBtn.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (e) {
+                document.getElementById('aiProactiveSuggestion').textContent = "Sizda barcha ko'rsatkichlar ajoyib holatda. Bugungi vazifalaringizni oxiriga yetkazing! 🚀";
             }
 
             const taskHtml = tasks.length ? tasks.map(t => `
