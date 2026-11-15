@@ -339,7 +339,11 @@
                             <div><h3 class="panel-title"><span>✨</span> <span data-i18n="ai_chat_title">AI Shaxsiy Suhbatdosh</span></h3><p class="panel-subtitle">ChatGPT & Gemini uslubida</p></div>
                             <span class="badge" style="background:var(--green-soft); color:var(--green); font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600;">Faol</span>
                         </div>
-                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:360px; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--paper); border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:11px; color:var(--muted); font-weight:600;" id="voiceModeStatus">🎙 Live Ovozli Rejim: Yoqilgan 🔊</span>
+                            <button class="text-button" type="button" onclick="toggleAutoVoice()" id="autoVoiceToggleBtn" style="font-size:11px;">O'chirish</button>
+                        </div>
+                        <div id="aiChatBox" style="flex:1; overflow-y:auto; max-height:340px; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--paper); border:1px solid var(--line); border-radius:10px; margin-bottom:12px;">
                             <div style="align-self:flex-start; max-width:88%; background:var(--white); border:1px solid var(--line); padding:10px 14px; border-radius:14px 14px 14px 2px; font-size:13px; line-height:1.5;">
                                 <strong data-i18n="ai_hello">Assalomu alaykum!</strong> <span data-i18n="ai_desc">Men sizning shaxsiy sun'iy intellekt yordamchingizman. Xohlagan tilda yozishingiz mumkin! ✨</span>
                             </div>
@@ -1307,7 +1311,16 @@
             };
         }
 
+        let autoVoiceEnabled = true;
+        function toggleAutoVoice() {
+            autoVoiceEnabled = !autoVoiceEnabled;
+            document.getElementById('voiceModeStatus').textContent = autoVoiceEnabled ? "🎙 Live Ovozli Rejim: Yoqilgan 🔊" : "🎙 Live Ovozli Rejim: O'chirilgan 🔇";
+            document.getElementById('autoVoiceToggleBtn').textContent = autoVoiceEnabled ? "O'chirish" : "Yoqish";
+            showToast(autoVoiceEnabled ? "Ovozli javob yoqildi 🔊" : "Ovozli javob o'chirildi 🔇");
+        }
+
         function speakText(text) {
+            if (!autoVoiceEnabled) return;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
