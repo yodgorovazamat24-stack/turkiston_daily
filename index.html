@@ -232,7 +232,7 @@
                 <div class="stats-grid">
                     <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Bugungi kirim</div><strong class="stat-value" id="dayIncome">0 so'm</strong><div class="stat-foot" id="monthIncome">Oy: 0 so'm</div></article>
                     <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Bugungi chiqim</div><strong class="stat-value" id="dayExpense">0 so'm</strong><div class="stat-foot" id="monthExpense">Oy: 0 so'm</div></article>
-                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Kun balansi</div><strong class="stat-value" id="dayBalance">0 so'm</strong><div class="stat-foot" id="taskProgress">0 ta reja bajarildi</div></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Kun balansi</div><strong class="stat-value" id="dayBalance">0 so'm</strong><div class="stat-foot"><span id="taskProgress">0 ta reja bajarildi</span><br><span id="dayBalanceFoot" style="font-weight:600; color:var(--green);">Jami balans: 0 so'm</span></div></article>
                 </div>
                 <div class="overview-grid">
                     <div class="column">
@@ -298,7 +298,7 @@
                 <div class="stats-grid">
                     <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span>Kun kirimi</div><strong class="stat-value" id="moneyIncome">0 so'm</strong></article>
                     <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span>Kun chiqimi</div><strong class="stat-value" id="moneyExpense">0 so'm</strong></article>
-                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Balans</div><strong class="stat-value" id="moneyBalance">0 so'm</strong></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span>Umumiy balans</div><strong class="stat-value" id="moneyBalance">0 so'm</strong><div class="stat-foot" id="moneyDayBalance">Kun balansi: 0 so'm</div></article>
                 </div>
                 <div class="view-grid">
                     <div class="column">
@@ -542,16 +542,22 @@
             const monthExpense = monthTx.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
             const completedTasks = todayTasks.filter(t => t.is_completed).length;
 
+            const totalIncome = db.transactions.filter(tx => tx.type === 'income').reduce((s, x) => s + x.amount, 0);
+            const totalExpense = db.transactions.filter(tx => tx.type === 'expense').reduce((s, x) => s + x.amount, 0);
+            const totalBalance = totalIncome - totalExpense;
+
             document.getElementById('dayIncome').textContent = money(dayIncome);
             document.getElementById('dayExpense').textContent = money(dayExpense);
             document.getElementById('dayBalance').textContent = money(dayIncome - dayExpense);
             document.getElementById('monthIncome').textContent = `Oy: ${money(monthIncome)}`;
             document.getElementById('monthExpense').textContent = `Oy: ${money(monthExpense)}`;
             document.getElementById('taskProgress').textContent = `${completedTasks} / ${todayTasks.length} ta reja bajarildi`;
+            document.getElementById('dayBalanceFoot').textContent = `Jami balans: ${money(totalBalance)}`;
 
             document.getElementById('moneyIncome').textContent = money(dayIncome);
             document.getElementById('moneyExpense').textContent = money(dayExpense);
-            document.getElementById('moneyBalance').textContent = money(dayIncome - dayExpense);
+            document.getElementById('moneyBalance').textContent = money(totalBalance);
+            document.getElementById('moneyDayBalance').textContent = `Kun balansi: ${money(dayIncome - dayExpense)}`;
 
             document.getElementById('welcomeTitle').textContent = dateStr === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(dateStr);
             document.getElementById('dayLabel').textContent = dateStr === localDateString() ? 'BUGUN' : dateStr;

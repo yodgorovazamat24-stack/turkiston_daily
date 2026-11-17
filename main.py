@@ -571,6 +571,12 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
             "FROM transactions WHERE user_id = ? AND date LIKE ?",
             (user_id, f"{month}%"),
         ).fetchone()
+        total_totals = connection.execute(
+            "SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) income, "
+            "COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) expense "
+            "FROM transactions WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
         category_rows = connection.execute(
             "SELECT category, SUM(amount) amount FROM transactions "
             "WHERE user_id = ? AND date = ? AND type = 'expense' "
@@ -597,6 +603,8 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
     expense = float(totals["expense"])
     monthly_income = float(monthly["income"])
     monthly_expense = float(monthly["expense"])
+    total_income = float(total_totals["income"])
+    total_expense = float(total_totals["expense"])
     return {
         "date": chosen_date,
         "tasks": tasks,
@@ -610,6 +618,9 @@ async def get_dashboard(selected_date: str | None = None, user_id: int = Depends
             "month_income": monthly_income,
             "month_expense": monthly_expense,
             "month_balance": monthly_income - monthly_expense,
+            "total_income": total_income,
+            "total_expense": total_expense,
+            "total_balance": total_income - total_expense,
         },
         "categories": [dict(row) for row in category_rows],
         "budgets": [dict(row) for row in budget_rows],

@@ -338,7 +338,7 @@
                 <div class="stats-grid">
                     <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span><span data-i18n="stat_inc">Bugungi kirim</span></div><strong class="stat-value" id="dayIncome">0 so'm</strong><div class="stat-foot" id="monthIncome">Oy: 0 so'm</div></article>
                     <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span><span data-i18n="stat_exp">Bugungi chiqim</span></div><strong class="stat-value" id="dayExpense">0 so'm</strong><div class="stat-foot" id="monthExpense">Oy: 0 so'm</div></article>
-                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span><span data-i18n="stat_bal">Kun balansi</span></div><strong class="stat-value" id="dayBalance">0 so'm</strong><div class="stat-foot" id="taskProgress">0 ta reja bajarildi</div></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span><span data-i18n="stat_bal">Kun balansi</span></div><strong class="stat-value" id="dayBalance">0 so'm</strong><div class="stat-foot"><span id="taskProgress">0 ta reja bajarildi</span><br><span id="dayBalanceFoot" style="font-weight:600; color:var(--green);">Jami balans: 0 so'm</span></div></article>
                 </div>
                 <div class="overview-grid">
                     <div class="column">
@@ -401,7 +401,7 @@
                 <div class="stats-grid">
                     <article class="stat income"><div class="stat-label"><span class="stat-symbol">↗</span><span data-i18n="money_inc">Kun kirimi</span></div><strong class="stat-value" id="moneyIncome">0 so'm</strong></article>
                     <article class="stat expense"><div class="stat-label"><span class="stat-symbol">↘</span><span data-i18n="money_exp">Kun chiqimi</span></div><strong class="stat-value" id="moneyExpense">0 so'm</strong></article>
-                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span><span data-i18n="money_bal">Balans</span></div><strong class="stat-value" id="moneyBalance">0 so'm</strong></article>
+                    <article class="stat balance"><div class="stat-label"><span class="stat-symbol">=</span><span data-i18n="money_bal">Umumiy balans</span></div><strong class="stat-value" id="moneyBalance">0 so'm</strong><div class="stat-foot" id="moneyDayBalance">Kun balansi: 0 so'm</div></article>
                 </div>
                 <div class="view-grid">
                     <div class="column">
@@ -599,7 +599,7 @@
                 task_list_title: "Rejalar ro'yxati (TickTick)", task_new_title: "Yangi reja", task_lbl_name: "Reja nomi", task_lbl_prio: "Muhimligi", task_lbl_rec: "Takrorlanishi", task_lbl_rem: "Eslatma vaqti (Budilnik)",
                 ph_task: "Masalan, kitob o'qish", opt_normal: "Oddiy", opt_high: "Muhim", opt_none: "Takrorlanmaydi", opt_daily: "Har kuni", opt_weekly: "Har hafta", opt_hourly: "Har soatda", btn_add_task: "+ Reja qo'shish",
                 money_intro: "Money Manager kabi klassik, aniq va batafsil kirim-chiqim hisobotlari.",
-                money_inc: "Kun kirimi", money_exp: "Kun chiqimi", money_bal: "Balans", money_history: "Amaliyotlar tarixi", money_budgets: "Oylik budjetlar",
+                money_inc: "Kun kirimi", money_exp: "Kun chiqimi", money_bal: "Umumiy balans", money_history: "Amaliyotlar tarixi", money_budgets: "Oylik budjetlar",
                 money_new_tx: "Yangi amaliyot", money_lbl_type: "Turi", money_lbl_cat: "Kategoriya", money_lbl_amt: "Summa (so'm)", money_lbl_note: "Izoh", money_new_budget: "Budjet limiti", money_lbl_limit: "Limit (so'm)",
                 opt_expense: "Chiqim", opt_income: "Kirim", ph_cat: "Oziq-ovqat", ph_note: "Izoh", btn_save: "Saqlash", btn_save_limit: "Limitni saqlash",
                 goal_intro: "Notion kabi erkin jamg'arma va loyihalar konstruktori.", goal_list_title: "Maqsadlar", goal_new_title: "Yangi maqsad", goal_lbl_title: "Nomi", goal_lbl_target: "Summa", goal_lbl_current: "Yig'ilgan", btn_create_goal: "Maqsad yaratish",
@@ -626,7 +626,7 @@
                 task_list_title: "Список задач", task_new_title: "Новая задача", task_lbl_name: "Название", task_lbl_prio: "Важность", task_lbl_rec: "Повторение", task_lbl_rem: "Время напоминания",
                 ph_task: "Напр., читать книгу", opt_normal: "Обычная", opt_high: "Важная", opt_none: "Без повтора", opt_daily: "Ежедневно", opt_weekly: "Еженедельно", opt_hourly: "Каждый час", btn_add_task: "+ Добавить задачу",
                 money_intro: "Классический учет доходов и расходов в стиле Money Manager.",
-                money_inc: "Доходы дня", money_exp: "Расходы дня", money_bal: "Баланс", money_history: "История операций", money_budgets: "Месячные бюджеты",
+                money_inc: "Доходы дня", money_exp: "Расходы дня", money_bal: "Общий баланс", money_history: "История операций", money_budgets: "Месячные бюджеты",
                 money_new_tx: "Новая операция", money_lbl_type: "Тип", money_lbl_cat: "Категория", money_lbl_amt: "Сумма (сум)", money_lbl_note: "Примечание", money_new_budget: "Лимит бюджета", money_lbl_limit: "Лимит (сум)",
                 opt_expense: "Расход", opt_income: "Доход", ph_cat: "Продукты", ph_note: "Заметка", btn_save: "Сохранить", btn_save_limit: "Сохранить лимит",
                 goal_intro: "Конструктор целей и накоплений в стиле Notion.", goal_list_title: "Цели", goal_new_title: "Новая цель", goal_lbl_title: "Название", goal_lbl_target: "Сумма", goal_lbl_current: "Собрано", btn_create_goal: "Создать цель",
@@ -653,7 +653,7 @@
                 task_list_title: "Tasks List", task_new_title: "New Task", task_lbl_name: "Title", task_lbl_prio: "Priority", task_lbl_rec: "Recurrence", task_lbl_rem: "Reminder Time",
                 ph_task: "E.g., Read a book", opt_normal: "Normal", opt_high: "High", opt_none: "None", opt_daily: "Daily", opt_weekly: "Weekly", opt_hourly: "Hourly", btn_add_task: "+ Add Task",
                 money_intro: "Classic Money Manager income and expense tracking.",
-                money_inc: "Income today", money_exp: "Expense today", money_bal: "Balance", money_history: "Transaction History", money_budgets: "Monthly Budgets",
+                money_inc: "Income today", money_exp: "Expense today", money_bal: "Total Balance", money_history: "Transaction History", money_budgets: "Monthly Budgets",
                 money_new_tx: "New Transaction", money_lbl_type: "Type", money_lbl_cat: "Category", money_lbl_amt: "Amount (UZS)", money_lbl_note: "Note", money_new_budget: "Budget Limit", money_lbl_limit: "Limit (UZS)",
                 opt_expense: "Expense", opt_income: "Income", ph_cat: "Food", ph_note: "Note", btn_save: "Save", btn_save_limit: "Save Limit",
                 goal_intro: "Notion-style goals and savings builder.", goal_list_title: "Goals", goal_new_title: "New Goal", goal_lbl_title: "Title", goal_lbl_target: "Amount", goal_lbl_current: "Collected", btn_create_goal: "Create Goal",
@@ -1005,10 +1005,12 @@
             document.getElementById('monthIncome').textContent = `Oy: ${money(summary.month_income)}`;
             document.getElementById('monthExpense').textContent = `Oy: ${money(summary.month_expense)}`;
             document.getElementById('taskProgress').textContent = `${summary.tasks_completed} / ${summary.tasks_total} ta reja bajarildi`;
+            document.getElementById('dayBalanceFoot').textContent = `Jami balans: ${money(summary.total_balance)}`;
 
             document.getElementById('moneyIncome').textContent = money(summary.income);
             document.getElementById('moneyExpense').textContent = money(summary.expense);
-            document.getElementById('moneyBalance').textContent = money(summary.balance);
+            document.getElementById('moneyBalance').textContent = money(summary.total_balance);
+            document.getElementById('moneyDayBalance').textContent = `Kun balansi: ${money(summary.balance)}`;
 
             document.getElementById('welcomeTitle').textContent = dateStr === localDateString() ? "Kuningiz xayrli o'tsin" : prettyDate(dateStr);
             document.getElementById('dayLabel').textContent = dateStr === localDateString() ? 'BUGUN' : dateStr;
