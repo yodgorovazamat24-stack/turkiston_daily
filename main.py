@@ -45,9 +45,12 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip() or os.getenv("RENDER_EXTERNAL_U
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "12345678"))
 ADMIN_USER_IDS = {5144043830}
+_env_admin_ids = os.getenv("ADMIN_USER_IDS", "").strip()
+if _env_admin_ids:
+    ADMIN_USER_IDS |= {int(x) for x in _env_admin_ids.replace(" ", "").split(",") if x.isdigit()}
 
 def is_admin_user(user_id: int) -> bool:
-    return True
+    return user_id in ADMIN_USER_IDS
 TELEGRAM_ENABLED = bool(BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE")
 LOCAL_TZ = timezone(timedelta(hours=5))
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -155,45 +158,52 @@ def verify_telegram_user(init_data: str | None):
         if not hmac.compare_digest(expected_hash, received_hash):
             return None
         user = json.loads(values["user"])
-        return int(user["id"])
+        return user
     except Exception:
         return None
+
+def ensure_telegram_user(tg_user: dict) -> int:
+    tg_id = int(tg_user["id"])
+    first_name = (tg_user.get("first_name") or "").strip()
+    last_name = (tg_user.get("last_name") or "").strip()
+    full_name = f"{first_name} {last_name}".strip() or f"Telegram {tg_id}"
+    username = (tg_user.get("username") or "").strip().lstrip("@")
+    now_str = datetime.now(LOCAL_TZ).isoformat(timespec="seconds")
+    with database() as connection:
+        if username:
+            taken = connection.execute(
+                "SELECT user_id FROM users WHERE username = ? AND user_id != ?", (username, tg_id)
+            ).fetchone()
+            if taken:
+                username = ""
+        connection.execute(
+            "INSERT INTO users (user_id, full_name, username, first_seen_at, last_seen_at) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO NOTHING",
+            (tg_id, full_name, username, now_str, now_str)
+        )
+    return tg_id
+
 
 async def current_user(
     authorization: str | None = Header(default=None),
     x_telegram_init_data: str | None = Header(default=None)
 ):
-    # 1. Bearer token or Authorization header
+    # 1. Telegram Mini App — har bir Telegram foydalanuvchisi o'z akkauntiga ega
+    tg_user = verify_telegram_user(x_telegram_init_data)
+    if tg_user:
+        user_id = ensure_telegram_user(tg_user)
+        record_user_activity(user_id)
+        return user_id
+
+    # 2. Bearer token (sayt / login orqali)
     if authorization:
         token = authorization.replace("Bearer ", "").strip()
         if token in ACTIVE_SESSIONS:
             user_id = ACTIVE_SESSIONS[token]
             record_user_activity(user_id)
             return user_id
-        # Check token directly if it's an existing numeric user_id
-        if token.isdigit():
-            user_id = int(token)
-            with database() as conn:
-                row = conn.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,)).fetchone()
-                if row:
-                    record_user_activity(user_id)
-                    return user_id
 
-    # 2. Telegram Mini App
-    tg_user = verify_telegram_user(x_telegram_init_data)
-    if tg_user:
-        record_user_activity(tg_user)
-        return tg_user
-
-    # 3. Default fallback to primary active user in DB
-    with database() as conn:
-        row = conn.execute("SELECT user_id FROM users ORDER BY last_seen_at DESC LIMIT 1").fetchone()
-        if row:
-            uid = int(row["user_id"])
-            record_user_activity(uid)
-            return uid
-
-    return DEV_USER_ID
+    raise HTTPException(status_code=401, detail="Kirish talab qilinadi")
 
 
 
@@ -304,13 +314,19 @@ async def read_root(request: Request):
 
 
 @app.post("/api/auth/register")
-async def register_account(data: RegisterRequest):
+async def register_account(
+    data: RegisterRequest,
+    x_telegram_init_data: str | None = Header(default=None)
+):
     phone = normalize_phone(data.phone)
     if not phone or len(phone) < 7:
         raise HTTPException(status_code=400, detail="Telefon raqamini to'g'ri kiriting")
     pwd_hash = hash_password(data.password)
     username = data.username.strip().lstrip("@")
     full_name = data.full_name.strip()
+    tg_user = verify_telegram_user(x_telegram_init_data)
+    if data.telegram_user_id and (not tg_user or int(tg_user["id"]) != int(data.telegram_user_id)):
+        raise HTTPException(status_code=403, detail="Telegram hisobini tasdiqlash imkoni bo'lmadi")
 
     with database() as connection:
         # Check existing phone
@@ -322,18 +338,16 @@ async def register_account(data: RegisterRequest):
             if exist_user:
                 raise HTTPException(status_code=400, detail="Bu username band, boshqa nom tanlang")
 
-        # Telegramdagi mavjud hisobot va rejalarni ulash (migration)
-        # Agar foydalanuvchi ma'lum telegram_user_id bergan bo'lsa yoki bazadagi eng faol foydalanuvchi ma'lumotlarini birlashtirish
-        target_uid = data.telegram_user_id
+        # Har bir ro'yxatdan o'tish alohida akkauntga ega bo'lishi kerak —
+        # mavjud (eng faol) foydalanuvchi akkauntini band qilib qo'ymaslik
+        target_uid = int(data.telegram_user_id) if data.telegram_user_id else None
         if not target_uid:
-            # Eng ko'p reja/ma'lumotga ega bo'lgan foydalanuvchini olamiz (odatda 5144043830)
-            active_row = connection.execute(
-                "SELECT user_id, COUNT(*) as cnt FROM tasks GROUP BY user_id ORDER BY cnt DESC LIMIT 1"
-            ).fetchone()
-            if active_row:
-                target_uid = int(active_row["user_id"])
-            else:
-                target_uid = int(phone[-8:]) if phone[-8:].isdigit() else DEV_USER_ID
+            import uuid
+            while True:
+                candidate = -(uuid.uuid4().int % 2_000_000_000) - 1
+                if not connection.execute("SELECT 1 FROM users WHERE user_id = ?", (candidate,)).fetchone():
+                    target_uid = candidate
+                    break
 
         # Yangilaymiz yoki yangi yozuv yaratamiz
         now_str = datetime.now(LOCAL_TZ).isoformat(timespec="seconds")

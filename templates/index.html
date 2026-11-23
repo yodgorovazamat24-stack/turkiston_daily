@@ -256,9 +256,9 @@
     <div class="modal-overlay" id="authModal" style="background: rgba(20,30,25,0.85); backdrop-filter: blur(8px); z-index:250;">
         <div class="modal-card" style="max-width: 425px;">
             <div class="panel-header" style="margin-bottom:12px;">
-                <div><h3 class="panel-title" id="authModalTitle" data-i18n="auth_title">🔐 Turkiston Daily'ga Kirish</h3><p class="panel-subtitle" data-i18n="auth_sub">Shaxsiy yordamchingizdan foydalanish uchun ro'yxatdan o'ting</p></div>
+                <div><h3 class="panel-title" id="authModalTitle" data-i18n="auth_title">🔐 Turkiston Daily'ga Kirish</h3><p class="panel-subtitle" data-i18n="auth_sub">Ilovadan foydalanish uchun ro'yxatdan o'tish majburiy — aks holda Turkiston Daily'dan foydalana olmaysiz</p></div>
             </div>
-            <div class="form-stack" id="loginFormContainer">
+            <div class="form-stack" id="loginFormContainer" style="display:none;">
                 <form id="loginForm" class="form-stack">
                     <div class="field-group"><label class="field-label" for="loginPhone" data-i18n="lbl_login">Telefon raqam yoki Username</label><input class="field" id="loginPhone" placeholder="+998901234567 yoki username" required></div>
                     <div class="field-group"><label class="field-label" for="loginPassword" data-i18n="lbl_password">Parol</label><input class="field" id="loginPassword" type="password" placeholder="••••••••" required></div>
@@ -269,7 +269,7 @@
                 </div>
             </div>
 
-            <div class="form-stack" id="registerFormContainer" style="display:none;">
+            <div class="form-stack" id="registerFormContainer">
                 <form id="registerForm" class="form-stack">
                     <div class="field-group"><label class="field-label" for="regName" data-i18n="lbl_name">Ism va Familiya</label><input class="field" id="regName" placeholder="Azamat Yodgorov" required></div>
                     <div class="field-group"><label class="field-label" for="regUsername" data-i18n="lbl_username">Unikal Username (Masalan: @azamat)</label><input class="field" id="regUsername" placeholder="@azamat" required></div>
@@ -580,11 +580,32 @@
         let currentUser = null;
         let currentLang = localStorage.getItem('turkiston_lang') || '';
 
+        const tgWebApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+        const tgInitData = tgWebApp ? (tgWebApp.initData || '') : '';
+        const tgUser = (tgWebApp && tgWebApp.initDataUnsafe && tgWebApp.initDataUnsafe.user) || null;
+        if (tgUser) {
+            const nameEl = document.getElementById('regName');
+            if (nameEl && !nameEl.value) {
+                nameEl.value = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
+            }
+            const unEl = document.getElementById('regUsername');
+            if (unEl && tgUser.username && !unEl.value) unEl.value = '@' + tgUser.username;
+        }
+        const _nativeFetch = window.fetch.bind(window);
+        window.fetch = function (url, options = {}) {
+            if (tgInitData) {
+                const headers = new Headers(options.headers || {});
+                if (!headers.has('X-Telegram-Init-Data')) headers.set('X-Telegram-Init-Data', tgInitData);
+                options = { ...options, headers };
+            }
+            return _nativeFetch(url, options);
+        };
+
         const translations = {
             uz: {
                 nav_label: "BO'LIMLAR", menu_overview: "Umumiy", menu_ai: "AI Yordamchi", menu_tasks: "Rejalar", menu_money: "Moliya", menu_goals: "Maqsadlar", menu_reports: "Hisobotlar",
                 mod_profile: "Shaxsiy kabinet", mod_settings: "Sozlamalar & Rejim", mod_backup: "Zaxiralash (Backup)", mod_admin: "Admin Panel", mod_logout: "Chiqish", mod_bot: "Telegram Bot", mod_change_avatar: "📷 Rasmni o'zgartirish",
-                auth_title: "🔐 Turkiston Daily'ga Kirish", auth_sub: "Shaxsiy yordamchingizdan foydalanish uchun ro'yxatdan o'ting",
+                auth_title: "🔐 Turkiston Daily'ga Kirish", auth_sub: "Ilovadan foydalanish uchun ro'yxatdan o'tish majburiy — aks holda ilovadan foydalana olmaysiz",
                 lbl_login: "Telefon raqam yoki Username", lbl_password: "Parol", lbl_name: "Ism va Familiya", lbl_username: "Unikal Username (@username)", lbl_phone: "Telefon raqam", lbl_bio: "Bio / Shior",
                 btn_login: "Kirish", btn_register: "Ro'yxatdan o'tish", lnk_to_reg: "Hali ro'yxatdan o'tmaganmisiz? Ro'yxatdan o'tish →", lnk_to_login: "Akkauntingiz bormi? Kirish →",
                 sidebar_sub: "Ma'lumotlar serverda saqlanadi", top_eyebrow: "TICKTICK + MONEY MANAGER",
@@ -611,7 +632,7 @@
             ru: {
                 nav_label: "РАЗДЕЛЫ", menu_overview: "Главная", menu_ai: "ИИ Помощник", menu_tasks: "Задачи", menu_money: "Финансы", menu_goals: "Цели", menu_reports: "Отчеты",
                 mod_profile: "Личный кабинет", mod_settings: "Настройки и Режим", mod_backup: "Резервная копия", mod_admin: "Админ Панель", mod_logout: "Выйти", mod_bot: "Телеграм Бот", mod_change_avatar: "📷 Изменить фото",
-                auth_title: "🔐 Вход в Turkiston Daily", auth_sub: "Войдите или зарегистрируйтесь для доступа",
+                auth_title: "🔐 Вход в Turkiston Daily", auth_sub: "Для использования приложения регистрация обязательна — иначе доступ закрыт",
                 lbl_login: "Номер телефона или Username", lbl_password: "Пароль", lbl_name: "Имя и Фамилия", lbl_username: "Уникальный Username (@username)", lbl_phone: "Номер телефона", lbl_bio: "Био / О себе",
                 btn_login: "Войти", btn_register: "Зарегистрироваться", lnk_to_reg: "Нет аккаунта? Регистрация →", lnk_to_login: "Есть аккаунт? Войти →",
                 sidebar_sub: "Данные хранятся на сервере", top_eyebrow: "TICKTICK + MONEY MANAGER",
@@ -638,7 +659,7 @@
             en: {
                 nav_label: "SECTIONS", menu_overview: "Overview", menu_ai: "AI Assistant", menu_tasks: "Tasks", menu_money: "Finance", menu_goals: "Goals", menu_reports: "Reports",
                 mod_profile: "Profile", mod_settings: "Settings & Theme", mod_backup: "Backup", mod_admin: "Admin Panel", mod_logout: "Logout", mod_bot: "Telegram Bot", mod_change_avatar: "📷 Change Photo",
-                auth_title: "🔐 Login to Turkiston Daily", auth_sub: "Sign in or register to use your assistant",
+                auth_title: "🔐 Login to Turkiston Daily", auth_sub: "Registration is required to use the app — otherwise access is locked",
                 lbl_login: "Phone number or Username", lbl_password: "Password", lbl_name: "Full Name", lbl_username: "Unique Username (@username)", lbl_phone: "Phone Number", lbl_bio: "Bio / Motto",
                 btn_login: "Login", btn_register: "Register", lnk_to_reg: "Don't have an account? Register →", lnk_to_login: "Already have an account? Login →",
                 sidebar_sub: "Data is saved securely", top_eyebrow: "TICKTICK + MONEY MANAGER",
@@ -670,9 +691,7 @@
             document.getElementById('langSelect').value = lang;
             changeLanguage(lang);
             document.getElementById('langSelectModal').classList.remove('open');
-            if (!authToken) {
-                document.getElementById('authModal').classList.add('open');
-            }
+            checkAuthAndLoad();
         }
 
         function changeLanguage(lang) {
@@ -757,7 +776,7 @@
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, password, full_name, username })
+                    body: JSON.stringify({ phone, password, full_name, username, telegram_user_id: tgUser ? tgUser.id : null })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Xatolik');
@@ -787,14 +806,10 @@
                 changeLanguage(currentLang);
             }
 
-            if (!authToken) {
-                document.getElementById('authModal').classList.add('open');
-                return;
-            }
             try {
-                const res = await fetch('/api/profile', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
+                const headers = {};
+                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+                const res = await fetch('/api/profile', { headers });
                 if (!res.ok) throw new Error();
                 const profile = await res.json();
                 currentUser = profile;
