@@ -227,6 +227,7 @@ class ProfileUpdate(BaseModel):
     finance_reminder_enabled: bool | None = None
     evening_review_enabled: bool | None = None
     push_notifications_enabled: bool | None = None
+    language: str | None = None
 
 class PushSubscriptionData(BaseModel):
     endpoint: str
@@ -427,7 +428,8 @@ async def get_profile(user_id: int = Depends(current_user)):
         "settings": {
             "push_notifications_enabled": bool(u_dict.get("push_notifications_enabled", 1)),
             "finance_reminder_enabled": bool(u_dict.get("finance_reminder_enabled", 1)),
-            "evening_review_enabled": bool(u_dict.get("evening_review_enabled", 1))
+            "evening_review_enabled": bool(u_dict.get("evening_review_enabled", 1)),
+            "language": u_dict.get("language") or ""
         }
     }
 
@@ -465,6 +467,12 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
         if data.evening_review_enabled is not None:
             updates.append("evening_review_enabled = ?")
             params.append(1 if data.evening_review_enabled else 0)
+        if data.language is not None:
+            lang = data.language.strip().lower()
+            if lang not in {"uz", "ru", ""}:
+                raise HTTPException(status_code=400, detail="Noto'g'ri til kodi")
+            updates.append("language = ?")
+            params.append(lang)
 
         if updates:
             params.append(user_id)
@@ -1644,30 +1652,111 @@ def filter_export_data(data, start, end):
     return filtered
 
 
-async def start_cmd(message):
-    record_user_activity(message.from_user.id)
-    await message.answer(
-        "Quyidagi paneldan kerakli bo'limni tanlang yoki /buyruqlar orqali buyruqlarni ko'ring.",
-        reply_markup=build_reply_keyboard(message.from_user.id),
-    )
+def get_user_language(user_id) -> str:
+    try:
+        with database() as connection:
+            row = connection.execute("SELECT language FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        return (row["language"] if row else "") or "uz"
+    except Exception:
+        return "uz"
+
+
+def registration_prompt(lang: str) -> str:
+    if lang == "ru":
+        return ("👋 Добро пожаловать в Turkiston Daily!\n\n"
+                "Для регистрации введите ваше имя (например: Азамат Ёдгоров):")
+    return ("👋 Turkiston Daily'ga xush kelibsiz!\n\n"
+            "Ro'yxatdan o'tish uchun ismingizni kiriting (masalan: Azamat Yodgorov):")
+
+
+async def send_mini_app_invite(message, lang: str = "uz", registered: bool = False):
     if not WEBAPP_URL:
         await message.answer(
             "Mini App manzili sozlanmagan. start_bot.bat orqali botni ishga tushiring va /start ni qayta yuboring."
         )
         return
-
     web_app = WebAppInfo(url=WEBAPP_URL)
     markup = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Turkiston Daily'ni ochish", web_app=web_app)
     ]])
-    await message.answer(
-        "Kunlik reja, eslatma, kirim-chiqim va hisobotlaringiz — barchasi Mini App ichida.",
-        reply_markup=markup,
-    )
+    if registered:
+        text = ("Rahmat, akkauntingiz tayyor! ✅\n\nEndi Mini App'ni ochib, reja, moliya va maqsadlaringizni boshqaring."
+                if lang == "uz" else
+                "Спасибо, аккаунт готов! ✅\n\nТеперь откройте Mini App, чтобы управлять задачами, финансами и целями.")
+    else:
+        text = ("Kunlik reja, eslatma, kirim-chiqim va hisobotlaringiz — barchasi Mini App ichida."
+                if lang == "uz" else
+                "Ежедневные планы, напоминания, доходы-расходы и отчёты — всё внутри Mini App.")
+    await message.answer(text, reply_markup=markup)
     await bot.set_chat_menu_button(
         chat_id=message.chat.id,
         menu_button=MenuButtonWebApp(text="Turkiston Daily", web_app=web_app),
     )
+
+
+async def language_callback(callback):
+    lang = (callback.data or "").split(":", 1)[-1]
+    if lang not in {"uz", "ru"}:
+        await callback.answer()
+        return
+    user_id = callback.from_user.id
+    with database() as connection:
+        connection.execute("UPDATE users SET language = ? WHERE user_id = ?", (lang, user_id))
+    await callback.answer("Til saqlandi / Язык сохранён")
+    with database() as connection:
+        row = connection.execute("SELECT full_name FROM users WHERE user_id = ?", (user_id,)).fetchone()
+    if row and not (row["full_name"] or "").strip():
+        PENDING_ACTIONS[user_id] = {"action": "register_name"}
+        await callback.message.answer(
+            registration_prompt(lang),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="Keyinroq ⏭" if lang == "uz" else "Позже ⏭", callback_data="reg:later")
+            ]]),
+        )
+    else:
+        await send_mini_app_invite(callback.message, lang)
+
+
+async def registration_later_callback(callback):
+    if not (callback.data or "").startswith("reg:"):
+        await callback.answer()
+        return
+    PENDING_ACTIONS.pop(callback.from_user.id, None)
+    await callback.answer()
+    await send_mini_app_invite(callback.message, get_user_language(callback.from_user.id))
+
+
+async def start_cmd(message):
+    user_id = message.from_user.id
+    record_user_activity(user_id)
+    await message.answer(
+        "Quyidagi paneldan kerakli bo'limni tanlang yoki /buyruqlar orqali buyruqlarni ko'ring.",
+        reply_markup=build_reply_keyboard(user_id),
+    )
+    with database() as connection:
+        row = connection.execute("SELECT language, full_name FROM users WHERE user_id = ?", (user_id,)).fetchone()
+    lang = (row["language"] if row else "") or ""
+    full_name = (row["full_name"] if row else "") or ""
+    if not lang:
+        markup = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="lang:uz"),
+            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
+        ]])
+        await message.answer(
+            "Iltimos, tilni tanlang / Пожалуйста, выберите язык:",
+            reply_markup=markup,
+        )
+        return
+    if not full_name.strip():
+        PENDING_ACTIONS[user_id] = {"action": "register_name"}
+        await message.answer(
+            registration_prompt(lang),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="Keyinroq ⏭" if lang == "uz" else "Позже ⏭", callback_data="reg:later")
+            ]]),
+        )
+        return
+    await send_mini_app_invite(message, lang)
 
 
 async def add_plan_cmd(message):
@@ -2393,6 +2482,18 @@ async def capture_text_input(message):
         await update_task(task_id, TaskUpdate(missed_reason=text), user_id)
         await message.answer("Sabab va kechikish vaqti saqlandi.")
         return
+    if action == "register_name":
+        PENDING_ACTIONS.pop(user_id, None)
+        name = text[:120].strip()
+        tg_username = (message.from_user.username or "").strip().lstrip("@")
+        lang = get_user_language(user_id)
+        with database() as connection:
+            connection.execute(
+                "UPDATE users SET full_name = ?, username = CASE WHEN username IS NULL OR username = '' THEN ? ELSE username END WHERE user_id = ?",
+                (name, tg_username, user_id),
+            )
+        await send_mini_app_invite(message, lang, registered=True)
+        return
     PENDING_ACTIONS.pop(user_id, None)
     if action == "plan":
         parts = text.split(maxsplit=1)
@@ -2618,6 +2719,8 @@ if dp:
     dp.message(Command("health"))(admin_health)
     dp.message(Command("broadcast"))(admin_broadcast_cmd)
     dp.message(Command("cancel"))(admin_cancel_cmd)
+    dp.callback_query(F.data.startswith("lang:"))(language_callback)
+    dp.callback_query(F.data.startswith("reg:"))(registration_later_callback)
     dp.callback_query(F.data.startswith("admin:"))(admin_callback)
     dp.callback_query(F.data.startswith("excel:"))(excel_callback)
     dp.callback_query(F.data.startswith("report:"))(report_callback)

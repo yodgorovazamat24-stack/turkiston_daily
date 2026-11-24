@@ -691,6 +691,13 @@
             document.getElementById('langSelect').value = lang;
             changeLanguage(lang);
             document.getElementById('langSelectModal').classList.remove('open');
+            const patchHeaders = { 'Content-Type': 'application/json' };
+            if (authToken) patchHeaders['Authorization'] = `Bearer ${authToken}`;
+            fetch('/api/profile', {
+                method: 'PATCH',
+                headers: patchHeaders,
+                body: JSON.stringify({ language: lang })
+            }).catch(() => {});
             checkAuthAndLoad();
         }
 
@@ -719,6 +726,13 @@
             localStorage.setItem('turkiston_alarm_sound', sound);
             changeTheme(theme);
             changeLanguage(lang);
+            const patchHeaders = { 'Content-Type': 'application/json' };
+            if (authToken) patchHeaders['Authorization'] = `Bearer ${authToken}`;
+            fetch('/api/profile', {
+                method: 'PATCH',
+                headers: patchHeaders,
+                body: JSON.stringify({ language: lang })
+            }).catch(() => {});
             closeSettingsModal();
             showToast(lang === 'uz' ? 'Sozlamalar saqlandi! ✅' : lang === 'ru' ? 'Настройки сохранены! ✅' : 'Settings saved! ✅');
         }
@@ -813,6 +827,10 @@
                 if (!res.ok) throw new Error();
                 const profile = await res.json();
                 currentUser = profile;
+                const srvLang = profile.settings && profile.settings.language;
+                if (srvLang && ['uz', 'ru'].includes(srvLang) && srvLang !== currentLang) {
+                    changeLanguage(srvLang);
+                }
                 document.getElementById('authModal').classList.remove('open');
 
                 if (profile.username === 'admin' || profile.user_id === 12345678) {

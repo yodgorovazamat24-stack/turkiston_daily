@@ -134,6 +134,7 @@ def init_db():
                 "push_notifications_enabled": "INTEGER DEFAULT 1",
                 "finance_reminder_enabled": "INTEGER DEFAULT 1",
                 "evening_review_enabled": "INTEGER DEFAULT 1",
+                "language": "TEXT DEFAULT ''",
             },
         )
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone != ''")
