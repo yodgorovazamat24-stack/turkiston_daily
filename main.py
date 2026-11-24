@@ -2513,14 +2513,18 @@ async def task_result_callback(callback):
     if not task:
         await callback.answer("Reja topilmadi", show_alert=True)
         return
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
     if action == "done":
         await update_task(task_id, TaskUpdate(is_completed=True), callback.from_user.id)
         await callback.answer("Reja bajarildi")
-        await callback.message.answer(f"✅ «{task['title']}» bajarildi.")
+        await callback.message.answer(f"✅ Tabriklaymiz! «{task['title']}» rejangiz muvaffaqiyatli bajarildi.")
     elif action == "missed":
         PENDING_ACTIONS[callback.from_user.id] = {"action": "missed_reason", "task_id": task_id}
         await callback.answer()
-        await callback.message.answer("Nima sababdan reja bajarilmadi? Sababni yozing.")
+        await callback.message.answer(f"❗ «{task['title']}» rejangiz bajarilmadi. Nimaga bajarmadingiz? Sababini yozib yuboring:")
     else:
         await callback.answer("Amal aniqlanmadi", show_alert=True)
 
