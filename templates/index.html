@@ -486,7 +486,7 @@
 
                 <div class="field-group"><label class="field-label" for="profileNameInput" data-i18n="lbl_name">Ism va Familiya</label><input class="field" id="profileNameInput" placeholder="Ismingiz"></div>
                 <div class="field-group"><label class="field-label" for="profileUsernameInput" data-i18n="lbl_username">Unikal Username (@username)</label><input class="field" id="profileUsernameInput" placeholder="@username"></div>
-                <div class="field-group"><label class="field-label" for="profilePhoneInput" data-i18n="lbl_phone">Telefon raqam</label><input class="field" id="profilePhoneInput" placeholder="+998 90 123 45 67"></div>
+                <div class="field-group"><label class="field-label" for="profilePhoneInput" data-i18n="lbl_phone">Telefon raqam</label><input class="field" id="profilePhoneInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67"></div>
                 <div class="field-group"><label class="field-label" for="profileBioInput" data-i18n="lbl_bio">Bio / Shior</label><input class="field" id="profileBioInput" placeholder="Masalan: Har kuni 1% oldinga!"></div>
                 <button class="primary-button" type="button" id="saveProfileBtn" data-i18n="btn_save">Kabinetni saqlash</button>
             </div>
@@ -583,6 +583,9 @@
         const tgWebApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
         const tgInitData = tgWebApp ? (tgWebApp.initData || '') : '';
         const tgUser = (tgWebApp && tgWebApp.initDataUnsafe && tgWebApp.initDataUnsafe.user) || null;
+        if (tgWebApp) {
+            try { tgWebApp.ready(); tgWebApp.expand(); } catch (e) {}
+        }
         if (tgUser) {
             const nameEl = document.getElementById('regName');
             if (nameEl && !nameEl.value) {
@@ -1034,12 +1037,17 @@
                 document.getElementById('headerNameSnippet').textContent = currentUser.full_name ? currentUser.full_name.split(' ')[0] : 'Profil';
                 if (currentUser.avatar_url) {
                     document.getElementById('headerAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-                    document.getElementById('modalAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
                 }
-                document.getElementById('profileNameInput').value = currentUser.full_name || '';
-                document.getElementById('profileUsernameInput').value = currentUser.username || '';
-                document.getElementById('profilePhoneInput').value = currentUser.phone || '';
-                document.getElementById('profileBioInput').value = currentUser.bio || '';
+                const profileModalOpen = document.getElementById('profileModal').classList.contains('open');
+                if (!profileModalOpen) {
+                    if (currentUser.avatar_url) {
+                        document.getElementById('modalAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                    }
+                    document.getElementById('profileNameInput').value = currentUser.full_name || '';
+                    document.getElementById('profileUsernameInput').value = currentUser.username || '';
+                    document.getElementById('profilePhoneInput').value = currentUser.phone || '';
+                    document.getElementById('profileBioInput').value = currentUser.bio || '';
+                }
 
                 const aiHelloEl = document.getElementById('aiHelloText');
                 if (aiHelloEl && currentUser.full_name) {
@@ -1453,7 +1461,20 @@
             }
         });
 
-        function openProfileModal() { document.getElementById('profileModal').classList.add('open'); }
+        function openProfileModal() {
+            if (currentUser) {
+                document.getElementById('profileNameInput').value = currentUser.full_name || '';
+                document.getElementById('profileUsernameInput').value = currentUser.username || '';
+                document.getElementById('profilePhoneInput').value = currentUser.phone || '';
+                document.getElementById('profileBioInput').value = currentUser.bio || '';
+                if (currentUser.avatar_url) {
+                    document.getElementById('modalAvatarBox').innerHTML = `<img src="${currentUser.avatar_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                }
+                const letterEl = document.getElementById('modalAvatarLetter');
+                if (letterEl) letterEl.textContent = (currentUser.full_name || 'U').trim().charAt(0).toUpperCase() || 'U';
+            }
+            document.getElementById('profileModal').classList.add('open');
+        }
         function closeProfileModal() { document.getElementById('profileModal').classList.remove('open'); }
         function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
         function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
