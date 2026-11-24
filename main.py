@@ -221,6 +221,7 @@ class LoginRequest(BaseModel):
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
     username: str | None = None
+    phone: str | None = None
     avatar_url: str | None = None
     bio: str | None = None
     password: str | None = None
@@ -449,6 +450,14 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
                     raise HTTPException(status_code=400, detail="Bu username allaqachon band")
             updates.append("username = ?")
             params.append(uname)
+        if data.phone is not None:
+            phone = normalize_phone(data.phone)
+            if phone:
+                existing = connection.execute("SELECT user_id FROM users WHERE phone = ? AND user_id != ?", (phone, user_id)).fetchone()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Bu telefon raqam allaqachon band")
+            updates.append("phone = ?")
+            params.append(phone)
         if data.avatar_url is not None:
             updates.append("avatar_url = ?")
             params.append(data.avatar_url.strip())
