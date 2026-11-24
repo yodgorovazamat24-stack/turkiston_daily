@@ -757,6 +757,16 @@
             }
         }
 
+        function prefillRegisterForm(profile) {
+            const src = profile || {};
+            const tg = tgUser || {};
+            const name = src.full_name || [tg.first_name, tg.last_name].filter(Boolean).join(' ');
+            if (name) document.getElementById('regName').value = name;
+            const uname = src.username || tg.username || '';
+            if (uname) document.getElementById('regUsername').value = uname.startsWith('@') ? uname : '@' + uname;
+            if (src.phone) document.getElementById('regPhone').value = src.phone;
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async e => {
             e.preventDefault();
             const login = document.getElementById('loginPhone').value.trim();
@@ -828,8 +838,14 @@
                 const profile = await res.json();
                 currentUser = profile;
                 const srvLang = profile.settings && profile.settings.language;
-                if (srvLang && ['uz', 'ru'].includes(srvLang) && srvLang !== currentLang) {
+                if (srvLang && ['uz', 'ru', 'en'].includes(srvLang) && srvLang !== currentLang) {
                     changeLanguage(srvLang);
+                }
+                if (!profile.has_password) {
+                    prefillRegisterForm(profile);
+                    switchAuthMode('register');
+                    document.getElementById('authModal').classList.add('open');
+                    return;
                 }
                 document.getElementById('authModal').classList.remove('open');
 

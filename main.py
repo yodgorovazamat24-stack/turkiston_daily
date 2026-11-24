@@ -469,7 +469,7 @@ async def update_profile(data: ProfileUpdate, user_id: int = Depends(current_use
             params.append(1 if data.evening_review_enabled else 0)
         if data.language is not None:
             lang = data.language.strip().lower()
-            if lang not in {"uz", "ru", ""}:
+            if lang not in {"uz", "ru", "en", ""}:
                 raise HTTPException(status_code=400, detail="Noto'g'ri til kodi")
             updates.append("language = ?")
             params.append(lang)
@@ -1661,14 +1661,6 @@ def get_user_language(user_id) -> str:
         return "uz"
 
 
-def registration_prompt(lang: str) -> str:
-    if lang == "ru":
-        return ("👋 Добро пожаловать в Turkiston Daily!\n\n"
-                "Для регистрации введите ваше имя (например: Азамат Ёдгоров):")
-    return ("👋 Turkiston Daily'ga xush kelibsiz!\n\n"
-            "Ro'yxatdan o'tish uchun ismingizni kiriting (masalan: Azamat Yodgorov):")
-
-
 async def send_mini_app_invite(message, lang: str = "uz", registered: bool = False):
     if not WEBAPP_URL:
         await message.answer(
@@ -1696,34 +1688,14 @@ async def send_mini_app_invite(message, lang: str = "uz", registered: bool = Fal
 
 async def language_callback(callback):
     lang = (callback.data or "").split(":", 1)[-1]
-    if lang not in {"uz", "ru"}:
+    if lang not in {"uz", "ru", "en"}:
         await callback.answer()
         return
     user_id = callback.from_user.id
     with database() as connection:
         connection.execute("UPDATE users SET language = ? WHERE user_id = ?", (lang, user_id))
-    await callback.answer("Til saqlandi / Язык сохранён")
-    with database() as connection:
-        row = connection.execute("SELECT full_name FROM users WHERE user_id = ?", (user_id,)).fetchone()
-    if row and not (row["full_name"] or "").strip():
-        PENDING_ACTIONS[user_id] = {"action": "register_name"}
-        await callback.message.answer(
-            registration_prompt(lang),
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="Keyinroq ⏭" if lang == "uz" else "Позже ⏭", callback_data="reg:later")
-            ]]),
-        )
-    else:
-        await send_mini_app_invite(callback.message, lang)
-
-
-async def registration_later_callback(callback):
-    if not (callback.data or "").startswith("reg:"):
-        await callback.answer()
-        return
-    PENDING_ACTIONS.pop(callback.from_user.id, None)
-    await callback.answer()
-    await send_mini_app_invite(callback.message, get_user_language(callback.from_user.id))
+    await callback.answer("Til saqlandi / Language saved / Язык сохранён")
+    await send_mini_app_invite(callback.message, lang)
 
 
 async def start_cmd(message):
@@ -1734,26 +1706,17 @@ async def start_cmd(message):
         reply_markup=build_reply_keyboard(user_id),
     )
     with database() as connection:
-        row = connection.execute("SELECT language, full_name FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        row = connection.execute("SELECT language FROM users WHERE user_id = ?", (user_id,)).fetchone()
     lang = (row["language"] if row else "") or ""
-    full_name = (row["full_name"] if row else "") or ""
     if not lang:
         markup = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="lang:uz"),
+            InlineKeyboardButton(text="🇬🇧 English", callback_data="lang:en"),
             InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
         ]])
         await message.answer(
-            "Iltimos, tilni tanlang / Пожалуйста, выберите язык:",
+            "Iltimos, tilni tanlang / Please choose your language / Пожалуйста, выберите язык:",
             reply_markup=markup,
-        )
-        return
-    if not full_name.strip():
-        PENDING_ACTIONS[user_id] = {"action": "register_name"}
-        await message.answer(
-            registration_prompt(lang),
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="Keyinroq ⏭" if lang == "uz" else "Позже ⏭", callback_data="reg:later")
-            ]]),
         )
         return
     await send_mini_app_invite(message, lang)
@@ -2482,18 +2445,6 @@ async def capture_text_input(message):
         await update_task(task_id, TaskUpdate(missed_reason=text), user_id)
         await message.answer("Sabab va kechikish vaqti saqlandi.")
         return
-    if action == "register_name":
-        PENDING_ACTIONS.pop(user_id, None)
-        name = text[:120].strip()
-        tg_username = (message.from_user.username or "").strip().lstrip("@")
-        lang = get_user_language(user_id)
-        with database() as connection:
-            connection.execute(
-                "UPDATE users SET full_name = ?, username = CASE WHEN username IS NULL OR username = '' THEN ? ELSE username END WHERE user_id = ?",
-                (name, tg_username, user_id),
-            )
-        await send_mini_app_invite(message, lang, registered=True)
-        return
     PENDING_ACTIONS.pop(user_id, None)
     if action == "plan":
         parts = text.split(maxsplit=1)
@@ -2720,7 +2671,6 @@ if dp:
     dp.message(Command("broadcast"))(admin_broadcast_cmd)
     dp.message(Command("cancel"))(admin_cancel_cmd)
     dp.callback_query(F.data.startswith("lang:"))(language_callback)
-    dp.callback_query(F.data.startswith("reg:"))(registration_later_callback)
     dp.callback_query(F.data.startswith("admin:"))(admin_callback)
     dp.callback_query(F.data.startswith("excel:"))(excel_callback)
     dp.callback_query(F.data.startswith("report:"))(report_callback)
